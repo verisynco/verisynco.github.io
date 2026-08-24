@@ -1,0 +1,934 @@
+/* VeriLiv V2 — multi-vendor. Skeleton stylesheet.
+   Colour tokens and font stack are carried over from V1 so the two versions read
+   as one product. Nothing here is copied from V1's report layout — V2's report
+   styles are a later task. */
+
+/* ═══════════════════════════════════════════════ W-009 — THE DESIGN TOKENS
+   Three scales and one palette, declared once. Every value below is either
+   read out of v2/docs/DESIGN-DIRECTION.md (approved 2026-08-23) or was moved
+   by W-009 for a MEASURED reason, and the reason is written beside it.
+
+   The legacy names -- --ok/--low/--mid/--high/--sev, --muted, --faint, --hair,
+   --hair2 -- survive as aliases onto the new tokens. Five hundred lines of
+   working rules consume them; re-pointing the alias changes the palette without
+   touching a single one of those rules, and a rename that touched them all
+   would be a large diff whose only product is a different spelling. */
+:root{
+  /* ── Neutral. DESIGN-DIRECTION § 2.1 ── */
+  --paper:#FCFCFA; --ink:#16191C; --ink-2:#5A6570; --rule:#D8DCE0;
+  /* The axis frame is NOT a decorative hairline: an outlined band is how this
+     report says "no severity is recorded here" (§ 2.3), so the frame carries
+     meaning and WCAG 1.4.11 asks 3:1 of it. MEASURED: --rule reaches 1.34
+     against the paper and cannot carry that job; --frame reaches 3.06. */
+  --frame:#8C9298;
+
+  /* ── Severity. DESIGN-DIRECTION § 2.2 — one hue, light to dark, so the ramp
+     is read correctly in greyscale and by a red-green-deficient reader. ──
+     --sev-3 is the ONE value moved from the approved table. MEASURED: the
+     approved #B06A4E carried neither label colour at AA (white 4.07, ink 4.22,
+     both under 4.5 for the 8 px band names set inside the bar). #A66047 is the
+     smallest darkening that clears it: white reaches 4.66. Hue and the
+     monotone lightness order are unchanged. */
+  --sev-0:#F2F0EC; --sev-1:#E5CFC2; --sev-2:#D0A088;
+  --sev-3:#A66047; --sev-4:#7E2E22;
+
+  /* ── The third register. DESIGN-DIRECTION § 2.3 — reserved for W-008's
+     published uncertainty band and consumed by nothing yet. It is a NEUTRAL
+     grey: what separates it from the ramp is chroma, not lightness, so it stays
+     distinguishable when the colour is removed and the hatch is what carries it.
+     v2/tests/render.test.js N17 locks that separation. */
+  --uncertain:#9AA3AB;
+  /* W-015. The same register, darkened to the one thing --uncertain cannot do:
+     carry a 3:1 edge against the sheet (WCAG 1.4.11) so a withheld reading is
+     findable on paper. Still a neutral -- chroma, not lightness, is what keeps
+     the register apart from the severity ramp, and darkening does not touch it.
+     A separate token because --uncertain is W-008's band FILL and must keep its
+     measured value. */
+  --uncertain-edge:#7E868D;
+
+  /* ── Legacy aliases ── */
+  --muted:var(--ink-2); --faint:#8A939C; --hair:var(--rule); --hair2:#ECEEF0;
+  --accent:#2b4a6f; --accent-tint:#eaf0f6; --marker:#0f1b26; --flag:#b23b3b;
+  --ok:var(--sev-0); --low:var(--sev-1); --mid:var(--sev-2);
+  --high:var(--sev-3); --sev:var(--sev-4);
+
+  /* ── Spacing. ONE scale; nothing on the report surface sets a margin, a
+     padding or a gap outside it. The print budget is met by redefining these
+     seven values inside @media print rather than by restating thirty rules --
+     which is the entire reason the scale exists. ── */
+  --s-1:2px; --s-2:3px; --s-3:5px; --s-4:8px;
+  --s-5:12px; --s-6:18px; --s-7:26px;
+
+  /* ── Type. Named by JOB, because DESIGN-DIRECTION § 1 is a rule about jobs:
+     the patient's own measured value dominates, the stage is second, and
+     provenance never outweighs either. --t-value is the largest token in this
+     block and --t-micro the smallest, and N17 asserts that order. ── */
+  --t-value:15px;   /* the measured value. Nothing on a card competes with it. */
+  --t-name:12.5px;  /* the parameter's name, the impression, headings          */
+  --t-band:11.5px;  /* the verdict chip -- the stage, second in the hierarchy  */
+  --t-body:10.5px;  /* prose: notes, caveats, described gaps                   */
+  --t-meta:9.5px;   /* acquisition lines, boundary values, reference rows      */
+  --t-micro:8px;    /* field labels, record ids, PMIDs -- and never bold       */
+
+  /* SYSTEM FACES ONLY. No webfont is requested (see v2/index.html), so these are
+     the faces the page actually gets — not a fallback nobody measured. The data
+     face stays monospace so columns of figures still line up, and Consolas gives
+     a slashed zero on Windows. DESIGN-DIRECTION.md § 3.1. */
+  --sans:system-ui,"Segoe UI",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,Menlo,monospace;
+  --serif:Georgia,"Times New Roman","Nimbus Roman",serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body { background:#e9edf1; color:var(--ink); font-family:var(--sans);
+       font-size:12.5px; line-height:1.4; min-height:100vh; padding:24px; }
+body.gate-open { overflow:hidden; }
+
+.shell{width:100%;max-width:720px;background:var(--paper);border-radius:8px;
+  box-shadow:0 3px 20px rgba(15,27,38,.14);padding:30px 34px 26px;}
+
+.lockup{font-family:var(--mono);font-size:8.5px;color:var(--faint);letter-spacing:.1em;margin-bottom:3px;}
+.lockup b{color:var(--accent);font-weight:700;letter-spacing:.02em;}
+h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0;color:var(--ink);}
+.sub{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.11em;margin-top:3px;}
+/* W-040 removed a bare `.rule{...}` here. Nothing in V2 writes <hr class="rule">,
+   but the renderer writes <span class="rule"> twice — the composite section head
+   and every methodology table head — and this selector reached both, handing each
+   a 2 px accent border and 27 px of margin nobody asked for. Five methodology
+   table heads carried 135 px of it. The filler line is styled by
+   `.section-head .rule` and `.p2-h .rule`, and only by those. */
+
+.warn{border:1px solid var(--mid);background:#fdf6e6;border-radius:6px;padding:11px 13px;font-size:11.5px;}
+.warn b{font-weight:600;}
+
+.lede{color:var(--muted);font-size:12px;margin:14px 0 0;}
+.lede a{color:var(--accent);}
+code{font-family:var(--mono);font-size:11px;background:var(--accent-tint);padding:1px 4px;border-radius:3px;}
+
+footer{margin-top:18px;padding-top:11px;border-top:1px solid var(--hair2);
+  font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.05em;}
+
+/* ══════════════ ACCESS GATE — TERMS & CLINICAL DISCLAIMER ══════════════
+   Ported from v1/css/styles.css:215-306 — a solved layout, not reinvented
+   here. Only the source file's own rules travel; V2's clinical text differs
+   (see v2/index.html), the CSS selectors do not. */
+:root{ --gate-ink:#e4edf5; --gate-dim:#b0c2d1; --gate-faint:#7d93a8; --gate-line:rgba(255,255,255,.09); --gate-blue:#4a86c8; }
+
+.gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px 18px;
+  background:rgba(8,15,22,.74);backdrop-filter:blur(12px) saturate(.55);-webkit-backdrop-filter:blur(12px) saturate(.55);
+  animation:gate-in .28s ease-out both;}
+.gate[hidden]{display:none;}
+body.gate-open{overflow:hidden;}
+@keyframes gate-in{from{opacity:0;}to{opacity:1;}}
+@keyframes card-in{from{opacity:0;transform:translateY(14px) scale(.985);}to{opacity:1;transform:none;}}
+
+.gate-card{width:min(700px,100%);max-height:min(88vh,780px);display:flex;flex-direction:column;overflow:hidden;
+  background:linear-gradient(168deg,#16242f 0%,#101b25 58%,#0d1720 100%);color:var(--gate-ink);
+  border:1px solid var(--gate-line);border-radius:14px;
+  box-shadow:0 24px 70px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.05) inset;
+  animation:card-in .34s cubic-bezier(.22,.9,.3,1) both;}
+.gate-card[hidden]{display:none;}
+
+.gate-head{position:relative;padding:22px 28px 15px;border-bottom:1px solid var(--gate-line);flex:none;}
+.gate-head::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--gate-blue),#2b4a6f 55%,transparent);}
+.gate-badge{display:inline-block;background:rgba(74,134,200,.16);color:#8fb9e6;border:1px solid rgba(74,134,200,.34);
+  font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:3px;}
+.gate-head h2{margin:11px 0 3px;font-size:21px;font-weight:600;letter-spacing:-.015em;color:#fff;line-height:1.2;}
+.gate-sub{font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--gate-faint);}
+
+.gate-body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 28px 14px;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px);mask-image:linear-gradient(180deg,transparent 0,#000 14px);}
+.gate-body:focus-visible{outline:none;}
+.gate-body::-webkit-scrollbar{width:9px;}
+.gate-body::-webkit-scrollbar-track{background:transparent;}
+.gate-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.13);border-radius:9px;border:3px solid transparent;background-clip:content-box;}
+.gate-body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.24);background-clip:content-box;}
+
+.gc{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.gc:last-child{border-bottom:none;}
+.gc h3{display:flex;align-items:baseline;gap:9px;margin:0 0 6px;font-size:11px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:#fff;}
+.gc h3 .n{font-family:var(--mono);font-size:9.5px;font-weight:500;color:var(--gate-blue);letter-spacing:.04em;}
+.gc p{margin:0;font-size:12.5px;line-height:1.65;color:var(--gate-dim);}
+.gc strong{color:#fff;font-weight:600;}
+.gc em{color:#a8cbef;font-style:italic;}
+
+.gate-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:15px 28px;border-top:1px solid var(--gate-line);background:rgba(0,0,0,.26);}
+.gate-check{position:relative;display:flex;align-items:center;gap:10px;cursor:pointer;
+  font-size:12px;color:var(--gate-dim);user-select:none;}
+.gate-check input{position:absolute;opacity:0;width:0;height:0;}
+.gate-check .box{flex:none;width:17px;height:17px;border:1.5px solid rgba(255,255,255,.26);border-radius:4px;
+  background:rgba(255,255,255,.04);transition:background .15s,border-color .15s;}
+.gate-check .box::after{content:"";display:block;width:4px;height:8px;margin:2px auto 0;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg) scale(0);transition:transform .16s cubic-bezier(.3,1.4,.5,1);}
+.gate-check:hover .box{border-color:rgba(255,255,255,.44);}
+.gate-check input:checked + .box{background:var(--gate-blue);border-color:var(--gate-blue);}
+.gate-check input:checked + .box::after{transform:rotate(42deg) scale(1);}
+.gate-check input:focus-visible + .box{outline:2px solid var(--gate-blue);outline-offset:2px;}
+.gate-check input:checked ~ .lbl{color:var(--gate-ink);}
+
+.gate-actions{display:flex;gap:9px;margin-left:auto;}
+.gate-btn{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.03em;
+  padding:9px 18px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s,opacity .15s;}
+.gate-btn.deny{background:transparent;border:1px solid rgba(255,255,255,.17);color:#9fb2c2;}
+.gate-btn.deny:hover{border-color:rgba(192,57,43,.6);color:#e08b82;background:rgba(192,57,43,.1);}
+.gate-btn.accept{background:var(--gate-blue);border:1px solid var(--gate-blue);color:#fff;font-weight:600;}
+.gate-btn.accept:hover:not(:disabled){background:#5b96d6;border-color:#5b96d6;}
+.gate-btn.accept:disabled{opacity:.34;cursor:not-allowed;}
+.gate-btn:focus-visible{outline:2px solid var(--gate-blue);outline-offset:2px;}
+
+.gate-card.declined{max-width:470px;text-align:center;padding:38px 34px 34px;}
+.gate-lock{width:52px;height:52px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:rgba(224,123,42,.12);border:1px solid rgba(224,123,42,.3);color:#e09a5a;}
+.gate-lock svg{width:24px;height:24px;}
+.gate-card.declined h2{margin:0 0 9px;font-size:19px;font-weight:600;letter-spacing:-.01em;color:#fff;}
+.gate-card.declined p{margin:0 0 8px;font-size:12.5px;line-height:1.6;color:var(--gate-dim);}
+.gate-card.declined p.reload{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--gate-line);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.03em;color:var(--gate-faint);}
+
+/* Locked page behind a declined gate */
+body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42);pointer-events:none;user-select:none;}
+
+/* Acknowledgement stamp in the page-1 footer */
+.footer{flex-wrap:wrap;}
+.ack{flex:0 0 100%;margin-top:5px;padding-top:4px;border-top:1px dotted var(--hair);color:var(--faint);}
+.ack[hidden]{display:none!important;}
+
+/* Provenance stamp — which build + which cut-off set produced this print.
+   Not gated: renders on load and always reaches the printed page. */
+.ver{flex:0 0 100%;margin-top:5px;padding-top:4px;border-top:1px dotted var(--hair);
+     color:var(--faint);font-family:var(--mono);letter-spacing:.01em;}
+/* When both stamps show, one dotted rule is enough for the pair. */
+.ver + .ack{border-top:none;margin-top:2px;padding-top:0;}
+
+@media (prefers-reduced-motion:reduce){
+  .gate,.gate-card{animation:none;}
+  .gate-check .box::after{transition:none;}
+}
+
+/* ── Print guard ───────────────────────────────────────────────────────────
+   V1 withholds the report until the terms are accepted. V2 has a second
+   condition: an acquisition path must be chosen, because a report with no path
+   has no provenance stamp and no vendor mode to stage against. Both conditions
+   are checked here as well as in app.js's window.print wrapper — the browser's
+   own Ctrl+P never reaches that wrapper. */
+@media print {
+  body:not(.gate-accepted) #app,
+  body:not(.path-chosen) #app { display: none !important; }
+  body:not(.gate-accepted)::after,
+  body:not(.path-chosen)::after {
+    content: "VeriLiv V2 — the report was not printed: the terms of use were not accepted, or no acquisition was selected.";
+    display: block; padding: 40px; font-family: var(--mono); font-size: 11px;
+  }
+  .gate { display: none !important; }
+}
+
+/* ── Selection screen and report ───────────────────────────────────────────── */
+#app { max-width: 960px; margin: 0 auto; background: var(--paper);
+       border-radius: 8px; box-shadow: 0 3px 20px rgba(15,27,38,.14); padding: 26px 30px; }
+.setup h2 { font-size: 15px; margin: 0 0 8px; }
+.paths { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.axes { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 4px;
+        padding-top: 12px; border-top: 1px solid var(--hair2); }
+.axes label, .path { font-size: 12px; color: var(--ink); }
+.note { font-size: 11.5px; color: var(--muted); margin: 6px 0 0; }
+
+.prow { border-top: 1px solid var(--hair2); padding: 12px 0; }
+.phead { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.phead h3 { font-size: 13px; margin: 0; flex: 1 1 180px; }
+.pval input { width: 90px; }
+.pval .unit { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: 4px; }
+.method { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.method-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em;
+                text-transform: uppercase; color: var(--faint); }
+.method-note { font-size: 10.5px; color: var(--muted); }
+.method-examples { font-size: 10px; color: var(--faint); }
+
+/* W-028 removed .scales / .bar / .rung / .marker with the boundary table they
+   styled. The ruler below replaced that table; the boundary values it carried
+   are still printed, as .ticks. */
+.why { font-size: 10.5px; color: var(--muted); margin: 4px 0 0; }
+
+.gap, .withheld, .scopegap { font-size: 11px; margin: 6px 0 0; padding: 7px 9px;
+       border-radius: 5px; border: 1px solid var(--hair); background: var(--hair2); }
+.withheld { border-color: var(--mid); background: #fdf6e6; }
+.gap b, .withheld b { font-weight: 600; }
+
+#report footer { margin-top: 18px; padding-top: 11px; border-top: 1px solid var(--hair2); }
+#ver-line { font-family: var(--mono); font-size: 9px; color: var(--faint);
+            white-space: pre-wrap; margin: 0; }
+#ack-line { font-family: var(--mono); font-size: 9px; color: var(--faint); margin-top: 5px; }
+
+@media print {
+  body { background: #fff; padding: 0; }
+  #app { box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
+  #setup { display: none; }
+  .prow { break-inside: avoid; }
+}
+
+
+/* ═══════════════════════════════════════════ W-007 — THE THREE A4 SHEETS
+   Adapted from v1/css/styles.css, which is frozen and was not edited. The page
+   box, the break rules and the print tightening are V1's; the class names are
+   V2's. The coloured zone band, the ruler and the verdict chip are NOT here —
+   W-028 draws them into the block this stylesheet lays out. */
+
+#app { max-width: none; background: transparent; box-shadow: none;
+       border-radius: 0; padding: 0; }
+
+.page { width: 210mm; min-height: 297mm; margin: var(--s-6) auto; background: var(--paper);
+        padding: 11mm 12mm 9mm; box-shadow: 0 3px 20px rgba(15,27,38,.14);
+        position: relative; }
+.pagebreak { page-break-before: always; }
+.sheet-title { font-size: 13px; font-weight: 700; text-transform: uppercase;
+               letter-spacing: .13em; margin: 0 0 var(--s-4); color: var(--ink); }
+
+/* The acquisition summary — the one line that says which path produced this
+   sheet. It repeats on every sheet, because a sheet can be read on its own. */
+.acqsum { display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: center;
+          border: 1px solid var(--hair); border-radius: 6px; padding: var(--s-3) var(--s-4);
+          margin: 0 0 var(--s-4); font-family: var(--mono); font-size: 9px; }
+.acqsum .badge { background: var(--accent); color: #fff; font-weight: 600;
+                 letter-spacing: .06em; padding: var(--s-1) var(--s-4); border-radius: 3px; }
+.acqsum .axis { color: var(--muted); letter-spacing: .04em; }
+
+/* Laboratory block. The grid is V1's; this build prints the pending line only. */
+.labs { border: 1px solid var(--hair); border-radius: 6px; margin: 0 0 var(--s-4);
+        overflow: hidden; }
+.labs-head { background: var(--hair2); padding: var(--s-3) var(--s-4); }
+.labs-head .t { font-family: var(--mono); font-size: 8.5px; letter-spacing: .11em;
+                text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.labs-pending { margin: 0; padding: var(--s-4) var(--s-4); font-size: 10.5px; color: var(--muted); }
+
+/* A mounted section, its heading, and the domain blocks inside it. */
+.psection { margin: 0 0 var(--s-5); }
+/* W-040 — L1, THE SHEET SECTION. One idiom for the three boundaries that say a
+   new part of the report begins: the measurements, the composite, the
+   impression. The 2 px accent rule is the masthead's own, borrowed rather than
+   invented, and it is a BORDER on a heading that already carried margin — so the
+   ladder costs the page nothing, which the four-page budget requires. L2 is
+   `.domainhead`'s hairline, unchanged; L3 was `.pcard`'s border and is gone. */
+.psection > h2 { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                 letter-spacing: .11em; margin: var(--s-5) 0 var(--s-3);
+                 padding-top: var(--s-3); color: var(--accent);
+                 border-top: 2px solid var(--accent); }
+.psection:first-of-type > h2 { margin-top: 0; }
+/* W-035: the domain heading a run of cards is printed under. Deliberately the
+   THIN form -- a small label over a hairline, not a block heading -- because the
+   report's four-page budget is a measured fact (W-009) and six headings on the
+   clinical sheet buy their vertical space from the cards. It borrows `--muted`
+   and `--hair`, both already in the contrast pairs N17 asserts; a heading is a
+   signpost between cards, never a thing that competes with a measured value. */
+.domainhead { font-size: 8.5px; font-weight: 700; text-transform: uppercase;
+              letter-spacing: .1em; color: var(--muted);
+              margin: var(--s-5) 0 var(--s-3); padding-bottom: var(--s-1);
+              border-bottom: 1px solid var(--hair); }
+.domainhead:first-child { margin-top: 0; }
+.snote { font-size: 10.5px; color: var(--muted); line-height: 1.5; margin: 0 0 var(--s-4); }
+.section { margin-bottom: var(--s-4); }
+.section-head { display: flex; align-items: baseline; gap: var(--s-4); margin-bottom: var(--s-3); }
+.composite .section-head { margin-top: var(--s-5); padding-top: var(--s-3);
+                           border-top: 2px solid var(--accent); }
+.section-head .idx { font-family: var(--mono); font-size: 10px; color: var(--accent);
+                     font-weight: 600; }
+.section-head h3 { font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .13em; margin: 0; color: var(--ink); }
+.section-head .rule { flex: 1; height: 1px; background: var(--hair); align-self: center; }
+
+.phead h4 { font-size: 12px; font-weight: 600; margin: 0; }
+.acq { font-family: var(--mono); font-size: 9px; color: var(--faint);
+       margin: var(--s-1) 0 var(--s-3); letter-spacing: .01em; }
+.verdicts { list-style: none; margin: var(--s-3) 0 0; padding: 0; font-size: 11px; }
+.verdicts li { padding: var(--s-1) 0; }
+.verdicts .vscale { font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em;
+                    text-transform: uppercase; color: var(--accent); margin-right: var(--s-3); }
+.disagree { font-size: 10.5px; line-height: 1.5; margin: var(--s-3) 0 0; padding: var(--s-4) var(--s-4);
+            border: 1px solid #e0c9a0; border-left: 3px solid var(--mid);
+            background: #fdf9f0; border-radius: 5px; }
+.prov { font-size: 10px; color: var(--muted); line-height: 1.5; margin: var(--s-3) 0 0; }
+
+/* ══════════════════════════════════════ W-028 — THE RULER AND THE VERDICT CHIP
+   The chip's five severity classes and the ruler's band fills are V1's, and they
+   consume the --ok / --low / --mid / --high / --sev tokens declared at the top of
+   this file, which until now nothing did. The palette is NOT re-chosen here:
+   W-019 owns it, and these rules only point at it.
+
+   ⛔ COLOUR IS NEVER THE ONLY CARRIER OF MEANING. Every band prints its name
+      inside the bar, every boundary prints its value under it, and the chip
+      prints the band name and its severity word. On a greyscale print the fills
+      collapse to grey and the report still reads. */
+
+.rulers { margin-top: var(--s-4); }
+.rul + .rul { margin-top: var(--s-3); }
+.rul-head { display: flex; align-items: baseline; gap: var(--s-4);
+            font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em;
+            text-transform: uppercase; }
+.rul-scale { color: var(--accent); font-weight: 600; }
+.rul.second .rul-scale { color: var(--muted); font-weight: 500; }
+.rul-role { color: var(--faint); }
+.rul.staging .rul-role { color: var(--marker); font-weight: 600; }
+
+svg.ruler { display: block; width: 100%; height: auto; overflow: visible;
+            margin-top: var(--s-1); }
+/* Band fills. z-none is the case that matters: a parameter for which no severity
+   could be sourced is drawn as an outlined band with no fill at all. */
+svg.ruler .z { fill-opacity: .9; }
+svg.ruler .z-ok   { fill: var(--ok); }
+svg.ruler .z-low  { fill: var(--low); }
+svg.ruler .z-mid  { fill: var(--mid); }
+svg.ruler .z-high { fill: var(--high); }
+svg.ruler .z-sev  { fill: var(--sev); }
+svg.ruler .z-none { fill: var(--hair2); stroke: var(--hair); stroke-width: .6; }
+/* W-040 removed `.zl` and `.tl` from here. Both styled text drawn INSIDE this
+   SVG, and this SVG is scaled to its container — MEASURED at 0.753, so their
+   declared 8 px and 7.5 px arrived at 6.0 px and 5.6 px, under the 8 px floor. The band
+   names are now set by `.bands` and the boundary values by `.ticks`, both HTML,
+   both at a declared size the reader actually receives. */
+svg.ruler .tick { stroke: #fff; stroke-width: 1; }
+svg.ruler .frame { fill: none; stroke: var(--hair); stroke-width: .6; }
+/* W-041. THE MARKER GETS A SECOND EDGE, NOT A SECOND COLOUR. --marker is one
+   colour, and no single colour reads on both ends of a ramp built to run light
+   to dark: MEASURED against the five fills, 15.31 / 11.65 / 7.52 / 3.64 / 1.91:1,
+   so a value landing in the severe band fell below WCAG 1.4.11's 3:1 for a
+   graphical object that carries meaning. The halo is painted in the SHEET's own
+   colour behind the line, which gives the object two edges — the dark one is
+   what reads on the pale fills, the light one on the dark fills, and at every
+   step one of them clears 3.0: 15.31 / 11.65 / 7.52 / 4.66 / 8.88.
+   Rejected: a second marker tone for dark bands. It needs a new palette value
+   AND a question the drawing does not otherwise ask (which band did this value
+   fall in), and it prints one report's marker in two colours.
+   The halo covers the LINE only. The flag and the value chip sit above the bar,
+   on paper, where the marker already reaches 16.96:1.
+
+   THE WIDTH IS A DELIVERED WIDTH, NOT A DECLARED ONE — W-040's lesson, applied
+   before it could be learned twice. This SVG is scaled to its container at a
+   MEASURED 0.753, so the halo's visible ring is (5 - 2) / 2 = 1.5 user units
+   per side, arriving as 1.13 px. A stroke-width of 4 would have delivered 0.75 px
+   a side: declared as a ring, delivered as a suggestion. */
+svg.ruler .mkh { stroke: var(--paper); stroke-width: 5; }
+svg.ruler .mk { stroke: var(--marker); stroke-width: 2; }
+svg.ruler .mkf, svg.ruler .mkc { fill: var(--marker); }
+/* THE ONE SIZE DECLARED ABOVE THE FLOOR, and the reason is the scaling: this
+   text is inside the SVG because its meaning is its horizontal position, so it
+   cannot move to the HTML the way the band names did. MEASURED with Edge
+   headless: the drawing runs at 0.753 of its viewBox on the worst-case sheet, so
+   11 px would deliver 8.3 px — on the 8 px floor with 0.3 px to spare, which is
+   not a margin. 12 px delivers 9.0 px and is what ships. A typed literal on
+   purpose: if the card's middle column ever changes, this number has to move, and
+   a literal is what makes that move fail a test instead of passing quietly. */
+svg.ruler .mkt { font-family: var(--mono); font-size: 12px; font-weight: 600; fill: #fff; }
+svg.ruler.slim { opacity: .8; }
+
+/* The band legend, printed under EVERY bar since W-040. The swatch repeats the
+   band's fill so the legend and the bar are read as one object; the NAME is what
+   carries the meaning, and this is now the only place it is set — in HTML, at a
+   declared size that is the delivered size. */
+.bands { display: flex; flex-wrap: wrap; gap: var(--s-4); margin: var(--s-1) 0 0;
+         font-family: var(--mono); font-size: 8.5px; color: var(--ink); }
+.bands .bd { display: inline-flex; align-items: center; gap: var(--s-3); }
+.bands .bd::before { content: ""; width: 8px; height: 8px; border-radius: 2px;
+                     border: 1px solid var(--hair); background: var(--hair2); }
+.bands .bd-ok::before   { background: var(--ok);   border-color: var(--ok); }
+.bands .bd-low::before  { background: var(--low);  border-color: var(--low); }
+.bands .bd-mid::before  { background: var(--mid);  border-color: var(--mid); }
+.bands .bd-high::before { background: var(--high); border-color: var(--high); }
+.bands .bd-sev::before  { background: var(--sev);  border-color: var(--sev); }
+
+.ticks { display: flex; flex-wrap: wrap; gap: var(--s-5); margin: var(--s-1) 0 0;
+         font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.ticks .tk b { color: var(--faint); font-weight: 500; margin-right: var(--s-2); }
+.bandnote { font-size: 10px; color: var(--muted); line-height: 1.45; margin: var(--s-2) 0 0; }
+
+/* The verdict chip — v1/css/styles.css:85-92, ported. v-none is V2's own: a band
+   that is named but carries no sourced severity, which V1 never had to draw. */
+.verdict { text-align: center; font-family: var(--mono); font-weight: 600;
+           font-size: 11.5px; padding: var(--s-3) var(--s-4); border-radius: 5px;
+           border: 1.5px solid; line-height: 1.15; min-width: 116px; }
+.verdict .vsub { display: block; font-size: 7.5px; font-weight: 400;
+                 letter-spacing: .03em; margin-top: var(--s-1); opacity: .85; }
+.v-ok   { color: #1d6b48; border-color: var(--ok);   background: #edf7f1; }
+.v-low  { color: #5c7020; border-color: var(--low);  background: #f4f8ea; }
+.v-mid  { color: #8a6410; border-color: var(--mid);  background: #fdf6e6; }
+.v-high { color: #8a4415; border-color: var(--high); background: #fdefe3; }
+.v-sev  { color: #8f2018; border-color: var(--sev);  background: #fbecea; }
+.v-none { color: var(--ink); border-color: var(--hair); background: #f6f8f9; }
+.v-na   { color: var(--muted); border-color: var(--hair); background: #f6f8f9;
+          font-weight: 400; }
+/* W-015. The withheld reading. It borrows the THIRD register (--uncertain), so
+   it is separated from the severity ramp by chroma rather than by lightness and
+   survives a greyscale print as an absence rather than as a mild severity. */
+.v-nointerp { color: var(--ink); border-color: var(--uncertain-edge);
+              background: #F3F5F6; font-weight: 500; }
+
+/* ── Sheet 3 — the receipts ── */
+.p2-h { display: flex; align-items: baseline; gap: var(--s-4); margin: var(--s-5) 0 var(--s-3); }
+.p2-h .idx { font-family: var(--mono); font-size: 10px; color: var(--accent);
+             font-weight: 600; }
+.p2-h h2 { font-size: 11px; font-weight: 700; text-transform: uppercase;
+           letter-spacing: .11em; margin: 0; }
+.p2-h .rule { flex: 1; height: 1px; background: var(--hair); align-self: center; }
+#methodology p { font-size: 10.5px; line-height: 1.55; margin: 0 0 var(--s-3); }
+#methodology p.counted { font-family: var(--mono); font-size: 10px; color: var(--accent); }
+.receipt { margin: 0 0 var(--s-4); }
+.receipt h4 { font-size: 10.5px; font-weight: 600; margin: 0 0 var(--s-2); }
+.srcs { margin: 0; padding-left: var(--s-6); font-size: 9.5px; line-height: 1.45; }
+.srcs li { margin-bottom: var(--s-1); }
+.cal { font-family: var(--mono); font-size: 9.5px; color: var(--muted); }
+.refnote { color: var(--muted); }
+.refs { margin: 0; padding-left: var(--s-6); font-size: 9.5px; line-height: 1.45; }
+.refs li { margin-bottom: var(--s-1); }
+.refs .rid { font-family: var(--mono); font-size: 8.5px; color: var(--faint);
+             margin-right: var(--s-3); }
+.census { font-family: var(--mono); font-size: 9px; color: var(--faint);
+          margin-top: var(--s-4); }
+#methodology footer { margin-top: var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--hair2); }
+
+@media print {
+  /* The page box owns the margins, not .page — a sheet that overflows continues
+     flush to the paper edge, and @page re-applies the margin on every sheet. */
+  @page { size: A4 portrait; margin: 8mm 11mm; }
+  body { background: #fff; font-size: 10.5px; }
+  .page { width: auto; min-height: auto; margin: 0; box-shadow: none; padding: 0; }
+  .pagebreak { break-before: page; page-break-before: always; }
+  .page > *:last-child { margin-bottom: 0; }
+
+  /* Keep a block whole rather than letting it straddle two sheets.
+     W-009: `.psection` and `.section` were in this list and were the reason the
+     clinical sheet printed a third page it did not need. A mounted section holds
+     every card in its tier and is roughly 300 mm tall -- taller than the 281 mm
+     a sheet has -- so "do not break me" cannot be honoured, and the browser
+     answers by pushing the whole section to a fresh page and overflowing it
+     anyway. The atomic unit here is the CARD, not the section that collects
+     them. MEASURED: the clinical sheet went from three printed pages to two on
+     this line alone, with no change to spacing, type or content. */
+  .prow, .receipt,
+  .disagree { break-inside: avoid; page-break-inside: avoid; }
+  /* A heading stranded at the foot of a sheet points at nothing. */
+  .section-head, .p2-h, .psection > h2,
+  .domainhead { break-after: avoid; page-break-after: avoid; }
+
+  /* Entry controls carry no chrome on paper; the values still print. */
+  .pval input, .method select { border-color: transparent !important;
+                                background: transparent !important; }
+
+  .section { margin-bottom: var(--s-3); }
+  .section-head { margin-bottom: var(--s-1); }
+  .prow { padding: var(--s-1) 0; }
+  /* The ruler is the one thing that must NOT shrink on paper: its tick labels
+     are drawn to the bottom of the viewBox, and a squeezed bar clips them.
+     Colours are forced through so a colour printer still prints the bands, and
+     the band names inside them are what a greyscale printer falls back to. */
+  .rulers { margin-top: var(--s-3); }
+  svg.ruler { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .verdict { padding: var(--s-2) var(--s-3); }
+  .acqsum { padding: var(--s-2) var(--s-4); margin-bottom: var(--s-3); }
+  .labs { margin-bottom: var(--s-3); }
+  .refs, .srcs { line-height: 1.25; font-size: 9px; }
+}
+
+
+/* ═══════════════════════════════════════════ W-030 — THE V1-SHAPED SURFACE
+   STRUCTURE ONLY. The palette and the typefaces are NOT re-chosen here: W-019
+   owns the design direction, and selecting a new identity in this task would
+   silently consume that card. Everything below uses tokens that already exist —
+   --ok / --low / --mid / --high / --sev, --accent, and the IBM Plex pair with
+   system fallbacks so an offline print is unchanged. */
+
+.masthead { display: flex; justify-content: space-between; align-items: flex-start;
+  border-bottom: 2px solid var(--accent); padding-bottom: var(--s-4); margin-bottom: var(--s-4); }
+.masthead h1 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+.masthead .detail { max-width: 62ch; font-size: 10.5px; color: var(--muted);
+  margin: var(--s-3) 0 0; line-height: 1.45; }
+.badge { display: inline-block; background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 8px; font-weight: 600; letter-spacing: .06em;
+  padding: var(--s-1) var(--s-4); border-radius: 3px; margin-top: var(--s-3); }
+
+.meta { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+  border: 1px solid var(--hair); border-radius: 6px; overflow: hidden; margin: 0 0 var(--s-3); }
+.meta.study { grid-template-columns: repeat(2, 1fr); }
+.meta .cell { padding: var(--s-3) var(--s-4); border-right: 1px solid var(--hair2); }
+.meta .cell:last-child { border-right: none; }
+.meta label { display: block; font-family: var(--mono); font-size: 8px;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--faint); margin-bottom: var(--s-1); }
+.meta input, .meta select { width: 100%; border: none; background: transparent;
+  color: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+  padding: var(--s-1) 0; outline: none; }
+.pathnote { font-size: 10px; color: var(--muted); margin: var(--s-2) 0 var(--s-4); }
+
+/* THE SIGNATURE ELEMENT is the shared axis: one vertical marker crosses both bars
+   at the same x, so a disagreement between two published ladders is a picture
+   rather than two sentences. Everything around it stays quiet. */
+/* W-040 — L3 IS GONE. The card used to draw a separator in --hair2, which
+   reaches 1.09 against the paper: on screen it was faint and in print it was not
+   there at all. With L1 marking the section and L2 marking the domain group, a
+   third line nobody can see is worse than none — cards inside a group are
+   separated by proximity, which is what the padding is for. */
+.pcard { display: grid; grid-template-columns: 1fr 2fr auto; gap: var(--s-5);
+  align-items: start; padding: var(--s-4) 0; }
+.pcard .pident h4 { margin: 0 0 var(--s-1); font-size: 12.5px; }
+.pcard .acq { margin: 0 0 var(--s-3); font-size: 9.5px; color: var(--muted); }
+.pcard .pval { display: flex; align-items: baseline; gap: var(--s-3); }
+.pcard .pval input { width: 74px; font-family: var(--mono); font-size: 14px;
+  font-weight: 600; border: 1px solid var(--hair); border-radius: 4px; padding: var(--s-1) var(--s-3); }
+.pcard .pval .unit { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+/* W-033 -- A DERIVED LIC IS A READOUT, NOT A FIELD. The readout carries the
+   value's weight (the same --t-value as an entered number, DESIGN-DIRECTION
+   § 1), the badge names which of the two states this card is in, and the
+   override box sits beside it in the muted register: reachable, and visibly not
+   the primary answer. No new colour token -- the badge borrows the grey
+   uncertainty register, because "computed here" is a statement about the
+   number's origin, not about its severity. */
+.pcard .pval.derived { flex-wrap: wrap; }
+.pcard .pderived { font-family: var(--mono); font-size: var(--t-value);
+  font-weight: 700; letter-spacing: -0.01em; }
+.pcard .dbadge { font-size: 8.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--hair); border-radius: 3px;
+  padding: 0 var(--s-2); align-self: center; }
+.pcard .povr { display: inline-flex; align-items: baseline; gap: var(--s-2); }
+.pcard .povr input { width: 56px; font-family: var(--mono); font-size: 10px;
+  font-weight: 500; border: 1px dashed var(--hair); border-radius: 4px;
+  padding: 0 var(--s-2); color: var(--muted); }
+.pcard .povr .ohint { font-size: 8.5px; color: var(--muted); }
+.pcard .calline { margin: var(--s-2) 0 0; font-family: var(--mono); font-size: 9px;
+  color: var(--muted); }
+.pcard .pfacts { grid-column: 1 / -1; }
+.pcard .pfacts p { margin: var(--s-2) 0 0; font-size: 10px; }
+.pcard svg.ruler { width: 100%; height: auto; display: block; }
+.rul { margin-bottom: var(--s-3); }
+.rul-head { display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--mono); font-size: 8px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--faint); }
+.rul-matched .rul-head .rul-role { font-style: italic; }
+.vfrom { display: block; font-family: var(--mono); font-size: 8px; color: var(--faint);
+  margin-top: var(--s-2); text-align: right; }
+.ptag { display: inline-block; font-family: var(--mono); font-size: 9px;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--accent);
+  background: var(--accent-tint); padding: var(--s-1) var(--s-3); border-radius: 3px; margin-bottom: var(--s-2); }
+.onebar, .matched, .alsomatched, .bandnote, .ticks { font-size: 10px; color: var(--muted);
+  margin: var(--s-1) 0 0; }
+.matched { color: var(--ink); }
+.method { display: block; margin-top: var(--s-3); font-size: 10px; }
+.method .mlabel { display: block; font-family: var(--mono); font-size: 8px;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+.method .mgroup, .method .mex { display: block; font-size: 9px; color: var(--faint); }
+
+.labs-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s-3); }
+/* W-040 — THE CELL THAT HAD NO RULE. `.lc` carried no declaration anywhere in
+   this file, so every laboratory and clinical-context field took the browser's
+   default number input, roughly 173 px wide. A `1fr` track cannot shrink below
+   its content's min-width, so five of them overflowed the 186 mm content box and
+   the last one — "Transferrin sat." — hung off the paper. `min-width:0` is what
+   lets the track shrink; the LABEL is not abbreviated to make room, because a
+   field name a reader has to decode is a worse answer than a narrow box.
+   `.meta input` and `.pcard .pval input` both declared their width already;
+   these cells were simply missed. */
+.lc { min-width: 0; }
+.lc label { display: block; font-family: var(--mono); font-size: var(--t-micro);
+  letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+  margin-bottom: var(--s-1); overflow-wrap: anywhere; }
+.lc .r2 { display: flex; align-items: baseline; gap: var(--s-2); min-width: 0; }
+.lc input, .lc select { width: 100%; min-width: 0; border: 1px solid var(--hair);
+  border-radius: 4px; background: transparent; color: var(--ink);
+  font-family: var(--mono); font-size: var(--t-body); padding: var(--s-1) var(--s-2); }
+.lc .u { font-family: var(--mono); font-size: var(--t-micro); color: var(--muted);
+  flex: none; }
+.labs-prov, .labs-pending { font-size: 9.5px; color: var(--muted); margin: var(--s-3) 0 0; }
+.tier-offer { border: 1px dashed var(--hair); border-radius: 6px; padding: var(--s-4) var(--s-5);
+  margin: var(--s-4) 0; }
+.tier-offer h3 { margin: 0 0 var(--s-3); font-size: 11px; }
+.tier-offer .tier { display: block; font-size: 11px; }
+.composite .chips { display: flex; gap: var(--s-4); flex-wrap: wrap; }
+.composite .chip { border: 1px solid var(--hair); border-radius: 5px; padding: var(--s-3) var(--s-4);
+  font-size: 10.5px; }
+.composite .chip.met { border-color: var(--accent); background: var(--accent-tint); }
+.composite .chip .from, .composite .chip .test { display: block; font-family: var(--mono);
+  font-size: 8px; color: var(--faint); }
+.composite .cnote, .impression .flags { font-size: 10px; color: var(--muted); }
+.impression h3 { margin: var(--s-5) 0 var(--s-2); font-size: 12px;
+                 padding-top: var(--s-3); border-top: 2px solid var(--accent); }
+.reportfoot { margin-top: var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--hair2);
+  font-size: 9.5px; color: var(--muted); }
+.reportfoot pre { font-family: var(--mono); font-size: 8px; white-space: pre-wrap;
+  margin: var(--s-3) 0 0; }
+
+.mtab { width: 100%; border-collapse: collapse; font-size: 10px; margin: var(--s-3) 0 var(--s-5); }
+.mtab th { text-align: left; font-family: var(--mono); font-size: 8px;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--faint);
+  border-bottom: 1px solid var(--hair); padding: var(--s-2) var(--s-3) var(--s-2) 0; }
+.mtab td { padding: var(--s-2) var(--s-3) var(--s-2) 0; border-bottom: 1px solid var(--hair2);
+  vertical-align: top; }
+.mtab .d-cites { font-family: var(--mono); font-size: 8.5px; color: var(--muted); }
+.counted { font-size: 10.5px; }
+
+@media print {
+  /* Every control the reader used to build the report leaves the paper. The
+     methodology sheet does NOT: there is no rule here that can remove it. */
+  .screen-only, .tier-offer, .method { display: none !important; }
+  /* W-033. The empty override box is a control, and an empty box on paper reads
+     as a form nobody filled in. The readout and its calibration line are the
+     report's own statement and stay -- no rule here may hide either. */
+  .povr { display: none !important; }
+  #methodology { break-before: page; page-break-before: always; }
+  .pcard { break-inside: avoid; page-break-inside: avoid; }
+  .mtab tr { break-inside: avoid; page-break-inside: avoid; }
+}
+
+
+/* ═══════════════════════════════════ W-009 — HIERARCHY, CONTRAST, PAGE BUDGET
+   Everything below consumes the tokens declared at the top of this file and
+   introduces no new value of its own. Three jobs, in the order the brief sets
+   them: make the patient's own number dominant, make every text pair legible,
+   and make the sheets fit the paper -- WITHOUT reducing the clinical sheet's
+   type, which DESIGN-DIRECTION § 1 forbids.
+
+   MEASURED before any of it, with the real renderer, the real stylesheet and
+   Edge headless printing to PDF (worst case: Non-Specific / research / 3.0 T,
+   all eight parameters and all five laboratory fields filled):
+
+     clinical sheet   612.1 mm   budget 562 mm (2 x 281)   printed 3 pages
+     methodology      451.1 mm   budget 281 mm (1 x 281)   printed 2 pages
+
+   Both findings and what was done about them are in CHANGELOG.md. The one that
+   could not be fixed is stated there rather than hidden here: forty references,
+   printed in full because the pool is never filtered (§ 1), occupy 198.5 mm of
+   a 281 mm page on their own. The methodology sheet does not fit on one page
+   at a readable size, and no amount of spacing recovers it. */
+
+/* ── 1. HIERARCHY — the measured value dominates ─────────────────────────────
+   DESIGN-DIRECTION § 1, stated as CSS so it can be checked rather than felt. */
+.pcard .pval input{ font-size:var(--t-value); font-weight:700; }
+.pcard .pident h4{ font-size:var(--t-name); }
+.verdict{ font-size:var(--t-band); }
+/* Provenance is supporting information and is never bold -- the rule that stops
+   a citation competing with the number it supports. */
+.prov,.acq,.ticks,.bandnote,.refs .rid,.mtab .d-cites,.rul-head,.census{
+  font-weight:400; }
+.prov,.bandnote{ font-size:var(--t-body); }
+.acq,.ticks{ font-size:var(--t-meta); }
+.rul-head,.census,.meta label{ font-size:var(--t-micro); }
+
+/* ── 2. CONTRAST — every pair measured, none assumed ─────────────────────────
+   Ratios are computed in v2/tests/render.test.js N17 from these very tokens, so
+   a palette edit that breaks a pair fails the suite instead of shipping. */
+
+/* W-040. No band name is set inside a bar any more, so the five ink-vs-fill
+   pairs these rules chose between are no longer drawn. N17 keeps measuring them:
+   they are a claim about which text the PALETTE can carry, and a future task that
+   puts text back on a fill needs that guard to already exist. What W-040 adds
+   there instead is the pair that is now drawn — the marker label on its chip. */
+
+/* The axis frame and the band separators. --frame is the one grey that reads at
+   roughly 3:1 against EVERY step of the ramp AND against the paper, because it
+   sits at the ramp's own midpoint -- which is why the separators stopped being
+   white. A white tick disappears on sev-0 and sev-1. */
+svg.ruler .frame{ stroke:var(--frame); }
+svg.ruler .tick{ stroke:var(--frame); }
+svg.ruler .z-none{ stroke:var(--frame); }
+
+/* The verdict chip. The tint carries the ramp step, the border repeats it, and
+   the TEXT is what actually says the band -- so the text is set dark enough to
+   be read on paper, in greyscale, and by a reader who sees no hue at all.
+   MEASURED text-on-tint: 6.16 / 7.37 / 5.20 / 8.34 / 10.72. */
+.v-ok  { color:#5C5B5A; border-color:var(--sev-1); background:#F5F4F1; }
+.v-low { color:#574F4A; border-color:var(--sev-2); background:#F8F5F1; }
+.v-mid { color:#795D4F; border-color:var(--sev-2); background:#F5EDE8; }
+.v-high{ color:#5C3628; border-color:var(--sev-3); background:#EFE3DD; }
+.v-sev { color:#491B14; border-color:var(--sev-4); background:#E8DBD7; }
+.v-none{ color:var(--ink);   border-color:var(--frame); background:var(--paper); }
+.v-na  { color:var(--ink-2); border-color:var(--rule);  background:var(--paper);
+         font-weight:400; }
+.v-nointerp{ color:var(--ink); border-color:var(--uncertain-edge); background:var(--paper);
+             font-weight:500; }
+
+/* W-015. The withheld reading's reason, in the card's own field. It borrows the
+   grey register's edge so it reads as the chip's continuation rather than as a
+   warning, and its citation sits on its own line in the mono face, the way every
+   other source in this report is set. */
+.nointerp{ border-left:2px solid var(--uncertain-edge); padding-left:var(--s-3);
+           font-size:9px; line-height:1.35; color:var(--ink-2); margin:0 0 var(--s-2); }
+.nointerp b{ color:var(--ink); }
+.nointerp .src{ display:block; font-family:var(--mono); font-size:7.5px;
+                color:var(--ink-2); }
+
+/* W-038. The source's own limit on a threshold shares that register — same grey,
+   same edge colour, NO new token — because it is the same kind of statement:
+   the report qualifying the strength of what it just said. The dotted edge is
+   the only difference, and it carries no meaning the label does not already
+   carry: a withheld reading and a qualified one must not look identical when
+   both appear on one card. */
+.nointerp.caveat{ border-left-style:dotted; }
+
+/* The evidence half of the impression, on the methodology sheet. Dense on
+   purpose: it is a citation list, not a reading surface. */
+.evidence h4{ margin:var(--s-3) 0 var(--s-2); font-size:9px; letter-spacing:.06em;
+              text-transform:uppercase; color:var(--ink-2); }
+.evidence .floor{ font-size:9px; color:var(--ink-2); }
+ul.ev{ margin:0; padding-left:var(--s-4); font-size:9px; line-height:1.35; }
+ul.ev .src{ display:block; font-family:var(--mono); font-size:7.5px;
+            color:var(--ink-2); }
+
+/* The two remaining amber surfaces are warnings, not severity states. They keep
+   their own tint and are re-pointed at --sev-2's border so the page carries one
+   warm hue rather than two. */
+.withheld,.disagree{ border-color:var(--sev-2); background:#FBF4EE; }
+.disagree{ border-left-color:var(--sev-3); }
+
+/* ── 2b. THE BROWSER'S OWN MARGINS ARE NOT ON THE SCALE ──────────────────────
+   A <p> and a <ul> carry 1em of user-agent margin, and at this type size that
+   is the single largest spacing value on either sheet -- larger than --s-7 and
+   answering to nothing. MEASURED: the impression's flag list carried 58 mm of
+   default margin and padding on its own, on a 281 mm page. */
+#clinical p,#methodology p{ margin:0 0 var(--s-3); }
+.impression .flags{ margin:var(--s-3) 0 0; padding-left:var(--s-6);
+                    font-size:var(--t-body); }
+.impression .flags li{ margin:0 0 var(--s-1); line-height:1.3; }
+/* The laboratory strip and the version stamp are the two remaining places where
+   a default line-height cost more than it bought. */
+.labs-grid .r2{ line-height:1.25; }
+.reportfoot pre{ line-height:1.3; }
+
+/* ── 2c. THE CARD WITH NO BAR ────────────────────────────────────────────────
+   Three parameters -- r2star, t2star, ct1 -- carry no sourced severity, so
+   zones.js draws them no ladder and the card's middle column is empty. Its
+   described gap (§ 1.2) then falls to a second row and the card pays for both.
+   Putting the gap where the bar would have been is the honest picture as well
+   as the cheaper one: the reader looks at the place a scale belongs and finds
+   the sentence saying why there is none. MEASURED: 49.6 mm -> 30.1 mm on such
+   a card. Where :has() is unsupported the card simply keeps today's two-row
+   layout, which is a taller card and not a broken one. */
+.pcard:has(.pbars:empty) .pbars{ display:none; }
+.pcard:has(.pbars:empty) .pfacts{ grid-column:2 / 3; grid-row:1; }
+
+/* ── 3. MEASURE — line length where the page grows ───────────────────────────
+   The impression is the one human sentence on the sheet and keeps a book
+   measure. The methodology prose does NOT: it is consulted, not read through,
+   and a 62ch column there was costing 28 mm of the clinical sheet's masthead
+   for no reading benefit. MEASURED: 28.2 mm -> 14.1 mm at full width. */
+.impression p{ font-family:var(--serif); line-height:1.45; max-width:66ch; }
+.masthead .detail{ max-width:none; }
+#methodology p{ max-width:92ch; }
+
+/* Screen-only affordance: the reasons that left the card are on the element they
+   belong to, as a native tooltip. No script, works under file://, and — the whole
+   point — it adds NOTHING to the printed page. */
+.pbars[title],.rul[title],.pverdict [title]{ cursor:help; }
+
+
+/* ── 4. THE PAGE BUDGET ──────────────────────────────────────────────────────
+   One redefinition of the spacing scale does the work that thirty overrides
+   used to. Everything on the report surface reads --s-1..7, so tightening the
+   print is these seven lines; the type scale is deliberately NOT touched. */
+@media print{
+  :root{
+    --s-1:1px; --s-2:2px; --s-3:3px; --s-4:5px;
+    --s-5:8px; --s-6:11px; --s-7:15px;
+  }
+
+  /* The reference list, in two columns. MEASURED: 198.5 mm -> 127.4 mm, and the
+     saving is a LAYOUT saving -- all forty rows still print, every field of
+     every row with them. The markup is untouched, so v2/tests/render.test.js
+     N12 still counts one .d-row per record. */
+  #methodology .mtab.reflist{ display:block; columns:2; column-gap:7mm;
+                              font-size:8.5px; }
+  #methodology .mtab.reflist thead{ display:none; }
+  #methodology .mtab.reflist tbody{ display:block; }
+  #methodology .mtab.reflist tr.d-row{ display:block; break-inside:avoid;
+    page-break-inside:avoid; border-bottom:0; line-height:1.3;
+    margin:0 0 var(--s-1); }
+  #methodology .mtab.reflist tr.d-row td{ display:inline; border:0; padding:0; }
+  #methodology .mtab.reflist tr.d-row td + td::before{ content:" \00b7 ";
+    color:var(--ink-2); }
+
+  /* The report's FURNITURE -- masthead, laboratory strip, identity cells,
+     composite chips, the footer -- at print density. None of it is a finding:
+     every measured value, every band, every described gap and every red flag
+     keeps its size, its measure and its place. MEASURED: 543.3 mm -> 528 mm on
+     the pediatric research sheet, which is what put its second page back inside
+     the paper. */
+  .masthead{ padding-bottom:var(--s-2); }
+  .masthead .detail{ margin:var(--s-1) 0 0; }
+  .badge{ margin-top:var(--s-1); }
+  .meta .cell{ padding:var(--s-1) var(--s-4); }
+  .labs-head{ padding:var(--s-1) var(--s-4); }
+  .labs-pending,.labs-prov{ margin:var(--s-1) 0 0; }
+  .composite .section-head{ margin-bottom:var(--s-1); }
+  .composite .chip{ padding:var(--s-1) var(--s-3); }
+  .impression .flags li{ line-height:1.25; }
+  .impression h3{ margin:var(--s-3) 0 var(--s-1); }
+  .composite .cnote{ margin:var(--s-1) 0 0; }
+  .psection > h2{ margin:0 0 var(--s-1); }
+  .domainhead{ margin:var(--s-4) 0 var(--s-2); padding-bottom:0; }
+  .pfacts p{ margin:var(--s-1) 0 0; }
+  .reportfoot{ margin-top:var(--s-3); padding-top:var(--s-2); }
+
+  /* The clinical sheet's own tightening, on top of the scale. Type sizes are
+     absent from this block on purpose. */
+  /* MEASURED, and the reason this line exists rather than a type reduction: at
+     --s-4 the sheet's second page overran by 2.5 mm on a 281 mm page. One step
+     down the SAME scale recovers 8 mm across eight cards. The cards keep their
+     hairline separator, and the screen keeps --s-4. */
+  .pcard{ padding:var(--s-3) 0; }
+  .reportfoot pre{ line-height:1.2; }
+  .impression p{ font-size:11px; }
+  .mtab{ font-size:8.5px; }
+  .masthead{ padding-bottom:var(--s-3); }
+  .labs-grid{ gap:var(--s-2); }
+}
+
+/* ══════════════════════════ SAMPLE MODE (W-014) ══════════════════════════
+   The report opens on a demonstration case. A demonstration that cannot be told
+   from a real report is the hazard the whole task exists to remove, so three
+   markers carry the mode and each survives a different kind of loss:
+
+     the watermark   — the reader who is handed the printed sheet with no screen
+     the sample line — the reader whose printer drops backgrounds
+     the inert sheet — the reader who would otherwise type into the example and
+                       believe the result was theirs
+
+   THE WATERMARK IS PAINTED ON THE SHEET, NOT INSIDE IT. A layer placed inside a
+   page container is painted once, and each container here flows over TWO printed
+   sheets (measured at W-038: two containers, four sheets) — so the second sheet
+   of each pair would come out clean, which is exactly the sheet that must not.
+   A background on the container is painted across every fragment the container
+   breaks into, and `print-color-adjust: exact` is what stops the browser
+   dropping it as decoration. Both halves are measured, not assumed. */
+body[data-mode="sample"] .page {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='250'%3E%3Ctext x='6' y='170' transform='rotate(-30 215 125)' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='27' font-weight='600' letter-spacing='2' fill='%230f1b26' fill-opacity='0.075'%3ESAMPLE - NOT A PATIENT REPORT%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+.samplebar { display: flex; align-items: center; gap: var(--s-4);
+  width: 210mm; max-width: 100%; margin: 0 auto var(--s-4);
+  padding: var(--s-4) var(--s-5); background: var(--paper);
+  border: 1px solid var(--hair2); border-radius: 6px; }
+.samplebar-note { font-family: var(--mono); font-size: var(--t-meta);
+  color: var(--muted); letter-spacing: .04em; }
+.samplebar button { margin-left: auto; font: inherit; font-size: var(--t-band);
+  padding: var(--s-3) var(--s-5); border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; border-radius: 4px; cursor: pointer; }
+.samplebar button:hover { filter: brightness(1.08); }
+
+.sampleline { margin-top: var(--s-5); padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--mid); border-radius: 4px;
+  font-family: var(--mono); font-size: var(--t-meta); color: var(--ink);
+  letter-spacing: .03em; }
+
+/* THE BLANK IDENTITY CELL (W-014). A placeholder is screen furniture — no
+   browser prints it — so an unfilled accession used to leave an empty box on
+   paper, which reads as a field that went missing rather than one nobody filled
+   in. On screen the input's own placeholder still does the job; on paper the
+   input steps aside and the sentence takes its place. */
+.meta .cell .unset { display: none; }
+
+@media print {
+  body[data-mode="sample"] .page {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .sampleline { break-inside: avoid; page-break-inside: avoid; }
+  .meta .cell > .unset { display: inline; font-family: var(--mono);
+    font-size: var(--t-meta); color: var(--muted); letter-spacing: .04em; }
+  .meta .cell:has(> .unset) > input { display: none; }
+}
