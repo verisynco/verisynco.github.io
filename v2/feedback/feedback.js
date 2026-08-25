@@ -36,6 +36,19 @@ function readInvite(search) {
    rather than returning a bare false: a trial link that quietly does nothing is
    indistinguishable from a broken one, and the reason is what tells the
    developer which of the three to fix. */
+/* THE GATE IS ANSWERED ONCE FOR TWO OF ITS THREE CONDITIONS AND CONTINUOUSLY
+   FOR THE THIRD, and the difference is where W-071's first live defect lived.
+   The protocol and the invite are settled the moment the page loads and can
+   never become true later. Acceptance of the terms is the opposite: at load it
+   is normally FALSE, because the reader has not pressed the button yet. A layer
+   that reads all three once and gives up is a layer that never appears for
+   anybody who was not already holding an acknowledgement.
+
+   Only one reason is worth waiting on, and it is named rather than inferred. */
+function gateWatchNeeded(reason) {
+  return reason === 'terms-not-accepted';
+}
+
 function activationState(env) {
   const e = env || {};
   const localhost = e.hostname === 'localhost' || e.hostname === '127.0.0.1';
@@ -203,7 +216,7 @@ function surveyPromptHtml(url) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {readInvite, activationState, buildPayload, PAYLOAD_FIELDS,
+  module.exports = {readInvite, activationState, gateWatchNeeded, buildPayload, PAYLOAD_FIELDS,
                     TALLY, payloadToQuery, formUrl,
                     cardButtonHtml, readCardFacts, panelHtml, NOTICE,
                     surveyDue, surveyUrl, surveyPromptHtml, SURVEY_FIELDS,
@@ -219,15 +232,31 @@ if (typeof module !== 'undefined' && module.exports) {
    nothing. */
 if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   (function () {
-    const state = activationState({
-      protocol: location.protocol,
-      hostname: location.hostname,
-      search: location.search,
-      bodyClasses: Array.prototype.slice.call(document.body.classList)
-    });
-    /* THE WHOLE LAYER, UNDER file://, IS THIS BRANCH NOT TAKEN. */
-    if (!state.active) return;
+    function gate() {
+      return activationState({
+        protocol: location.protocol,
+        hostname: location.hostname,
+        search: location.search,
+        bodyClasses: Array.prototype.slice.call(document.body.classList)
+      });
+    }
 
+    const first = gate();
+    /* THE WHOLE LAYER, UNDER file://, IS THIS BRANCH NOT TAKEN. */
+    if (!first.active) {
+      if (!gateWatchNeeded(first.reason)) return;
+      /* The terms may still be accepted. Watch the one attribute that says so,
+         and stop watching the moment it does — this observer exists to answer a
+         question once, not to follow the page around. */
+      const gateWatch = new MutationObserver(function () {
+        if (gate().active) { gateWatch.disconnect(); start(); }
+      });
+      gateWatch.observe(document.body, {attributes: true, attributeFilter: ['class']});
+      return;
+    }
+    start();
+
+    function start() {
     const invite = readInvite(location.search);
     const app = document.getElementById('app');
     if (!app) return;
@@ -354,5 +383,6 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       queued = setTimeout(decorateCards, 50);
     }).observe(app, {childList: true, subtree: true});
     decorateCards();
+    }
   }());
 }
