@@ -374,7 +374,14 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
            from the same table the card's heading was built from, never from the
            heading's text: reading the printed words back is the W-051 defect. */
         const labels = (typeof PARAMETER_LABELS === 'object' && PARAMETER_LABELS) || {};
-        el.insertAdjacentHTML('beforeend',
+        /* INTO THE IDENTITY COLUMN, NOT ONTO THE END OF THE CARD. The card is a
+           three-column grid; a fourth child appended to it becomes a grid item
+           of its own, wraps to a new row and stretches the full width -- which
+           is what shipped, and what a reader reasonably read as a broken panel
+           under every measurement. The identity column is an ordinary stack, so
+           a button placed there is just the next thing in it. */
+        const host = el.querySelector('.pident') || el;
+        host.insertAdjacentHTML('beforeend',
           cardButtonHtml(f.param, labels[f.param] || f.param));
       });
     }
