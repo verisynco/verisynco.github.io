@@ -24,21 +24,30 @@
   font-family: var(--sans);
 }
 
-/* The pinned tab. Everything not tied to a card starts here. */
+/* THE PINNED TAB, FILLED RATHER THAN OUTLINED. Drawn in the sheet's own accent
+   it was hard to find against a page this light, and a control nobody notices
+   collects nothing. MEASURED from the tokens themselves: paper on accent is
+   8.84:1, past AA and past AAA, and the button's own edge against the page
+   background is 7.72:1 -- far past the 3:1 that WCAG 1.4.11 asks of a control's
+   boundary. `G8` recomputes both from v2/css/styles.css, so a palette edit that
+   breaks the pair fails the suite instead of shipping. */
 .fb-tab {
   font: inherit;
   font-size: var(--t-band);
+  font-weight: 600;
+  letter-spacing: .01em;
   min-width: 44px;
   min-height: 44px;
-  padding: var(--s-4) var(--s-5);
-  border: 1px solid var(--rule);
+  padding: var(--s-4) var(--s-6);
+  border: 1px solid var(--accent);
   border-radius: 6px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--paper);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .22);
   cursor: pointer;
 }
 
-.fb-tab:hover { background: var(--hair2); }
+.fb-tab:hover { filter: brightness(1.12); }
 
 /* THE CARD CONTROL. A tablet has no hover, and the trial will be opened on
    tablets, so this is never revealed by pointing at anything -- it is drawn
