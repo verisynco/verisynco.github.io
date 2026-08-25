@@ -31,10 +31,12 @@
  */
 
 const CUTOFFS_REV = 'xlsx-v1';
-const CUTOFFS_VERSION = '1.2';
+const CUTOFFS_VERSION = '1.6';   /* W-056: the borderline LIC bound is the guideline value */
 
-/* SHA-256 over the canonical serialisation of every record. See v2/tests/schema.test.js. */
-const CUTOFFS_HASH = 'bf0565cda4e0433e4421d82e17ad792223329faf2f6af250330bd9254a491225';
+/* SHA-256 over the canonical serialisation of every record. See v2/tests/schema.test.js.
+   W-050 added the 15th canonical element — whether a record's own citation is accepted
+   or rejected. The record SHAPE moved and no value did (SCHEMA § 5.1.1). */
+const CUTOFFS_HASH = '0d4b8c4203982e0596d2ae77fe5f615dc48e76a50f2445938d71d543228b47aa';
 
 const CUTOFFS = [
   {
@@ -440,7 +442,7 @@ const CUTOFFS = [
     performanceRefIds: [],
     population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
     provenance: 'transcribed',
-    note: 'fieldStrength "any" in the physically-field-independent sense (SCHEMA § 5.3): LIC in mg Fe/g dw carries no field dependence — the field lives in the R2*→LIC calibration slope (0.0254 at 1.5T, ≈0.0472 at 3T), not in the LIC value. Its R2*/T2* siblings on this same boundary are correctly field-specific. Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication as published: "No treatment; routine surveillance".',
+    note: 'fieldStrength "any" in the physically-field-independent sense (SCHEMA § 5.3): LIC in mg Fe/g dw carries no field dependence — the field lives in the R2*→LIC calibration slope (0.0254 at 1.5T, ≈0.0472 at 3T), not in the LIC value. Its R2*/T2* siblings on this same boundary are correctly field-specific. Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "No treatment; routine surveillance".',
     source: {sheet: 'Iron', cell: 'C12'}
   },
   {
@@ -468,9 +470,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication as published: "No treatment; routine surveillance".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "No treatment; routine surveillance". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'D12'}
   },
   {
@@ -498,9 +500,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication as published: "No treatment; routine surveillance".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "No treatment; routine surveillance". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'E12'}
   },
   {
@@ -528,9 +530,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication as published: "No treatment; routine surveillance".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "No treatment; routine surveillance". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'F12'}
   },
   {
@@ -558,9 +560,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication as published: "No treatment; routine surveillance".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Transcribed from the "Normal" row, so each operator names the normal side of the edge. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "No treatment; routine surveillance". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'G12'}
   },
   {
@@ -571,8 +573,8 @@ const CUTOFFS = [
     direction: 'above-is-worse',
     fieldStrength: 'any',
     cohort: 'adult-iron-overload',
-    value: 3,
-    valueRaw: '1.8–3',
+    value: 3.2,
+    valueRaw: '1.8–3.2',
     unit: 'mg Fe/g dw',
     operator: '<',
     sourceRefIds: ['REF-001', 'REF-038'],
@@ -590,7 +592,7 @@ const CUTOFFS = [
     performanceRefIds: [],
     population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
     provenance: 'transcribed',
-    note: 'fieldStrength "any" in the physically-field-independent sense (SCHEMA § 5.3): LIC in mg Fe/g dw carries no field dependence — the field lives in the R2*→LIC calibration slope (0.0254 at 1.5T, ≈0.0472 at 3T), not in the LIC value. Its R2*/T2* siblings on this same boundary are correctly field-specific. Clinical implication as published: "Consider baseline; investigate cause".',
+    note: 'fieldStrength "any" in the physically-field-independent sense (SCHEMA § 5.3): LIC in mg Fe/g dw carries no field dependence — the field lives in the R2*→LIC calibration slope (0.0254 at 1.5T, ≈0.0472 at 3T), not in the LIC value. Its R2*/T2* siblings on this same boundary are correctly field-specific. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Consider baseline; investigate cause". W-056: the workbook shipped 3 and the guideline it cites says 3.2. Reeder 2023, read in full: Between 1.8 and 3.2 mg/g (57 mol/g) is considered borderline and the lower range of optimal chelation therapy - the figure is stated in both units, and 3 occurs nowhere as this boundary. The other citation, REF-001 (Wood 2005), is a calibration study and publishes no grading ladder. Corrected on the developers decision, 2026-08-25, with the four derived rungs recomputed in the same edit (LITERATURE.md 9.18.1).',
     source: {sheet: 'Iron', cell: 'C13'}
   },
   {
@@ -601,8 +603,8 @@ const CUTOFFS = [
     direction: 'above-is-worse',
     fieldStrength: '1.5T',
     cohort: 'adult-iron-overload',
-    value: 118,
-    valueRaw: '70–118',
+    value: 126,
+    valueRaw: '70–126',
     unit: 'Hz',
     operator: '<',
     sourceRefIds: ['REF-001', 'REF-038'],
@@ -618,9 +620,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Consider baseline; investigate cause".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Consider baseline; investigate cause". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart. W-056: recomputed when CUT-0024 moved 3 -> 3.2 mg/g. R-47 recomputes this rung from the LIC record on every run, so it could not have been left behind.',
     source: {sheet: 'Iron', cell: 'D13'}
   },
   {
@@ -631,8 +633,8 @@ const CUTOFFS = [
     direction: 'above-is-worse',
     fieldStrength: '3.0T',
     cohort: 'adult-iron-overload',
-    value: 63,
-    valueRaw: '38–63',
+    value: 68,
+    valueRaw: '38–68',
     unit: 'Hz',
     operator: '<',
     sourceRefIds: ['REF-001', 'REF-038'],
@@ -648,9 +650,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Consider baseline; investigate cause".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Consider baseline; investigate cause". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart. W-056: recomputed when CUT-0024 moved 3 -> 3.2 mg/g. R-47 recomputes this rung from the LIC record on every run, so it could not have been left behind.',
     source: {sheet: 'Iron', cell: 'E13'}
   },
   {
@@ -661,8 +663,8 @@ const CUTOFFS = [
     direction: 'below-is-worse',
     fieldStrength: '1.5T',
     cohort: 'adult-iron-overload',
-    value: 8.5,
-    valueRaw: '8.5–14',
+    value: 7.9,
+    valueRaw: '7.9–14',
     unit: 'ms',
     operator: '>',
     sourceRefIds: ['REF-001', 'REF-038'],
@@ -678,9 +680,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Consider baseline; investigate cause".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Consider baseline; investigate cause". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart. W-056: recomputed when CUT-0024 moved 3 -> 3.2 mg/g. R-47 recomputes this rung from the LIC record on every run, so it could not have been left behind.',
     source: {sheet: 'Iron', cell: 'F13'}
   },
   {
@@ -691,8 +693,8 @@ const CUTOFFS = [
     direction: 'below-is-worse',
     fieldStrength: '3.0T',
     cohort: 'adult-iron-overload',
-    value: 16,
-    valueRaw: '16–26',
+    value: 14.7,
+    valueRaw: '14.7–26',
     unit: 'ms',
     operator: '>',
     sourceRefIds: ['REF-001', 'REF-038'],
@@ -708,9 +710,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Consider baseline; investigate cause".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Consider baseline; investigate cause". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart. W-056: recomputed when CUT-0024 moved 3 -> 3.2 mg/g. R-47 recomputes this rung from the LIC record on every run, so it could not have been left behind.',
     source: {sheet: 'Iron', cell: 'G13'}
   },
   {
@@ -740,7 +742,7 @@ const CUTOFFS = [
     performanceRefIds: [],
     population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
     provenance: 'transcribed',
-    note: 'fieldStrength "any" in the physically-field-independent sense (SCHEMA § 5.3): LIC in mg Fe/g dw carries no field dependence — the field lives in the R2*→LIC calibration slope (0.0254 at 1.5T, ≈0.0472 at 3T), not in the LIC value. Its R2*/T2* siblings on this same boundary are correctly field-specific. Clinical implication as published: "Start / continue chelation; monitor 6-monthly".',
+    note: 'fieldStrength "any" in the physically-field-independent sense (SCHEMA § 5.3): LIC in mg Fe/g dw carries no field dependence — the field lives in the R2*→LIC calibration slope (0.0254 at 1.5T, ≈0.0472 at 3T), not in the LIC value. Its R2*/T2* siblings on this same boundary are correctly field-specific. Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Start / continue chelation; monitor 6-monthly".',
     source: {sheet: 'Iron', cell: 'C14'}
   },
   {
@@ -768,9 +770,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Start / continue chelation; monitor 6-monthly".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Start / continue chelation; monitor 6-monthly". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'D14'}
   },
   {
@@ -798,9 +800,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Start / continue chelation; monitor 6-monthly".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Start / continue chelation; monitor 6-monthly". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'E14'}
   },
   {
@@ -828,9 +830,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Start / continue chelation; monitor 6-monthly".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Start / continue chelation; monitor 6-monthly". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'F14'}
   },
   {
@@ -858,9 +860,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Clinical implication as published: "Start / continue chelation; monitor 6-monthly".',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Clinical implication in the WORKBOOK vocabulary, not the guideline - W-056 measured every phrase of all three sentences at zero occurrences in Reeder 2023 (LITERATURE.md 9.18.4): "Start / continue chelation; monitor 6-monthly". W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'G14'}
   },
   {
@@ -918,9 +920,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15.',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15. W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'D15'}
   },
   {
@@ -948,9 +950,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15.',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15. W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'E15'}
   },
   {
@@ -978,9 +980,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15.',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0001, the Wood 1.5T slope',
+    provenance: 'derived',
+    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15. W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'F15'}
   },
   {
@@ -1008,9 +1010,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'ESGAR/SAR 2023 clinical action thresholds (Reeder 2023), Wood 1.5T calibration',
-    provenance: 'transcribed',
-    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15.',
+    population: 'Derived from the ESGAR/SAR 2023 LIC ladder (Reeder 2023) through CAL-0004, the Serai/Reeder 3T slope',
+    provenance: 'derived',
+    note: 'Above this edge the sheet warns "High cardiac risk; combine chelators; consider T2* cardiac", and the Technical Limitations sheet records that 3T multi-echo GRE may fail entirely beyond LIC 15. W-056: this rung is DERIVED, not published. Reeder 2023 was read in full and states R2* in second-1, never in Hz; its Figure 1 draws LIC alone and carries no R2* axis, and this value occurs in it zero times as a threshold. What it is, is the LIC ladder the guideline itself publishes, divided by the shipped calibration slope, with T2* = 1000 / R2* (LITERATURE.md 9.18.2). Schema rule R-47 recomputes it from the LIC record on every run, so the three units cannot drift apart.',
     source: {sheet: 'Iron', cell: 'G15'}
   },
   {
@@ -2032,9 +2034,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'UCSD 238 + Yokohama 314',
+    population: 'UCSD 238 + Yokohama 222',
     provenance: 'transcribed',
-    note: 'MEFIB is a COMPOUND rule: "MRE ≥ 3.3 kPa AND FIB-4 ≥ 1.6". Only the MRE component is representable as a cut-off record; the FIB-4 ≥ 1.6 component has no home in this schema and is carried here as text only. Published PPV / NPV 97.1% / 92.8%. The sheet publishes PPV / NPV for this score, NOT sensitivity / specificity. The three performance fields are therefore null with performanceScope null — a PPV is not a sensitivity and substituting one for the other would be a fabrication. The published figures are preserved verbatim in this note.',
+    note: 'MEFIB is a COMPOUND rule: "MRE ≥ 3.3 kPa AND FIB-4 ≥ 1.6". Only the MRE component is representable as a cut-off record; the FIB-4 ≥ 1.6 component has no home in this schema and is carried here as text only. Published PPV 97.1% (Jung 2021, six occurrences in the paper). W-065: the sheet also published an NPV of 92.8%, which occurs ZERO times in Jung 2021 and ZERO times in EASL 2024 - the only two sources this record cites, both read in full. Jung measures the rule-out in two cohorts: NPV 83.2% in derivation and 59.4% in validation, and those two figures replace it here. They are not averaged: an average of two cohort NPVs would itself be an unsourced clinical number (LITERATURE.md 9.17.5). The population read Yokohama 314 and the paper says 222 (9.16.2). The sheet publishes PPV / NPV for this score, NOT sensitivity / specificity. The three performance fields are therefore null with performanceScope null — a PPV is not a sensitivity and substituting one for the other would be a fabrication. The published figures are preserved verbatim in this note.',
     source: {sheet: 'MRE', cell: 'D18'}
   },
   {
@@ -2062,9 +2064,9 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'UCSD 238 + Yokohama 314',
+    population: 'UCSD 238 + Yokohama 222',
     provenance: 'transcribed',
-    note: 'MEFIB is a COMPOUND rule: "MRE ≥ 3.3 kPa AND FIB-4 ≥ 1.6". Only the MRE component is representable as a cut-off record; the FIB-4 ≥ 1.6 component has no home in this schema and is carried here as text only. Published PPV / NPV 97.1% / 92.8%. The sheet publishes PPV / NPV for this score, NOT sensitivity / specificity. The three performance fields are therefore null with performanceScope null — a PPV is not a sensitivity and substituting one for the other would be a fabrication. The published figures are preserved verbatim in this note.',
+    note: 'MEFIB is a COMPOUND rule: "MRE ≥ 3.3 kPa AND FIB-4 ≥ 1.6". Only the MRE component is representable as a cut-off record; the FIB-4 ≥ 1.6 component has no home in this schema and is carried here as text only. Published PPV 97.1% (Jung 2021, six occurrences in the paper). W-065: the sheet also published an NPV of 92.8%, which occurs ZERO times in Jung 2021 and ZERO times in EASL 2024 - the only two sources this record cites, both read in full. Jung measures the rule-out in two cohorts: NPV 83.2% in derivation and 59.4% in validation, and those two figures replace it here. They are not averaged: an average of two cohort NPVs would itself be an unsourced clinical number (LITERATURE.md 9.17.5). The population read Yokohama 314 and the paper says 222 (9.16.2). The sheet publishes PPV / NPV for this score, NOT sensitivity / specificity. The three performance fields are therefore null with performanceScope null — a PPV is not a sensitivity and substituting one for the other would be a fabrication. The published figures are preserved verbatim in this note.',
     source: {sheet: 'MRE', cell: 'E18'}
   },
   {
@@ -2141,7 +2143,10 @@ const CUTOFFS = [
     operator: '<',
     sourceRefIds: ['REF-018'],
     externalRefIds: [],
-    citationProvenance: 'workbook',
+    citationProvenance: 'workbook-rejected-unresolved',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-unresolved'],
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved. THIS boundary is the one the rejected candidate CONTRADICTS rather than merely omits: where CUT-0071 reads 500, that abstract reads 550, and it is the only one of the four whose sibling values it reproduces exactly while differing here. Nothing follows from that for the value. An abstract sentence its own paper never supports cannot move a clinical number any more than it can source one (CLAUDE.md § 4), so 500 stands and stands unsourced.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2172,7 +2177,10 @@ const CUTOFFS = [
     operator: '>',
     sourceRefIds: ['REF-018'],
     externalRefIds: [],
-    citationProvenance: 'workbook',
+    citationProvenance: 'workbook-rejected-unresolved',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-unresolved'],
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2203,7 +2211,10 @@ const CUTOFFS = [
     operator: '<',
     sourceRefIds: ['REF-018'],
     externalRefIds: [],
-    citationProvenance: 'workbook',
+    citationProvenance: 'workbook-rejected-unresolved',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-unresolved'],
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2234,7 +2245,10 @@ const CUTOFFS = [
     operator: '>',
     sourceRefIds: ['REF-018'],
     externalRefIds: [],
-    citationProvenance: 'workbook',
+    citationProvenance: 'workbook-rejected-unresolved',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-unresolved'],
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2417,19 +2431,20 @@ const CUTOFFS = [
     sourceRefIds: ['REF-026'],
     externalRefIds: [],
     citationProvenance: 'workbook',
-    vendorClass: 'multi-vendor-incl-ge',
+    vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 'dwi-adc',
     techniqueGroup: 'dwi-adc-monoexp',
     evidenceGrade: 'B',
-    sensitivity: 84,
-    specificity: 87,
-    auc: null,
-    performanceScope: 'boundary-row',
-    performanceRefIds: ['REF-026', 'REF-027'],
-    population: 'Taouli n=54 + Lewin n=54',
+    sensitivity: 83.3,
+    specificity: 83.3,
+    auc: 0.896,
+    performanceScope: 'this-record',
+    performanceRefIds: ['REF-026'],
+    performanceProvenance: 'literature-corrected',
+    population: 'Taouli n=30',
     provenance: 'transcribed',
-    note: 'Published at 1.5T by Taouli 2007. The sheet\'s own caveat on this parameter: "ADC has poor separation of intermediate stages".',
+    note: 'Published at 1.5T by Taouli 2007. The sheet\'s own caveat on this parameter: "ADC has poor separation of intermediate stages". W-065: the workbook transcribed 84 / 87 across two papers; Taouli\'s Table 4 and Fig 2 caption publish AUC 0.896 with sensitivity 83.3% and specificity 83.3% for exactly this boundary, and neither 84 nor 87 occurs in that paper as a fibrosis performance figure. The scope narrows to this-record for the same reason: the pair belongs to one study, not to a shared workbook row. The population read "Taouli n=54 + Lewin n=54"; Taouli is n=30 and 54 is that paper\'s mean age (LITERATURE.md § 9.17.1, § 9.17.2). The VALUE is unchanged.',
     source: {sheet: 'Diffusion', cell: 'C10'}
   },
   {
@@ -2447,7 +2462,7 @@ const CUTOFFS = [
     sourceRefIds: ['REF-026'],
     externalRefIds: [],
     citationProvenance: 'workbook',
-    vendorClass: 'multi-vendor-incl-ge',
+    vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 'dwi-adc',
     techniqueGroup: 'dwi-adc-monoexp',
@@ -2457,7 +2472,7 @@ const CUTOFFS = [
     auc: null,
     performanceScope: null,
     performanceRefIds: [],
-    population: 'Taouli n=54 + Lewin n=54',
+    population: 'Taouli n=30 + Lewin n=54',
     provenance: 'derived',
     note: 'The cell reads "~< 1.4 × 10⁻³ (adjusted)" — the workbook author scaling the 1.5T number down by the ~10-15% field offset row 9 describes, NOT a published 3T threshold. provenance is "derived" and NO performance figures are attached: the published sensitivity/specificity belong to the 1.5T value and carrying them onto a derived number would misrepresent them.',
     source: {sheet: 'Diffusion', cell: 'D10'}
@@ -2482,14 +2497,15 @@ const CUTOFFS = [
     technique: 'dwi-adc',
     techniqueGroup: 'dwi-adc-monoexp',
     evidenceGrade: 'B',
-    sensitivity: 84,
-    specificity: 89,
-    auc: null,
+    sensitivity: 87,
+    specificity: 87,
+    auc: 0.92,
     performanceScope: 'this-record',
     performanceRefIds: ['REF-027'],
+    performanceProvenance: 'literature-corrected',
     population: 'Lewin n=54',
     provenance: 'transcribed',
-    note: 'Published at 1.5T by Lewin 2007. The sheet\'s own caveat on this parameter: "Better performance than F≥2; still not standalone".',
+    note: 'Published at 1.5T by Lewin 2007. The sheet\'s own caveat on this parameter: "Better performance than F≥2; still not standalone". W-065: the workbook transcribed 84 / 89 and no AUC; the paper publishes "sensitivity, specificity, positive predictive value, and negative predictive value were 87%, 87%, 72%, and 94% ... with an ADC cutoff level of 1.21" and AUC 0.92 (SD 0.04). Neither 84 nor 89 occurs in it as a performance figure (LITERATURE.md § 9.16.1). The VALUE is unchanged.',
     source: {sheet: 'Diffusion', cell: 'C11'}
   },
   {

@@ -26,7 +26,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '2.7';
+const V2_RENDER_VERSION = '3.2';   /* W-061: the card reserves what it can predict */
 
 const _RN = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -595,24 +595,37 @@ function rulersHtml(card) {
   return '<div class="rulers">' + ordered.map(r => rulerBlock(r, axis)).join('') + '</div>';
 }
 
+/* W-051. ONE gap sentence per card, and it is `card.gap`. Nothing else on the
+   card restates it.
+
+   This block used to print a second version of the same fact: for a gated row
+   the engine's own throw message, technique-group ids and a schema clause number
+   included; for an ungapped row the raw reason list joined with a middle dot. A
+   reader met the fact twice, in two vocabularies, and had to reconcile them.
+
+   ⛔ NO REASON PARAGRAPH IS WRITTEN HERE AT ALL, and the second attempt is why
+      the rule is stated rather than implied. W-051 first printed ONE ranked
+      reader sentence for the case `card.gap` does not cover — a row that staged
+      against one policy while the other ladder could not be closed. MEASURED, on
+      the non-specific scanner path with every sequence named: it fired on five
+      cards and ran the CLINICAL sheet from two A4 pages to three, against a
+      budget § 5.4 says that half meets in every case.
+
+      It was also a reason on a card, which W-033 had already settled the other
+      way and locked: the FACT that only one ladder was drawn stays sayable and
+      is printed by `class="onebar"` beside the bars; the paragraph explaining
+      WHY is a reason, and lives in that block's tooltip and on the methodology
+      sheet — where `gapReasonTable` now puts it in full. Two tasks reaching
+      opposite conclusions about one paragraph is what a tested decision is for.
+
+   `scopegap` is a different fact — this parameter is out of scope for the tier
+   being printed, which is not a gap in the evidence — and is untouched. */
 function rowGapHtml(row) {
-  if (row.gate) {
-    return '<p class="gap"><b>Method not selected.</b> ' + esc(row.gate) + '</p>';
-  }
-  const seen = [];
-  for (const r of row.missingReasons) {
-    if (seen.indexOf(r.reason) === -1) seen.push(r.reason);
-  }
-  let html = '';
-  if (!row.drawable.length && seen.length) {
-    html += '<p class="gap"><b>No scale can be drawn.</b> ' +
-            esc(seen.join(' · ')) + '</p>';
-  }
-  if (row.scope.absent) {
-    html += '<p class="scopegap">' + esc(row.scope.note) + '</p>';
-  }
-  return html;
+  return row.scope.absent
+    ? '<p class="scopegap">' + esc(row.scope.note) + '</p>'
+    : '';
 }
+
 
 /* ═══════════════════════════════════════════════════════ THE PARAMETER CARD
    A three-column frame over ONE card. There is no view flag and no second
@@ -700,11 +713,16 @@ function sourceCaveatHtml(card) {
 
    `valueProvenance` is read, not recomputed: this function makes no judgement
    about where a number came from. */
-function valueAreaHtml(row, card) {
+/* W-061. `canDerive` is true for a row that CAN be reached through a calibration,
+   whether or not this report derived the value — `row.calibration !== null`, the
+   same key W-033 chose, and deliberately not `card.derived`. A slot that appeared
+   the moment somebody typed an override would make the override look like a
+   different reading. The class reserves height on screen and is removed in print. */
+function valueAreaHtml(row, card, canDerive) {
   const unit = '<span class="unit">' + esc(_RN.PARAMETER_UNITS[row.parameter]) +
                '</span>';
   if (card.valueProvenance === 'derived') {
-    return '<div class="pval derived">' +
+    return '<div class="pval derived' + (canDerive ? ' can-derive' : '') + '">' +
              '<span class="pderived">' + esc(String(row.value)) + '</span>' + unit +
              '<span class="dbadge">derived</span>' +
              '<label class="povr"><input type="number" step="any" data-value="' +
@@ -712,7 +730,8 @@ function valueAreaHtml(row, card) {
                '<span class="ohint">override</span></label>' +
            '</div>';
   }
-  return '<label class="pval"><input type="number" step="any" data-value="' +
+  return '<label class="pval' + (canDerive ? ' can-derive' : '') +
+    '"><input type="number" step="any" data-value="' +
     esc(row.parameter) + '" value="' +
     (row.value === null || row.value === undefined ? '' : esc(String(row.value))) +
     '">' + unit +
@@ -726,9 +745,17 @@ function valueAreaHtml(row, card) {
    alternative calibrations and the flags stay on page 2, where a reader who
    wants the evidence goes. Every part comes from the card model; no coefficient
    is written here, so this renderer cannot restate a clinical value. */
-function calibrationLineHtml(card) {
+function calibrationLineHtml(card, canDerive) {
   const d = card.derivation;
-  if (!d) return '';
+  /* W-061. A row that can be reached through a calibration keeps the slot while
+     nothing has been derived, so the card does not grow the moment its inputs
+     arrive. MEASURED: the LIC card went 159.6 -> 194.5 px at that moment.
+     The slot is blank, carries no text, and print removes it -- on paper a card
+     with nothing to say must not carry an empty line. */
+  if (!d) {
+    return canDerive
+      ? '<p class="calline calline-reserved" aria-hidden="true"></p>' : '';
+  }
   return '<p class="calline">' + esc(d.expression) +
     ' \u00b7 ' + esc(d.from) + ' = ' + esc(String(d.input)) + ' ' + esc(d.inputUnit) +
     ' \u2192 ' + esc(String(d.value)) + ' ' + esc(d.outputUnit) +
@@ -748,11 +775,14 @@ function parameterCard(row, card, selection, tag) {
          names a product only where the resolved scope row's vendor is GE and a
          product is recorded — the one place in this repository where a product
          carries a factProvenance. No sequenceNames map (W-007 § 1.1). */
-      '<p class="acq">' + esc(card.acquisitionLine) +
+      /* W-061: the sentence the derived state appends runs to two further lines,
+         MEASURED at 39.9 -> 66.5 px, so a derivable row reserves them. */
+      '<p class="acq' + (row.calibration !== null ? ' can-derive' : '') + '">' +
+        esc(card.acquisitionLine) +
         (card.derived ? ' \u00b7 value computed through a published calibration' : '') +
       '</p>' +
-      valueAreaHtml(row, card) +
-      calibrationLineHtml(card) +
+      valueAreaHtml(row, card, row.calibration !== null) +
+      calibrationLineHtml(card, row.calibration !== null) +
       (showControl ? methodControl(selection, row.domain) : '') +
     '</div>' +
     '<div class="pbars"' +
@@ -980,7 +1010,8 @@ function sectionsHtml(model, selection) {
   /* The order is the MODEL's, read here and not re-derived: severity class first,
      the indication's own parameters first inside a class. A sort written in this
      file could not be asserted without rendering (plan D5). */
-  const ordered = _RN.orderCards(model.report, model.cards, indication);
+  /* The indication no longer orders anything (W-061); `orderCards` lists. */
+  const ordered = _RN.orderCards(model.report, model.cards);
   let html = '';
   for (const section of SECTIONS) {
     const pairs = ordered.filter(p => p.row.mountPoint === section.mount);
@@ -1006,14 +1037,36 @@ function sampleLine() {
     'for demonstration and belong to no patient. Not a patient report.</div>';
 }
 
-/* Rendered OUTSIDE the sheets, because the sheets are `inert` while the sample is
-   loaded and a control inside an inert subtree cannot be pressed — including the
-   one control that leaves the mode. */
-function sampleBar(view) {
+/* THE TOOLBAR (W-052; `sampleBar` until then, renamed for what it now carries).
+   Rendered OUTSIDE the sheets, because the sheets are `inert` while the sample
+   is loaded and a control inside an inert subtree cannot be pressed — including
+   the one control that leaves the mode.
+
+   THE PRINT BUTTON OPENS NO NEW AUTHORITY. It calls the wrapped `window.print()`
+   in app.js, which refuses unless the terms were accepted AND an acquisition was
+   named; the browser's own Ctrl+P is refused by the @media print rules instead.
+   This bar reads neither condition and carries no handler of its own — a second
+   gate here is a second thing that can disagree with the first.
+
+   `ready` IS THE ONE THING IT IS TOLD. Where no acquisition has been named the
+   wrapper returns silently, and a button that does nothing and says nothing is
+   worse than no button at all: the control is disabled and prints its reason, in
+   the same words the stylesheet puts on paper for the same state.
+
+   NO PAGE COUNT IN THE LABEL. V1's says "(2 pages)" and V2 measures 4 — but no
+   test in this repo can count the pages of a PDF, so a number here would be a
+   claim nothing locks (§ 1.2). */
+function toolbar(view, ready) {
   const sample = !!(view && view.mode === 'sample');
-  return '<div class="samplebar screen-only">' +
+  return '<div class="toolbar screen-only">' +
+    '<button type="button" class="tb-print" data-action="print"' +
+      (ready ? '' : ' disabled') + '>Print / Save PDF</button>' +
+    (ready
+      ? ''
+      : '<span class="tb-reason">Not ready to print: no acquisition has been ' +
+        'selected yet.</span>') +
     (sample
-      ? '<span class="samplebar-note">Sample data is loaded and the fields are locked.</span>' +
+      ? '<span class="tb-note">Sample data is loaded and the fields are locked.</span>' +
         '<button type="button" data-sample="clear">Clear values</button>'
       : '<button type="button" data-sample="load">Load example</button>') +
     '</div>';
@@ -1158,6 +1211,61 @@ function sourceCaveatsTable(model) {
     rows.join('') + '</tbody></table>';
 }
 
+/* W-050. Evidence the engine HELD BACK, named where the numbers are accounted
+   for. `withheldOf()` has produced this sentence since W-029 and `buildReceipts`
+   has carried it since; no sheet read the field, so a disclosure the engine had
+   already written reached nobody.
+
+   It sits beside sourceCaveatsTable and not on the clinical page on purpose. The
+   FACT that a measurement could not be answered is on the card, in its gap
+   sentence, whether this sheet is read or not (SCHEMA § 10.3). What is here is
+   the REASONING — that published values exist and on what ground they were not
+   used — and stating the same fact twice in two vocabularies is something the
+   reader would have to reconcile with itself.
+
+   The sentence is the engine's, printed as it comes; this layer writes the
+   column heads and nothing else. */
+function withheldTable(model) {
+  const rows = [];
+  for (const par of model.receipts.parameters) {
+    if (!par.withheld) continue;
+    rows.push('<tr class="mn-row"><td>' + esc(par.label) + '</td><td>' +
+              esc(par.withheld) + '</td></tr>');
+  }
+  if (!rows.length) return '';
+  return '<table class="mtab"><thead><tr><th>Measurement</th>' +
+    '<th>Published evidence held back, and why</th></tr></thead><tbody>' +
+    rows.join('') + '</tbody></table>';
+}
+
+/* W-051. The engine's own reason strings, named where the gaps are accounted
+   for. They are NOT deleted from the model when the card stops printing them:
+   "the cited paper does not contain this number" and "this sentence is unusable
+   at a clinician" are different claims, and only the second one was made here.
+
+   Same placement argument as `withheldTable` above, which is the pattern this
+   follows rather than modifies. The FACT that a measurement could not be
+   answered is on the card whether this sheet is read or not (SCHEMA § 10.3);
+   what is here is the engine's account of it, in the vocabulary it writes for
+   the test suite and for diagnostics — a schema clause number, a technique-group
+   id and a provenance class among them.
+
+   `receipts.parameters[].gap` has carried this string since W-029 and no sheet
+   read it, which is the `withheldOf` defect a second time: a value computed and
+   never rendered is not a disclosure. */
+function gapReasonTable(model) {
+  const rows = [];
+  for (const par of model.receipts.parameters) {
+    if (!par.gap) continue;
+    rows.push('<tr class="mn-row"><td>' + esc(par.label) + '</td><td>' +
+              esc(par.gap) + '</td></tr>');
+  }
+  if (!rows.length) return '';
+  return '<table class="mtab"><thead><tr><th>Measurement</th>' +
+    '<th>Why no scale could be completed, in the terms the engine records</th>' +
+    '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+}
+
 function tableB(profile) {
   return tableHead('A', 'How these numbers were formed') +
     profile.derivation.map(c => '<p>' + esc(c) + '</p>').join('');
@@ -1179,6 +1287,8 @@ function tableC(profile, model) {
     profile.caveats.map(c => '<p>' + esc(c) + '</p>').join('') +
     measurementNotes(model) +
     sourceCaveatsTable(model) +
+    withheldTable(model) +
+    gapReasonTable(model) +
     counted.map(c => '<p class="counted">' + esc(c) + '</p>').join('') +
     SECTIONS.filter(sc => sc.note && mounted[sc.mount]).map(
       sc => '<p class="snote"><b>' + esc(sc.title) + '.</b> ' +
@@ -1304,8 +1414,10 @@ if (typeof module !== 'undefined' && module.exports) {
                     compositeSection, impressionSection, evidenceAppendix, reportFooter,
                     notInterpretableHtml, shortCite,
                     tableB, tableC, tableD, tableE, measurementNotes,
-                    parameterCard, stampText, esc, sampleBar, sampleLine,
+                    gapReasonTable,
+                    parameterCard, stampText, esc, toolbar, sampleLine,
                     entryRoute, IDENTITY_CELLS, STUDY_CELLS,
                     SECTIONS, SCOPE_LABELS, DOMAIN_LABELS, DOMAIN_TITLES,
+                    VENDOR_CLASS_LABELS,
                     V2_RENDER_VERSION};
 }

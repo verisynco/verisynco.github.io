@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '2.4';
+const V2_REPORT_VERSION = '2.9';   /* W-065: the MEFIB chip states no unsourced NPV */
 
 const _R = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -69,8 +69,19 @@ const PARAMETER_UNITS = {
 
 /* The eight quantification parameters the engine carries ladders for, in the order
    the report prints them. `ivim`, `mast` and `mefib` are not here: they are W-007's
-   and W-015's, and neither has a LADDERS entry. */
-const REPORT_PARAMETERS = ['pdff', 'mre', 'lic', 'r2star', 't2star', 't1', 'ct1', 'adc'];
+   and W-015's, and neither has a LADDERS entry.
+
+   THE ONE ORDER (W-061). This list is read by three surfaces at once: `entryRoute`
+   walks it for Tab (W-046), `orderCards` lists the cards from it, and the
+   methodology sheet prints its rows from it. Until 2026-08-25 it was the ENTRY
+   order and the page printed a different one, so the keyboard and the paper
+   disagreed by construction.
+
+   The order itself is the one the page has always printed: fat, then the two iron
+   measurements, then the reading derived from them (W-033), then stiffness,
+   relaxometry and diffusion. `CARD_DOMAIN_ORDER` and `groupCardsByDomain` are
+   unchanged, and now preserve this order rather than rearranging it. */
+const REPORT_PARAMETERS = ['pdff', 'r2star', 't2star', 'lic', 'mre', 't1', 'ct1', 'adc'];
 
 /* buildScales throws for several different reasons and only two of them are the
    caller being asked to settle a technique. The rest — an unrecognised
@@ -118,6 +129,10 @@ function buildRow(selection, vendor, calibrationMode, parameter) {
     stagingScale: null,
     stagingReason: null,
     missingReasons: [],
+    /* The single reader sentence for the block beneath the card (W-051). Null on
+       a gated row, which returns before it is computed and whose card carries the
+       gate sentence instead. */
+    gapReason: null,
     /* Present on lic. `calibration` is what a LIC value is derived THROUGH, and
        it is the one place the device question still changes a number (W-029);
        `valueDerived` is set only when THIS report computed the value rather than
@@ -209,10 +224,37 @@ function buildRow(selection, vendor, calibrationMode, parameter) {
   const reasons = [];
   for (const policy of Object.keys(built.scales)) {
     for (const r of (built.scales[policy].missingReasons || [])) {
-      reasons.push({policy: policy, boundary: r.boundary, reason: r.reason});
+      /* Translated HERE, once, because the renderer prints this list on the
+         clinical card and the engine's strings are written for the test suite
+         (see readerReason). Before W-050 the card carried both halves of the
+         same statement — a plain sentence and, under it, the same fact in code
+         names. `raw` is kept so page 2 and any diagnostic can still reach the
+         engine's own words. */
+      const entry = {policy: policy, boundary: r.boundary, raw: r.reason,
+                     /* W-051. The engine names the FAMILY; this layer owns the
+                        wording. Matching on the prose would make every reason
+                        string load-bearing in two files at once. */
+                     code: r.code || null,
+                     excluded: r.excluded || [],
+                     /* The one part of the sentence that is not in the entry:
+                        the field strength is a property of the QUESTION asked,
+                        not of the record that failed to answer it. */
+                     fieldStrength: selection.fieldStrength,
+                     recoverableWith: r.recoverableWith || null};
+      entry.reason = readerReason(entry);
+      reasons.push(entry);
     }
   }
   row.missingReasons = reasons;
+
+  /* W-051. ONE reader sentence, ranked by the rule in `rankedReasons`, for the
+     case the card's own gap sentence does NOT cover: a row that staged against
+     one policy while the other ladder could not be closed. Before this the block
+     beneath such a card said nothing at all, and the block beneath a card that
+     DID carry a gap sentence re-listed the same reasons in the engine's words —
+     one fact printed twice, in two vocabularies, on the same card. */
+  const topReason = rankedReasons(row)[0];
+  row.gapReason = topReason ? topReason.reason : null;
 
   if (row.value !== null && row.value !== undefined && row.stagingScale) {
     row.staged = _R.stage(row.value, row.stagingScale);
@@ -722,21 +764,147 @@ function provenanceSentence(row) {
   return parts.join('; ') + '.';
 }
 
-/* A parameter that cannot be staged says why, in the engine's own reason, and
-   never leaves an empty band a reader would take for "normal" (SCHEMA 10.3). */
+/* THE ENGINE'S REASON STRINGS ARE WRITTEN FOR THE TEST SUITE, NOT FOR A
+   RADIOLOGIST. They name a schema rule and an opt-in argument by their code
+   names, which is right where they are produced — a developer reading a failing
+   check needs exactly that — and wrong on a clinical page. It is L9's rule
+   arriving on a different field: an internal filing term is not something a
+   clinician can act on.
+
+   W-051 completed it. EVERY family the engine can emit is translated here, the
+   technique gate included, and the table is keyed on the engine's `reasonCode`
+   rather than on its prose — a translation that matched on wording would make
+   each reason string load-bearing in two files at once.
+
+   ⛔ THE FALLBACK STAYS, and is the reason this is a table rather than a switch
+      with a throw at the end. A family nobody has translated yet returns the
+      ENGINE'S OWN STRING: unreadable is a defect, missing is a clinical one, and
+      the worst outcome for a gap is silence (SCHEMA § 10.3). `v2/tests/logic.js`
+      section S asserts the fallback with a code that does not exist.
+
+   The vocabulary is the repository's own wherever it already publishes one:
+   `SCALE_WORDS` names the two policies in the same words the verdict chip uses,
+   so a reader meets one name per thing (W-051 design D). */
+const READER_REASONS = {
+  /* W-050's sentence, unchanged: it is the one this table started from. */
+  'ambiguous-technique-excluded': () =>
+    'published values for this boundary exist, but their own records do not ' +
+    'settle which sequence measured them, so they were held back rather than ' +
+    'assumed — the methodology sheet names them',
+
+  /* "no guideline record for this boundary; 2 record(s) exist in other
+     provenance classes". The count is said because it is actionable — it tells
+     a reader there is something to go and look at — and the complement is left
+     unnamed rather than deduced, since naming it would be this layer asserting
+     which two classes the engine happened to compare. */
+  'no-record-in-policy': entry =>
+    `no value for this step of the scale is published in the ` +
+    `${SCALE_WORDS[entry.policy] || 'evidence this report holds'}` +
+    (entry.excluded && entry.excluded.length
+      ? `; ${entry.excluded.length} published value` +
+        `${entry.excluded.length === 1 ? '' : 's'} for it exist` +
+        `${entry.excluded.length === 1 ? 's' : ''} elsewhere in the literature ` +
+        `this report holds`
+      : ''),
+
+  'no-record-anywhere': () =>
+    'no value for this step of the scale is published in any literature this ' +
+    'report holds',
+
+  /* The engine names the technique group and says it is "not declared
+     field-independent". Both halves are code; the fact underneath them is that
+     nothing published says the numbers carry across field strengths. */
+  'no-record-at-field': entry =>
+    'values for this step of the scale are published, but none of them was ' +
+    `measured at ${entry.fieldStrength || 'this field strength'}, and nothing ` +
+    'published says this sequence carries its values from one field strength ' +
+    'to another',
+
+  /* Neither of the two below is reachable from the shipped records — no pool
+     spans units and no non-poolable group reaches a ladder. They are written
+     anyway because the alternative is a page that starts printing code names
+     the first time the data set changes, and the day that happens is not the
+     day to notice the sentence was never written. */
+  'unit-conflict': () =>
+    'the values published for this step of the scale are not all in one unit, ' +
+    'and this report does not convert between them',
+
+  'group-not-poolable': () =>
+    'more than one value is published for this step of the scale, and this ' +
+    'sequence is not one whose published values may be averaged, so no single ' +
+    'boundary is stated',
+
+  /* The technique gate. Unlike the others this is a whole sentence rather than
+     a clause, because it is not a step of a ladder that failed — the question
+     itself has not been answered yet, and the reader can answer it. */
+  'technique-gate': () =>
+    'This measurement is made by more than one sequence, and they are not ' +
+    'interchangeable. Name the sequence used and the report can answer.'
+};
+
+function readerReason(entry) {
+  /* `recoverableWith` wins over the code it was raised with: W-050's rule is
+     that a reason offering a way back in is the one worth printing, and the
+     sentence for it says what the way back in IS. */
+  const code = entry.recoverableWith === 'allowAmbiguousTechnique'
+    ? 'ambiguous-technique-excluded' : entry.code;
+  const write = READER_REASONS[code];
+  /* `raw` on a report-layer entry, `reason` on an engine one — both shapes reach
+     here, and neither may come back empty. */
+  return write ? write(entry) : (entry.raw || entry.reason);
+}
+
+/* A parameter that cannot be staged says why, and never leaves an empty band a
+   reader would take for "normal" (SCHEMA 10.3). */
 function gapSentence(row) {
-  if (row.gate) {
-    return 'This measurement is made by more than one sequence, and they are not ' +
-           'interchangeable. Name the sequence used and the report can answer.';
-  }
+  if (row.gate) return readerReason({code: 'technique-gate', raw: row.gate});
+  /* W-050. ONE reason prints, and until now it was whichever the policy loop
+     produced first — always the guideline class. For native T1 that printed
+     "no guideline record for this boundary" while the reason a reader could act
+     on sat behind it: published values EXIST and were held back because their
+     records name their sequence ambiguously. The order was incidental; the rule
+     below is not:
+
+       2  the reason offers a way back in    (`recoverableWith` is set)
+       1  records EXIST and were excluded    (`excluded[]` is non-empty)
+       0  nothing exists in any class
+
+     Highest rank prints. The sort is STABLE, so reasons the ranking does not
+     distinguish keep the order the engine produced them in — nothing is
+     reordered on a distinction that was never made. */
+  const ranked = rankedReasons(row);
+  if (!ranked.length) return null;
+  /* The trailing clause counts REASONS, so it says reasons: it used to call them
+     boundaries and write "1 further boundaries" for a count of one. Reasons are
+     deduplicated above, and a boundary count would not survive that. */
+  const rest = ranked.length - 1;
+  return `No ladder could be closed for this measurement: ${ranked[0].reason}.` +
+         (rest > 0 ? ` ${rest} further reason${rest === 1 ? ' is' : 's are'} ` +
+                     `recorded for the remaining boundaries.` : '');
+}
+
+/* W-051 pulled the ranking out of `gapSentence` so that the ONE sentence the
+   card prints and the ONE sentence the block beneath it prints are ranked by the
+   same rule rather than by two copies of it. It reads `row.missingReasons`,
+   which is where the translation already happened, so nothing is translated
+   twice either. */
+function rankedReasons(row) {
   const reasons = [];
-  for (const g of (row.gaps || [])) {
-    for (const r of (g.reasons || [])) if (reasons.indexOf(r.reason) === -1) reasons.push(r.reason);
+  for (const r of (row.missingReasons || [])) {
+    /* Deduplicated on the ENGINE's reason, not the printed one: two boundaries
+       refused for the same cause say it once. Comparing the printed text
+       against the raw incoming text would never match and would print the same
+       sentence twice. */
+    if (reasons.some(x => x.raw === r.raw)) continue;
+    reasons.push({
+      raw: r.raw,
+      reason: r.reason,
+      rank: r.recoverableWith ? 2 : ((r.excluded && r.excluded.length) ? 1 : 0)
+    });
   }
-  if (!reasons.length) return null;
-  return `No ladder could be closed for this measurement: ${reasons[0]}.` +
-         (reasons.length > 1 ? ` ${reasons.length - 1} further boundaries are ` +
-                               `unresolved for their own reasons.` : '');
+  return reasons.map((r, i) => [r, i])
+    .sort((a, b) => (b[0].rank - a[0].rank) || (a[1] - b[1]))
+    .map(pair => pair[0]);
 }
 
 function buildCards(report, profile) {
@@ -908,42 +1076,62 @@ function withheldOf(row) {
          'be shown on request; they are not counted in anything printed here.';
 }
 
+/* Grouped BY REASON, not by boundary — one line per distinct reason, naming
+   every boundary it applies to.
+
+   W-051 measured the cost of the other order. This string is what the
+   methodology sheet's gap table prints, and a four-rung ladder whose every rung
+   failed for the same cause wrote that cause four times. On the non-specific
+   scanner path, where no GE-explicit record matches and most boundaries fail
+   identically, the table ran the printed report from 4 pages to 6 — measured,
+   same fixture before and after, three counting methods agreeing.
+
+   ⛔ NOTHING IS DROPPED. Every (boundary, reason) pair that went in comes out;
+      only the order changed, so the same fact is stated once with its full list
+      of boundaries instead of once per boundary. That is the defect W-051 fixed
+      on the card, arriving on the sheet the card's words were moved to. */
 function gapOf(row) {
   if (row.gate) return row.gate;
-  const reasons = [];
+  const grouped = [];
   for (const g of (row.gaps || [])) {
     for (const r of (g.reasons || [])) {
-      const line = `${r.boundary}: ${r.reason}`;
-      if (reasons.indexOf(line) === -1) reasons.push(line);
+      let entry = grouped.filter(x => x.reason === r.reason)[0];
+      if (!entry) { entry = {reason: r.reason, boundaries: []}; grouped.push(entry); }
+      if (entry.boundaries.indexOf(r.boundary) === -1) entry.boundaries.push(r.boundary);
     }
   }
-  return reasons.length ? reasons.join(' · ') : null;
+  return grouped.length
+    ? grouped.map(e => `${e.boundaries.join(', ')}: ${e.reason}`).join(' · ')
+    : null;
 }
 
 /* ────────────────────────────────────────────────── THE ORDER OF THE CARDS
-   ONE INVARIANT GOVERNS IT: the indication orders cards WITHIN a severity class,
-   never across one. Four classes, most severe first:
+   THE ORDER IS FIXED (W-061, developer decision 2026-08-25). It is not computed
+   from the reading, from the indication or from anything the patient's values can
+   change; `orderCards` below lists, and the list is `REPORT_PARAMETERS`.
+
+   What stands here instead is the severity RANK, which is still computed and is
+   read by `buildImpression` as the definition of "abnormal". Four classes, most
+   severe first:
 
      0  abnormal — a severity resolved to something other than 'ok'
      1  a described gap — it outranks a normal reading, because a reader who
         cannot find a parameter reads its absence as reassurance
-     2  severity not sourced — zones.js returns severitySource 'unresolved' for
-        r2star, t2star and ct1, and a null sev is an ABSENCE OF EVIDENCE, not a
+     2  severity not sourced — a null sev is an ABSENCE OF EVIDENCE, not a
         finding of normality (CLAUDE.md § 1.2)
      3  normal
 
-   Inside a class the indication's own parameters come first, then everything
-   else, both in domain order. NOTHING IS FILTERED: every rendered row is
-   returned, and the indication decides sequence and naming only. */
-const INDICATION_PARAMETERS = {
-  /* Report parameters only. Ferritin and transferrin saturation belong to the
-     iron picture and are laboratory values, not cards — naming them here would
-     rank a row that does not exist. */
-  'iron-overload':           ['lic', 'r2star', 't2star'],
-  'steatotic-liver-disease': ['pdff', 'mre', 't1', 'ct1'],
-  'chronic-liver-disease':   ['mre', 't1', 'ct1', 'adc'],
-  'non-specific':            []
-};
+   W-044 emptied class 2 of real parameters and it is deliberately kept: it is the
+   landing place for a future parameter whose ladder cannot name its own sides, and
+   deleting it would make such a reading rank as normal.
+
+   WHAT WAS DELETED HERE, AND WHY IT IS WRITTEN DOWN RATHER THAN SIMPLY GONE.
+   `INDICATION_PARAMETERS` listed, per indication, the parameters that came first
+   inside a severity class. It was MEASURED DEAD on 2026-08-25: all four
+   indications printed one and the same order, because the lists never named the
+   iron rows and every heading outside iron holds a single card. Keeping a dead
+   criterion beside a fixed order would have left a second, contradictory answer
+   to the question this section settles. */
 
 /* The domain vocabulary is domains.js's, read back in the order the report
    prints: fat, iron, fibrosis, relaxometry, third-party, diffusion. */
@@ -963,30 +1151,30 @@ function severityClass(card) {
   return 2;
 }
 
-function orderCards(report, cards, indication) {
-  const priority = INDICATION_PARAMETERS[indication || 'non-specific'] || [];
+/* CARD ORDER IS FIXED (W-061).
+
+   This function used to sort: severity class first, then the indication's own
+   parameters, then domain, then the engine's row order. Both criteria were
+   measured dead outside the interior of the iron group, and inside it the
+   severity criterion was actively wrong — an empty card ranked 2 and a normal
+   reading 3, so answering a question sank the card that had just been answered
+   below one that had not. A reader who answers a question must not watch the
+   question move.
+
+   `severityClass` is deliberately KEPT and is untouched; what it lost is its say
+   over position. That is W-030's guarantee moving from position to naming: the
+   impression states the finding, its value and its band wherever the card sits.
+
+   `seq` is still carried, because `groupCardsByDomain` and both renderers consume
+   the pair shape. NOTHING IS FILTERED — losing a card is the one thing this layer
+   may never do (W-030 § 5), and a lister can drop a row as easily as a sort. */
+function orderCards(report, cards) {
   const pairs = [];
   for (let i = 0; i < report.rows.length; i++) {
     if (!report.rows[i].rendered) continue;
     pairs.push({row: report.rows[i], card: cards[i], seq: i});
   }
-  const domainRank = pair => {
-    const d = CARD_DOMAIN_ORDER.indexOf(pair.row.domain);
-    return d === -1 ? CARD_DOMAIN_ORDER.length : d;
-  };
-  const indRank = pair => {
-    const i = priority.indexOf(pair.row.parameter);
-    return i === -1 ? priority.length : i;
-  };
-  /* `seq` is the engine's own row order, carried so the final key is stable:
-     Array.prototype.sort is not required to be stable in every engine this file
-     must run in, and an unstable card order would print two different reports
-     from one set of measurements. */
-  return pairs.slice().sort((a, b) =>
-    (severityClass(a.card) - severityClass(b.card)) ||
-    (indRank(a) - indRank(b)) ||
-    (domainRank(a) - domainRank(b)) ||
-    (a.seq - b.seq));
+  return pairs;
 }
 
 /* WHICH HEADING A CARD IS PRINTED UNDER (W-035).
@@ -1166,9 +1354,22 @@ function buildComposite(report, labs, reliability) {
   const mreRow = report.rows.filter(r => r.parameter === 'mre')[0] || null;
   const mre = mreRow ? numberOr(mreRow.value) : null;
   const fib4 = labs.fib4.value;
+  /* W-065 item 1. The rule-out strength is stated HERE, and no longer on the
+     chip. `NPV 93%` stood on that chip until W-018 read both cited papers in
+     full: 92.8 occurs zero times in Jung 2021 and zero times in EASL 2024,
+     which publishes no predictive value at all (LITERATURE.md 9.17.5). Jung
+     measures the rule-out in two cohorts and they disagree by 24 points, so
+     averaging them would be an unsourced clinical number (CLAUDE.md 1.4) and
+     quoting one would name a cohort the record does not. The chip carries the
+     verdict; both measured figures print here with the cohort each belongs to.
+     The rule-in PPV is untouched: 97.1% occurs six times in the same paper. */
   const note = 'MAST is not computed here: CAL-0007 records that the workbook ' +
     'publishes MAST\u2019s two thresholds and never its coefficients, so the ' +
-    'expression is null and stays null. Use a validated calculator.';
+    'expression is null and stays null. Use a validated calculator. ' +
+    'MEFIB\u2019s published strength (Jung 2021, PMID 33214165): rule-in ' +
+    'PPV 97.1%; rule-out NPV 83.2% in the derivation cohort and 59.4% in the ' +
+    'validation cohort \u2014 two cohort figures, so no single rule-out ratio ' +
+    'is stated beside the verdict.';
 
   /* W-015 Task 6. MEFIB rules F>=2 IN at 97% PPV, and it rules it in from the
      MRE stiffness. Where a reliability rule has withheld that stiffness, the
@@ -1204,7 +1405,7 @@ function buildComposite(report, labs, reliability) {
   const verdict = (c1 && c2)
     ? {band: 'POSITIVE', tag: 'Rule-in F>=2 (PPV 97%)', sev: 'high'}
     : (!c1 && !c2)
-      ? {band: 'NEGATIVE', tag: 'Rule-out F>=2 (NPV 93%)', sev: 'ok'}
+      ? {band: 'NEGATIVE', tag: 'Rule-out F>=2', sev: 'ok'}
       : {band: 'INDETERMINATE', tag: 'Neither rules in nor rules out', sev: 'mid'};
 
   return {
@@ -1520,11 +1721,12 @@ function buildReceipts(report) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {REPORT_PARAMETERS, PARAMETER_LABELS, PARAMETER_UNITS,
-                    INDICATION_COHORTS, INDICATION_PARAMETERS, matchedScale,
+                    INDICATION_COHORTS, matchedScale,
                     orderCards, groupCardsByDomain, severityClass, LAB_INPUTS,
                     CONTEXT_INPUTS, buildContext,
                     buildReport, buildRow, buildCoverage, buildCards, buildReceipts,
-                    buildLabs, buildComposite, buildImpression,
+                    buildLabs, buildComposite, buildImpression, readerReason,
+                    READER_REASONS, rankedReasons,
                     buildReliability, evidenceFloor, markInterpretability,
                     FLAG_SENTENCES, V2_REPORT_VERSION};
 }

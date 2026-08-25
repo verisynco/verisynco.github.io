@@ -11,9 +11,13 @@
  *              (62010 bytes). Its content differs ONLY in the demo input row of
  *              each interactive sheet; nothing migrated here differs between them.
  *
- * 5 papers the workbook does NOT contain. Two were identified by
- * W-020 while auditing its citations; three more by W-031's second literature pass.
- * SCHEMA.md § 3.7.
+ * 9 papers the workbook does NOT contain. Two were identified by
+ * W-020 while auditing its citations; three more by W-031's second literature pass;
+ * four by W-053's native-T1 pass. SCHEMA.md § 3.7.
+ *
+ * EXT-006 is the first record here that supports NOTHING. It is a candidate source
+ * that was found and rejected, and it is kept so the next pass does not spend its
+ * budget re-finding it. A rejection nobody wrote down is a search that runs again.
  * 
  * ⛔ These are NOT references in the workbook sense and MUST NEVER be rendered as
  *    "Ref#N". They carry no refNum, no source cell, no vendorClass and no
@@ -46,7 +50,7 @@ const EXTERNAL_REFERENCES = [
     fieldStrength: '3.0T',
     retrievedVia: 'europepmc:SRC:MED',
     foundBy: 'W-020',
-    supports: 'Liver T2 34 +/- 4 ms at 3.0 T — a reference range, not a boundary. The workbook attributes its ~34 ms to Ref#18 (Banerjee 2014), which measured T2*, not T2. Cited by RNG-002.'
+    supports: 'Liver T2 34 +/- 4 ms at 3.0 T — a reference range, not a boundary. The workbook attributes its ~34 ms to Ref#18 (Banerjee 2014), which measured T2*, not T2. Cited by RNG-002. W-053 ADDED: the same paper is also the only source Unal 2017 (EXT-006) Table 1 attributes a normal liver T1 to — 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T, read out of that table rather than out of this paper. It is recorded here because it is the nearest thing to a primary native-T1 normative measurement the repository holds, and because it publishes NEITHER of the two boundaries CUT-0071 and CUT-0073 ship. No cut-off cites it for T1 and none may: a mean with an SD is not a boundary, and deriving one is CLAUDE.md § 1.3.'
   },
   {
     id: 'EXT-002',
@@ -107,6 +111,66 @@ const EXTERNAL_REFERENCES = [
     retrievedVia: 'europepmc:SRC:MED AND EXT_ID:37227944',
     foundBy: 'W-031',
     supports: 'Consensus-class coverage of all three core parameters in ONE document — jointly authored by the SAR Liver Fibrosis Disease-Focused Panel, the SAR Hepatic Iron Overload DFP and the European Society of Radiology. The repo carries guideline-class evidence for iron (REF-038), MASLD (REF-040) and HCC (REF-035) but had none on the fibrosis/MRE side; this closes that. BIBLIOGRAPHIC ONLY in this task: no cut-off cites it and no value was transcribed from it. Attaching it to a boundary is a separate decision requiring the same three-step procedure as any other cut-off change.'
+  },
+  {
+    id: 'EXT-006',
+    sourceKind: 'literature',
+    notInWorkbook: true,
+    pmid: '27937040',
+    doi: '10.1080/17474124.2017.1271710',
+    citation: 'Unal E, Idilman IS, Karcaaltincaba M. Expert Rev Gastroenterol Hepatol 2017;11(2):167-182.',
+    title: 'Multiparametric or practical quantitative liver MRI: towards millisecond, fat fraction, kilopascal and function era.',
+    year: 2017,
+    journal: 'Expert Rev Gastroenterol Hepatol',
+    fieldStrength: '1.5T+3.0T',
+    retrievedVia: 'europepmc:SRC:MED AND EXT_ID:27937040',
+    foundBy: 'W-053',
+    supports: 'NOTHING — this record exists to document a candidate source that was found and REJECTED, so the next pass does not re-find it. Full text held at reference/PMID-27937040.pdf and READ. Its abstract states verbatim "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)", which is three of the four native-T1 boundaries CUT-0071..CUT-0074 ship, verbatim. MEASURED in the full text: the strings "550", "700" and "850" occur ONCE each and all three are on that one abstract line; "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They appear in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds Table 1’s own values "586" and "809" once each, which is how it was confirmed complete rather than truncated. Table 1 is the ONLY place the paper reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai et al (AJR 2025, EXT-008) print the same band and cite THIS paper together with Meloni 2024 (EXT-007); both have now been read in full and neither contains it, so the chain has two ends and both are open. Attaching it to a boundary would record an unsourced sentence AS a source, which is the defect W-050 found in REF-018 one level up. Cited by no cut-off, deliberately.'
+  },
+  {
+    id: 'EXT-007',
+    sourceKind: 'literature',
+    notInWorkbook: true,
+    pmid: '38019376',
+    doi: '10.1007/s10334-023-01135-6',
+    citation: 'Meloni A, Carnevale A, Gaio P, Positano V, Passantino C, Pepe A, et al. MAGMA 2024;37(1):93-100.',
+    title: 'Liver T1 and T2 mapping in a large cohort of healthy subjects: normal ranges and correlation with age and sex.',
+    year: 2024,
+    journal: 'MAGMA',
+    fieldStrength: '1.5T',
+    retrievedVia: 'europepmc:SRC:MED AND EXT_ID:38019376',
+    foundBy: 'W-053',
+    supports: 'A published normal range for native T1 at 1.5T, and the only one the W-053 pass found on a GE scanner. Full text held at reference/papers/PMID-38019376.pdf and READ. 1.5T Signa Artist (GE Healthcare), MOLLI 3(3s)3(3s)5, 100 healthy volunteers aged 20-70, 50% female; global native T1 574.07 +/- 73.60 ms in males vs 578.22 +/- 59.92 ms in females (p = 0.760). Limits of normal, global: 442-705 ms, defined verbatim as "calculated on original or log-transformed data as mean +/- 2 standard deviations" — a TOLERANCE INTERVAL, which is a different statistic from a diagnostic boundary and may never be read as one. It publishes NEITHER of the 1.5T values CUT-0071 and CUT-0072 ship. THREE LIMITATIONS IN THE PAPER’S OWN WORDS, recorded so nobody promotes it later without them: the images were acquired in the cardiac short-axis plane rather than axially, which it names as an accuracy limitation; "liver fat and iron levels were assumed to be normal, and no corrections were applied"; and segments 5-8 are barely sampled (n = 5, 1, 0, 1), so the global figure is effectively segments 2-4. CITED BY NO CUT-OFF, and not because it is weak: a boundary whose only evidence is a paper outside the workbook has no representation in this schema (SCHEMA § 5.1.1, and R-38 fails any cut-off with an empty sourceRefIds). Manufacturing one was refused rather than improvised.'
+  },
+  {
+    id: 'EXT-008',
+    sourceKind: 'literature',
+    notInWorkbook: true,
+    pmid: '39194308',
+    doi: '10.2214/AJR.24.31643',
+    citation: 'Serai SD, Robson MD, Tirkes T, Trout AT. AJR Am J Roentgenol 2025;224(6):e2431643.',
+    title: 'T1 Mapping of the Abdomen, From the AJR "How We Do It" Special Series.',
+    year: 2025,
+    journal: 'AJR Am J Roentgenol',
+    fieldStrength: '1.5T+3.0T',
+    retrievedVia: 'ncbi:efetch db=pmc id=PMC12555091',
+    foundBy: 'W-053',
+    supports: 'The most authoritative document the W-053 pass found on abdominal T1 mapping, and it is recorded because of what it shows about the four native-T1 boundaries rather than because it settles them. Full text read from PMC12555091. TWO normal statements, in one paper, never reconciled with each other. (1) In text: "Normal T1 values for the liver are 550-620 ms at 1.5 T and 700-850 ms at 3 T, and are similar for adults and children (36, 37)". Its references 36 and 37 resolve to Unal 2017 (EXT-006) and Meloni 2024 (EXT-007); BOTH have been read in full and NEITHER publishes that band. (2) Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods (73, 76, 87, 91)": liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T, mean +/- SD. Of those four citations only reference 76 is a liver paper — Gilligan 2019 (EXT-009) — and the liver row is that study verbatim, which makes the row PEDIATRIC. The two statements overlap without agreeing: 581 +/- 64 spans 517-645 against an in-text 550-620, and 783 +/- 88 spans 695-871 against an in-text 700-850. ALSO WORTH THE RECORD, because this repository already works this way: the table caption states that normal values "depend on the organ being measured, as well as the choice of field strength, pulse sequence, and processing method", and that "Interpretation of T1 measurements requires use of these normal ranges, without which a T1 measurement has little practical utility" — the same position SCHEMA § 4.1 takes when it refuses to answer one sequence with another sequence cut-off. Cited by no cut-off: a review that reports two different normal ranges without reconciling them cannot be the evidence behind a single boundary.'
+  },
+  {
+    id: 'EXT-009',
+    sourceKind: 'literature',
+    notInWorkbook: true,
+    pmid: '31049609',
+    doi: '10.1007/s00247-019-04411-7',
+    citation: 'Gilligan LA, Dillman JR, Tkach JA, Xanthakos SA, Gill JK, Trout AT. Pediatr Radiol 2019;49(8):1018-1024.',
+    title: 'Magnetic resonance imaging T1 relaxation times for the liver, pancreas and spleen in healthy children at 1.5 and 3 tesla.',
+    year: 2019,
+    journal: 'Pediatr Radiol',
+    fieldStrength: '1.5T+3.0T',
+    retrievedVia: 'europepmc:EXT_ID:31049609',
+    foundBy: 'W-053',
+    supports: 'The one traceable normative liver T1 measurement in the AJR 2025 chain (EXT-008 Table 2, reference 76), reproduced there verbatim. Abstract read; full text not held. Modified Look-Locker, healthy children aged 7-17, 32 participants with n = 16 at 1.5T; median liver T1 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T, with no significant association with age or sex at either field strength. It is recorded for TWO reasons, and the second matters more than the first. First: it is the reason AJR Table 2 can be traced at all. Second: it is PEDIATRIC, and CUT-0071..CUT-0074 are cohort adult-general, so it may not be adopted for them — that is the extrapolation CLAUDE.md § 1.3 forbids, the same rule read in the opposite direction from the pediatric MRE bound this repository refused to manufacture. What it COULD legitimately support is a pediatric T1 reference range of its own; the repository already carries pediatric cohorts and RNG-012 is the precedent for a literature-only range. That is a separate task and is queued, not done here. Cited by no cut-off.'
   }
 ];
 

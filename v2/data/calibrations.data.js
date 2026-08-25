@@ -63,7 +63,7 @@
  */
 
 const CALIBRATIONS_REV = 'xlsx-v1';
-const CALIBRATIONS_VERSION = '1.1';   /* W-031: the citation channel; no coefficient moved */
+const CALIBRATIONS_VERSION = '1.3';   /* W-056: the two iron slope notes; no coefficient moved */
 
 /* SHA-256 over the canonical serialisation of every record. See
    v2/tests/logic.test.js. Covers vendorClass, technique and evidenceGrade for
@@ -116,9 +116,16 @@ const CALIBRATIONS = [
       refId: 'REF-001',
       vendorClass: 'ge-explicit',
       note: 'Wood 2005 derived the slope on a GE Signa 1.5T (n=102, transfusion-dependent ' +
-            'thalassaemia/SCD). ESGAR/SAR 2023 (REF-038) endorses it without re-deriving it, ' +
-            'so SCHEMA 5.5 reduces vendorClass to `guideline` — but the underlying ' +
-            'measurement is GE-explicit and a report must be able to say so.'
+            'thalassaemia/SCD). W-056 read ESGAR/SAR 2023 (REF-038) in full and it does NOT ' +
+            'endorse this coefficient: 0.0254 occurs zero times, no LIC = ... equation appears ' +
+            'in its text, and Wood occurs nine times with all nine inside the reference list. ' +
+            'What that guideline endorses is the METHOD - confounder-corrected R2* as ' +
+            'first-line, consensus statement 3 - and the calibrations it points at are ' +
+            'Hernando et al, summarised in its Table S2, which this project does not hold ' +
+            '(LITERATURE.md 9.18.3). REF-038 stays in sourceRefIds because the workbook cites ' +
+            'it and a citation is recorded, not deleted. SCHEMA 5.5 still reduces vendorClass ' +
+            'to `guideline` - but the underlying measurement is GE-explicit and a report must ' +
+            'be able to say so.'
     },
     evidenceGrade: 'A',
     population: 'Transfusion-dependent thalassaemia/SCD, n=102 (Wood 2005)',
@@ -218,9 +225,11 @@ const CALIBRATIONS = [
       refId: 'REF-015',
       vendorClass: 'ge-explicit',
       note: 'Serai/Reeder 2022 multicentre validation, n=207, on GE Signa 3T + Signa Premier ' +
-            '(with a 1.5T Signa arm). ESGAR/SAR 2023 (REF-038) carries it. As with CAL-0001 ' +
-            'the reduction to `guideline` hides a GE-explicit derivation, which `derivation` ' +
-            'preserves.'
+            '(with a 1.5T Signa arm). W-056: ESGAR/SAR 2023 (REF-038) does NOT carry this ' +
+            'slope - 0.0472 occurs zero times in it and it refers its calibrations to Table ' +
+            'S2 and to Hernando et al (LITERATURE.md 9.18.3). REF-015 is where the ' +
+            'coefficient comes from and it is untouched. As with CAL-0001 the reduction to ' +
+            '`guideline` hides a GE-explicit derivation, which `derivation` preserves.'
     },
     evidenceGrade: 'A',
     population: 'Multicentre iron overload, n=207 (Serai/Reeder 2022)',
@@ -305,7 +314,13 @@ const CALIBRATIONS = [
           'home, and it carries BOTH constants so the rule can be evaluated from one place ' +
           'instead of being reassembled from a cut-off plus a hard-coded literal — which is ' +
           'what V1 does at js/app.js:154. Both conditions true = rule-in >=F2 (PPV 97%); ' +
-          'both false = rule-out (NPV 93%); mixed = indeterminate, consider biopsy or MAST.',
+          'both false = rule-out; mixed = indeterminate, consider biopsy or MAST. ' +
+          'W-065: this note carried a rule-out NPV of 93%, and W-018 read both ' +
+          'cited papers in full - 92.8 occurs zero times in Jung 2021 and zero ' +
+          'times in EASL 2024, which publishes no predictive value at all. Jung ' +
+          'measures NPV 83.2% in the derivation cohort and 59.4% in validation; ' +
+          'the two are stated as two, never averaged (LITERATURE.md 9.17.5). The ' +
+          'rule-in PPV 97.1% is in the paper six times and is unchanged.',
     source: {sheet: 'MRE', cell: 'D18+E18'}
   },
 

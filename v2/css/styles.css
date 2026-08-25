@@ -566,7 +566,14 @@ svg.ruler.slim { opacity: .8; }
    there at all. With L1 marking the section and L2 marking the domain group, a
    third line nobody can see is worse than none — cards inside a group are
    separated by proximity, which is what the padding is for. */
-.pcard { display: grid; grid-template-columns: 1fr 2fr auto; gap: var(--s-5);
+/* W-061 — THE THIRD COLUMN TAKES A SHARE, NOT THE LEFTOVERS. It was `auto`, so
+   the verdict chip's own width decided how much room was left for the drawing
+   beside it. MEASURED, Edge headless 2026-08-25: that chip ran 116 px on an
+   unanswered card and 258.2 px on a severe one, and the ruler shrank with it —
+   a drawing that changes width changes height, and the whole card moved while
+   the reader was typing. Three fractions of a constant total deliver one column
+   width in every value state. */
+.pcard { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: var(--s-5);
   align-items: start; padding: var(--s-4) 0; }
 .pcard .pident h4 { margin: 0 0 var(--s-1); font-size: 12.5px; }
 .pcard .acq { margin: 0 0 var(--s-3); font-size: 9.5px; color: var(--muted); }
@@ -594,6 +601,18 @@ svg.ruler.slim { opacity: .8; }
 .pcard .povr .ohint { font-size: 8.5px; color: var(--muted); }
 .pcard .calline { margin: var(--s-2) 0 0; font-family: var(--mono); font-size: 9px;
   color: var(--muted); }
+/* W-061 — RESERVED SPACE, SCREEN ONLY. MEASURED, Edge headless 2026-08-25: a card
+   whose reading is reached through a calibration grew 159.6 -> 194.5 px the moment
+   its inputs arrived — the value area 24 -> 46 px as the derived readout and its
+   override box appear, and the calibration line 0 -> 37.8 px. The slot holds that
+   height so the page does not move under the reader's cursor.
+   It is blank space and carries no content; the print block below removes it,
+   because on paper a card with nothing to say must not carry an empty line. */
+/* The derived state also appends a sentence to the acquisition line: MEASURED
+   39.9 -> 66.5 px, two further lines. */
+.pcard .acq.can-derive { min-height: 66.5px; }
+.pcard .pval.can-derive { min-height: 46px; }
+.pcard .calline-reserved { min-height: 37.8px; margin: var(--s-2) 0 0; }
 .pcard .pfacts { grid-column: 1 / -1; }
 .pcard .pfacts p { margin: var(--s-2) 0 0; font-size: 10px; }
 .pcard svg.ruler { width: 100%; height: auto; display: block; }
@@ -871,6 +890,10 @@ ul.ev .src{ display:block; font-family:var(--mono); font-size:7.5px;
      down the SAME scale recovers 8 mm across eight cards. The cards keep their
      hairline separator, and the screen keeps --s-4. */
   .pcard{ padding:var(--s-3) 0; }
+  /* W-061 — the screen's reserved space is not printed. */
+  .pcard .calline-reserved{ display:none; }
+  .pcard .pval.can-derive{ min-height:0; }
+  .pcard .acq.can-derive{ min-height:0; }
   .reportfoot pre{ line-height:1.2; }
   .impression p{ font-size:11px; }
   .mtab{ font-size:8.5px; }
@@ -900,16 +923,24 @@ body[data-mode="sample"] .page {
   background-repeat: repeat;
 }
 
-.samplebar { display: flex; align-items: center; gap: var(--s-4);
+/* The toolbar (W-052; `.samplebar` until then). The print control sits at the
+   left, the sample control is pushed to the right edge, and the bar is
+   screen-only — no printed sheet carries a button. */
+.toolbar { display: flex; align-items: center; gap: var(--s-4);
   width: 210mm; max-width: 100%; margin: 0 auto var(--s-4);
   padding: var(--s-4) var(--s-5); background: var(--paper);
   border: 1px solid var(--hair2); border-radius: 6px; }
-.samplebar-note { font-family: var(--mono); font-size: var(--t-meta);
+.tb-note, .tb-reason { font-family: var(--mono); font-size: var(--t-meta);
   color: var(--muted); letter-spacing: .04em; }
-.samplebar button { margin-left: auto; font: inherit; font-size: var(--t-band);
+.toolbar button { font: inherit; font-size: var(--t-band);
   padding: var(--s-3) var(--s-5); border: 1px solid var(--accent);
   background: var(--accent); color: #fff; border-radius: 4px; cursor: pointer; }
-.samplebar button:hover { filter: brightness(1.08); }
+.toolbar button:hover { filter: brightness(1.08); }
+.toolbar button[data-sample] { margin-left: auto; }
+/* Disabled means unavailable, not invisible: the reason beside it is what the
+   reader acts on, so the control stays legible while it cannot be pressed. */
+.toolbar button[disabled] { background: var(--paper); color: var(--muted);
+  border-color: var(--hair2); cursor: not-allowed; filter: none; }
 
 .sampleline { margin-top: var(--s-5); padding: var(--s-3) var(--s-4);
   border: 1px solid var(--mid); border-radius: 4px;

@@ -288,7 +288,7 @@ function renderSelectionScreen(ackTs) {
        report a reader might take for a finished one. */
     document.body.classList.remove('path-chosen');
     currentRoute = entryRoute(null, selection);
-    app.innerHTML = sampleBar({mode: viewMode}) +
+    app.innerHTML = toolbar({mode: viewMode}, false) +
       '<div class="page" id="clinical">' +
       masthead(profileForPath('other')) + patientMeta(selection) +
       studyMeta(selection, profileForPath('other')) +
@@ -299,7 +299,7 @@ function renderSelectionScreen(ackTs) {
     const profile = profileForPath(selection.path);
     const model = buildModel(report, profile, selection);
     currentRoute = entryRoute(model, selection);
-    app.innerHTML = sampleBar({mode: viewMode}) +
+    app.innerHTML = toolbar({mode: viewMode}, true) +
       renderReport(model, profile, selection,
                    {app: V2_APP_VERSION,
                     disclaimer: V2_DISCLAIMER_VERSION,
@@ -319,6 +319,11 @@ function wireSelectionScreen() {
   app.querySelectorAll('button[data-sample]').forEach(el =>
     el.addEventListener('click', () =>
       el.getAttribute('data-sample') === 'clear' ? exitSample() : enterSample()));
+  /* The print button calls the WRAPPED window.print() above — never
+     `nativePrint` — so the terms and the acquisition stay a single gate that
+     the button, the keyboard shortcut and the stylesheet all answer to. */
+  app.querySelectorAll('button[data-action="print"]').forEach(el =>
+    el.addEventListener('click', () => window.print()));
   /* The patient and study text cells, the tier radios and the remove switches.
      `removed` is view state and never enters `selection`: it is a printing
      choice, and a presentation flag pushed through selection.js would reach the

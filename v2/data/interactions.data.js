@@ -263,6 +263,8 @@ const INTERACTIONS = [
     statement: 'Even though field-independent, avoid mixing fields within a longitudinal study to minimize noise.',
     sourceRefIds: ['REF-016', 'REF-040'],
     cited: true,
+    unsupportedRefIds: ['REF-040'],
+    citationNote: 'W-065: REF-016 (QIBA, Yokoo 2018) is where field-independence comes from and it stands. REF-040 (EASL 2024) does not: read in full, fixed-string counts "field strength" 0, "1.5 T" 0, "3.0 T" 0, "scanner" 0, and the twelve hits for "3 T" are all superscript reference markers running into the next word. A clinical practice guideline on MASLD makes no acquisition statement, so it supports no part of this row (LITERATURE.md § 9.17.6).',
     source: {sheet: 'Technical_Limitations', row: 24}
   },
   {
@@ -277,6 +279,8 @@ const INTERACTIONS = [
     statement: 'Echo timing is critical: first TE ≤1.0 ms and TE spacing ≤1.4 ms are needed for reliable R2* even at 1.5T — otherwise LIC is underestimated at high iron (Meta-analysis 2024).',
     sourceRefIds: ['REF-038'],
     cited: true,
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-056: the guideline this rule cites gives a different echo spacing. Consensus statement 5 reads: short TEs (<1 msec), short echo spacing (<1 msec), six to 12 TEs, and noise correction are recommended (high level of evidence). The string 1.4 occurs zero times in Reeder 2023. The rule is kept because it is the WORKBOOK protocol row and it is not less strict on the first TE; what is recorded is that REF-038 does not carry the 1.4 ms figure (LITERATURE.md 9.18.6).',
     source: {sheet: 'Technical_Limitations', row: 28}
   },
   {
@@ -333,6 +337,8 @@ const INTERACTIONS = [
     statement: 'Low SNR at LIC < 3 mg/g dw — reported ±15% error for very mild overload.',
     sourceRefIds: ['REF-038'],
     cited: true,
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-056: the plus-or-minus 15 percent figure occurs zero times in Reeder 2023, whose own precision statement is a coefficient of repeatability of approximately 10 second-1, corresponding to less than 0.2 mg/g variability for LIC. Different quantity, different number; the rule keeps the workbook wording and records that its citation does not carry it (LITERATURE.md 9.18.6).',
     source: {sheet: 'Technical_Limitations', row: 33}
   },
   {
@@ -347,6 +353,8 @@ const INTERACTIONS = [
     statement: 'Ultra-short-TE not routinely available — LIC > 20 mg/g dw may be unmeasurable (rapid signal decay).',
     sourceRefIds: ['REF-038'],
     cited: true,
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-056: the guideline gives a HIGHER ceiling than this rule. Consensus statement 5: R2* has a dynamic range up to approximately 2000 second-1, corresponding to a maximum LIC of 52 mg/g at 1.5 T, although practically this may be limited to approximately 40 mg/g if FerriScan is used as the reference. The string 20 mg occurs zero times. The rule is the more conservative of the two and is kept as written (CLAUDE.md 2.1); what is recorded is that REF-038 does not state it.',
     source: {sheet: 'Technical_Limitations', row: 34}
   },
   {
@@ -361,6 +369,8 @@ const INTERACTIONS = [
     statement: 'Wood 2005 calibration (LIC = 0.0254 × R2*) is the DE FACTO 1.5T standard, endorsed by ESGAR/SAR 2023.',
     sourceRefIds: ['REF-001', 'REF-038'],
     cited: true,
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-056: Reeder 2023 does not endorse this slope in any sentence. 0.0254 occurs zero times, no LIC = ... equation appears anywhere in the text, and Wood occurs nine times - all nine inside the reference list. What the guideline endorses is the METHOD (consensus statement 3, confounder-corrected R2* as first-line), and the calibrations it points at are Hernando et al, summarised in Table S2, which this project does not hold. REF-001 still carries the slope itself and is untouched (LITERATURE.md 9.18.3).',
     source: {sheet: 'Technical_Limitations', row: 35}
   },
   {
@@ -375,6 +385,8 @@ const INTERACTIONS = [
     statement: 'Signal decays TWICE as fast at 3T compared to 1.5T — for LIC > 15 mg/g dw the multi-echo GRE sequence may fail (all echoes below noise floor).',
     sourceRefIds: ['REF-008', 'REF-038'],
     cited: true,
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-056: neither half of this rule is in Reeder 2023. The word twice occurs zero times, and the guidelines own 3T ceiling is approximately 26 mg/g, not the 15 mg/g named here. REF-008 is untouched; what is recorded is that REF-038 does not carry the statement (LITERATURE.md 9.18.6).',
     source: {sheet: 'Technical_Limitations', row: 37}
   },
   {
@@ -417,6 +429,8 @@ const INTERACTIONS = [
     statement: '3T calibration (LIC ≈ 0.0472 × R2*) from Serai/Reeder 2022 multicenter study; slope ≈ 1.86× 1.5T slope.',
     sourceRefIds: ['REF-015', 'REF-038'],
     cited: true,
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-056: the same finding as INT-0023 at 3T. 0.0472 occurs zero times in Reeder 2023 and no calibration equation appears in its text; the guideline refers its calibrations to Table S2. REF-015 (Serai 2022) is the source that carries this slope and is untouched (LITERATURE.md 9.18.3).',
     source: {sheet: 'Technical_Limitations', row: 40}
   },
   {
@@ -1229,6 +1243,8 @@ const INTERACTIONS = [
     statement: 'Higher SNR benefits small lesion ADC quantification.',
     sourceRefIds: ['REF-026'],
     cited: true,
+    unsupportedRefIds: ['REF-026'],
+    citationNote: 'W-065: the sheet gives this row Ref#26 and the paper carries no part of it. Taouli 2007 read in full — fixed-string counts: "3 T" 0, "3-T" 0, "3.0 T" 0, "SNR" 0, "signal-to-noise" 0; "focal" and "lesion" occur three times each and every occurrence is inside the reference list, in other people\'s titles. It is a 1.5T study of diffuse fibrosis, so it cannot source a 3T preference, an SNR argument or a focal-lesion claim (LITERATURE.md § 9.17.4). The row and its Ref# are kept as the sheet wrote them; what is recorded is that the citation does not carry the statement.',
     source: {sheet: 'Technical_Limitations', row: 128}
   },
   {

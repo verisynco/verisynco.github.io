@@ -79,7 +79,7 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.1';
+const V2_THRESHOLDS_VERSION = '1.3';
 
 /* -------------------------------------------------------------- Data loading
    In the browser the data files have already run and left their consts as
@@ -384,8 +384,13 @@ function resolveBoundary(opts) {
   const classes = policyClasses(policy);
   const flags = [];
 
-  const absent = (reason, excluded) => ({
-    boundary, value: null, absent: true, absentReason: reason,
+  /* W-051 — `reasonCode` is a SECOND channel beside `absentReason`, never a
+     replacement for it. The prose is written for this repository's test suite
+     and for diagnostics, and stays exactly as it is; the code is what the report
+     layer keys a reader sentence off, so translating a reason never means
+     matching on a string that could be reworded. */
+  const absent = (reason, excluded, code) => ({
+    boundary, value: null, absent: true, absentReason: reason, reasonCode: code || null,
     n: 0, min: null, max: null, unit: null, direction: null,
     rung: null, rungLabel: null, flags: flags.slice(), meanLabel: null,
     cohorts: [], sources: [],
@@ -414,7 +419,8 @@ function resolveBoundary(opts) {
         ? `no ${classes.join(' / ')} record for this boundary; ` +
           `${anyClass.length} record(s) exist in other provenance classes`
         : 'no record for this boundary in any provenance class',
-      anyClass);
+      anyClass,
+      anyClass.length ? 'no-record-in-policy' : 'no-record-anywhere');
   }
 
   /* Field strength, with the sourced field-independence escape hatch. */
@@ -427,7 +433,7 @@ function resolveBoundary(opts) {
   } else {
     return absent(
       `records exist but none at ${fieldStrength}, and technique group ` +
-      `"${group}" is not declared field-independent`, pool);
+      `"${group}" is not declared field-independent`, pool, 'no-record-at-field');
   }
 
   if (!allowAmbiguousTechnique) {
@@ -443,7 +449,7 @@ function resolveBoundary(opts) {
       return absent(
         `${dropped.length} record(s) exist but carry techniqueAmbiguous; SCHEMA 4.2 ` +
         `rule 7 excludes them unless the caller passes allowAmbiguousTechnique`,
-        dropped);
+        dropped, 'ambiguous-technique-excluded');
     }
   }
 
@@ -456,6 +462,7 @@ function resolveBoundary(opts) {
       rung: null, rungLabel: null,
       flags: flags.concat('unit-conflict'),
       refused: `pool spans units ${units.join(', ')} — no implicit conversion`,
+      reasonCode: 'unit-conflict',
       sources: pool.map(describeSource), cohorts: cohortsOf(pool),
       unit: null, meanLabel: null
     };
@@ -479,6 +486,7 @@ function resolveBoundary(opts) {
       flags: all.concat('technique-group-not-poolable'),
       refused: `technique group "${group}" is not poolable — ` +
                (_D.TECHNIQUE_GROUPS[group] || {}).rationale,
+      reasonCode: 'group-not-poolable',
       sources: pool.map(describeSource), cohorts: cohortsOf(pool),
       unit: units[0], meanLabel: null
     };
@@ -568,6 +576,9 @@ function buildScale(opts) {
     missingReasons: unusable.map(r => ({
       boundary: r.boundary,
       reason: r.absentReason || r.refused,
+      /* W-051. Travels with the prose, so the report layer can translate without
+         reading it. Null where the engine has not named a family. */
+      code: r.reasonCode || null,
       recoverableWith: (r.flags || []).includes('ambiguous-technique-records-excluded')
         ? 'allowAmbiguousTechnique' : null,
       excluded: (r.excluded || []).map(e => e.cutoffId)
