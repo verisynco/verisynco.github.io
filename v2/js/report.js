@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '2.9';   /* W-065: the MEFIB chip states no unsourced NPV */
+const V2_REPORT_VERSION = '3.0';   /* W-071: the promoted refusal travels as a code */
 
 const _R = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -899,12 +899,30 @@ function rankedReasons(row) {
     reasons.push({
       raw: r.raw,
       reason: r.reason,
+      /* W-071. The code travels with the prose here for the same reason it
+         travels with it in `missingReasons`: a consumer that had to recognise
+         the promoted refusal by its wording would make every reason string
+         load-bearing in a second file, which is exactly what W-051 removed.
+         Dropping it here was why the card could state its refusal only as a
+         sentence. */
+      code: r.code || null,
       rank: r.recoverableWith ? 2 : ((r.excluded && r.excluded.length) ? 1 : 0)
     });
   }
   return reasons.map((r, i) => [r, i])
     .sort((a, b) => (b[0].rank - a[0].rank) || (a[1] - b[1]))
     .map(pair => pair[0]);
+}
+
+/* W-071. The same two branches `gapSentence` takes, answering in the engine's
+   vocabulary instead of the reader's. It is deliberately a sibling of that
+   function rather than a second return value from it: the sentence is consumed
+   by the page and the code by machinery, and one caller wanting both is not a
+   reason to make every caller carry both. */
+function gapCodeOf(row) {
+  if (row.gate) return 'technique-gate';
+  const ranked = rankedReasons(row);
+  return ranked.length ? (ranked[0].code || null) : null;
 }
 
 function buildCards(report, profile) {
@@ -992,6 +1010,12 @@ function buildCards(report, profile) {
         : null,
       provenance: hasValue ? provenanceSentence(row) : null,
       gap: row.staging === null || row.gate ? gapSentence(row) : null,
+      /* W-071. The code of the reason `gapSentence` promoted, beside the
+         sentence it promoted. The renderer must not re-run the ranking to find
+         out which refusal won: that is a decision, and the renderer carries
+         none (`v2/tests/render.test.js` section K). Null wherever the card
+         stages. */
+      gapCode: row.staging === null || row.gate ? gapCodeOf(row) : null,
       /* W-038 — the limit a drawn record's own publication states on it. NOT an
          abstention: the chip, the rulers and the staging above are untouched,
          and the reader is told how far the number its source says it carries. */

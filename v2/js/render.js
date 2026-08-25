@@ -26,7 +26,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.2';   /* W-061: the card reserves what it can predict */
+const V2_RENDER_VERSION = '3.3';   /* W-071: the card states its band and refusal as data */
 
 const _RN = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -767,7 +767,16 @@ function parameterCard(row, card, selection, tag) {
   const preset = _RN.defaultTechniques(selection.path);
   const showControl = controlled && !preset[row.domain];
 
-  return '<section class="pcard" data-param="' + esc(row.parameter) + '">' +
+  /* W-071. Two facts the card already prints, stated once more as data so that
+     a consumer never has to read the printed sentence back. The band is the
+     ladder's own published name and the refusal is the engine's own code -- both
+     decided in report.js, neither derived here. Spec § 3.4. */
+  const vd = card.verdict;
+  const attrs = vd
+    ? ' data-band="' + esc(vd.band) + '" data-sev="' + esc(vd.sev) + '"'
+    : (card.gapCode ? ' data-reason="' + esc(card.gapCode) + '"' : '');
+
+  return '<section class="pcard" data-param="' + esc(row.parameter) + '"' + attrs + '>' +
     '<div class="pident">' +
       (tag ? '<span class="ptag">' + esc(tag) + '</span>' : '') +
       '<h4>' + esc(_RN.PARAMETER_LABELS[row.parameter]) + '</h4>' +

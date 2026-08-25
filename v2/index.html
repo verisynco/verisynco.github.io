@@ -9,6 +9,11 @@
      css/styles.css is built from faces already on the machine.
      See v2/docs/DESIGN-DIRECTION.md § 3.1. -->
 <link rel="stylesheet" href="css/styles.css">
+<!-- W-071. The trial feedback layer, and nothing of the report depends on it.
+     It refuses to exist unless the page is served over https with an invite
+     code and accepted terms, so under file:// it is two files that load and do
+     nothing. Removing the trial is deleting these two lines. -->
+<link rel="stylesheet" href="feedback/feedback.css">
 </head>
 <body>
 
@@ -81,6 +86,19 @@
         liability for any clinical decision, diagnosis, outcome, or damage arising from its use.</p>
       </section>
 
+      <!-- W-071. Shown to every reader, whether or not they were invited to the
+           trial: a page that only discloses its data handling to the people it
+           is currently collecting from has disclosed nothing. It is repeated
+           inside the panel, where the typing actually happens. -->
+      <section class="gc">
+        <h3><span class="n">07</span>Trial feedback</h3>
+        <p class="fb-notice">If you were given an invitation link, this page can report a problem to
+        the trial's feedback form, which is hosted by Tally. What it sends: your invite code, the
+        acquisition you selected, the band your reading fell in, and what you write. <strong>It never
+        sends the measurements you typed, the accession number, the study date or the age.</strong>
+        Without an invitation link nothing is sent and nothing is loaded.</p>
+      </section>
+
     </div>
 
     <div class="gate-foot">
@@ -129,5 +147,6 @@
 <script src="js/vendors.js"></script>
 <script src="js/render.js"></script>
 <script src="js/app.js"></script>
+<script src="feedback/feedback.js"></script>
 </body>
 </html>

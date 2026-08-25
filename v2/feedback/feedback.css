@@ -1,0 +1,139 @@
+/* VeriLiv V2 — TRIAL FEEDBACK LAYER, STYLES  (W-071)
+ * ---------------------------------------------------------------------------
+ * NO NEW PALETTE VALUE IS DECLARED HERE, and the suite fails on a single
+ * literal colour. W-009 measured this design system and eleven WCAG contrast
+ * pairs are asserted from its tokens in v2/tests/render.test.js; a second
+ * palette declared beside it would contest a tested one silently, which
+ * CLAUDE.md § 7 forbids. Every colour, space and size below reads a token that
+ * v2/css/styles.css already declares on :root.
+ *
+ * The whole layer leaves the paper. The report prints as it did before this
+ * file existed.
+ * ---------------------------------------------------------------------------
+ */
+
+.fb-root {
+  position: fixed;
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-4);
+  font-family: var(--sans);
+}
+
+/* The pinned tab. Everything not tied to a card starts here. */
+.fb-tab {
+  font: inherit;
+  font-size: var(--t-band);
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.fb-tab:hover { background: var(--hair2); }
+
+/* THE CARD CONTROL. A tablet has no hover, and the trial will be opened on
+   tablets, so this is never revealed by pointing at anything -- it is drawn
+   from the start, quietly, at the size a finger needs. */
+.pcard .fb-flag {
+  font: inherit;
+  font-size: var(--t-micro);
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hair);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.pcard .fb-flag:hover { color: var(--ink); border-color: var(--rule); }
+
+.fb-panel {
+  width: min(28rem, calc(100vw - 2 * var(--s-5)));
+  max-height: min(34rem, calc(100vh - 2 * var(--s-5)));
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.fb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--hair2);
+}
+
+.fb-title { margin: 0; font-size: var(--t-name); color: var(--ink); }
+
+.fb-close {
+  font: inherit;
+  font-size: var(--t-micro);
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--hair);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* Said again where the typing happens, not only in the terms gate. */
+.fb-notice {
+  margin: 0;
+  padding: var(--s-4) var(--s-5);
+  font-size: var(--t-micro);
+  line-height: 1.5;
+  color: var(--muted);
+  border-bottom: 1px solid var(--hair2);
+}
+
+.fb-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 22rem;
+  border: 0;
+}
+
+/* WCAG 2.2 AA, Focus Not Obscured (Minimum). A pinned panel that covers the
+   control a keyboard user has just reached is a failure of the criterion, and
+   the honest fix is to move the panel rather than to hope the overlap never
+   happens. The attribute is set by the layer when focus lands behind it. */
+.fb-panel[data-fb-yield="true"] {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.fb-root :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .fb-root { right: var(--s-4); bottom: var(--s-4); left: var(--s-4); }
+  .fb-panel { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-root, .fb-panel, .fb-tab, .fb-flag { transition: none !important; }
+}
+
+/* The report prints as it did before this file existed. */
+@media print {
+  .fb-root, .pcard .fb-flag { display: none !important; }
+}
