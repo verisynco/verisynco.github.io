@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="refresh" content="0; url=v2/index.html">
+<!-- W-071. THE REDIRECT HAS TO CARRY THE QUERY STRING. A meta refresh cannot:
+     it names a fixed address, so an invitation opened at "/?r=xxxxx" arrived at
+     the report with no invite code and the trial feedback layer correctly
+     refused to appear. The script below forwards the search and the fragment;
+     the meta above stays as the no-JavaScript fallback, which loses the code but
+     still opens the report -- the report is the thing that must never depend on
+     a script running. -->
+<script>
+  (function () {
+    var q = location.search + location.hash;
+    if (q) { location.replace('v2/index.html' + q); }
+  }());
+</script>
 <link rel="canonical" href="v2/index.html">
 <title>VeriLiv — Quantitative Liver MRI</title>
 <!-- W-001: the published link opens V2 directly. The version chooser that stood here until
@@ -34,7 +47,7 @@
   <main class="fallback">
     <h1>VeriLiv — Quantitative Liver MRI</h1>
     <p>Opening the report. If nothing happens, follow the link below.</p>
-    <p><a href="v2/index.html">Open VeriLiv V2 &rarr;</a></p>
+    <p><a href="v2/index.html" id="go">Open VeriLiv V2 &rarr;</a></p>
     <p><small>Educational reference tool · not a diagnostic device · does not replace
     radiologist interpretation.</small></p>
   </main>
