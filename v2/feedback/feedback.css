@@ -107,6 +107,20 @@
   cursor: pointer;
 }
 
+/* THE ONE QUESTION THE CARD ITSELF RAISES. It sits above the privacy sentence
+   and below the title because it is the reason the panel opened: the reader
+   should meet it before the form loads, not after scrolling past it. Drawn in
+   ink rather than in the muted register the notice uses -- the notice is a
+   condition, this is the thing being asked. */
+.fb-panel .fb-prompt {
+  margin: 0;
+  padding: var(--s-4) var(--s-5);
+  font-size: var(--t-band);
+  line-height: 1.45;
+  color: var(--ink);
+  border-bottom: 1px solid var(--hair2);
+}
+
 /* Said again where the typing happens, not only in the terms gate. */
 .fb-panel .fb-notice {
   margin: 0;

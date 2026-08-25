@@ -16,7 +16,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const FEEDBACK_VERSION = '1.0';
+const FEEDBACK_VERSION = '1.1';
 
 /* A token names a clinician to the developer's own list and to nothing else.
    The page never asks for a name or an address, and none travels. */
@@ -67,14 +67,19 @@ function activationState(env) {
    leaves the browser without anyone deciding that it should, and no assertion
    in the suite would see it.
 
-   The names are also the contract with Tally: form XxPG6Y carries twelve hidden
-   fields named exactly these, verified on 2026-08-25 by a submission that
-   populated all twelve columns. A rename here empties a column there, silently
+   The names are also the contract with Tally: form XxPG6Y carries these hidden
+   fields named exactly this way, verified on 2026-08-25 by a submission that
+   populated every column. A rename here empties a column there, silently
    — nothing errors, the clinician's comment still arrives, and the context it
-   was about is simply gone. */
+   was about is simply gone.
+
+   `paramLabel` is the thirteenth and was added because `param` alone reads as a
+   filing id. A column of `pdff` and `t1` is a column somebody has to translate
+   before they can act on it, and the form itself cannot say WHICH reading it is
+   asking about unless the readable name is one of the fields it holds. */
 const PAYLOAD_FIELDS = Object.freeze([
   'invite', 'path', 'fieldStrength', 'cohort', 'techniques', 'versions',
-  'param', 'band', 'sev', 'reason', 'view', 'viewportWidth'
+  'param', 'paramLabel', 'band', 'sev', 'reason', 'view', 'viewportWidth'
 ]);
 
 /* THE BAND TRAVELS, THE VALUE DOES NOT, and that is the load-bearing decision.
@@ -96,6 +101,7 @@ function buildPayload(ctx) {
     techniques:    Object.keys(t).sort().map(k => k + '=' + t[k]).join(' '),
     versions:      [v.app, v.thresholds, v.cutoffs, v.disclaimer].join('/'),
     param:         card.param || null,
+    paramLabel:    card.paramLabel || null,
     band:          card.band === undefined ? null : card.band,
     sev:           card.sev === undefined ? null : card.sev,
     reason:        card.reason === undefined ? null : card.reason,
@@ -139,19 +145,55 @@ const NOTICE =
   'your reading fell in, and what you write. It never sends the measurements ' +
   'you typed, the accession number, the study date or the age.';
 
+/* NOT "Report". The document this layer sits on top of is called a report on
+   every surface it has — the print button, the sheets, the footer — so a control
+   labelled Report under a parameter reads as a second way to produce one. The
+   word was reported as confusing by the developer on 2026-08-25 and is the only
+   thing on this control that changed. */
 function cardButtonHtml(param, label) {
   return '<button type="button" class="fb-flag" data-fb-param="' + esc(param) + '"' +
-         ' aria-label="Report a problem with ' + esc(label) + '">Report</button>';
+         ' aria-label="Flag an issue with ' + esc(label) + '">Flag issue</button>';
 }
 
-function readCardFacts(el) {
+/* `labels` is the report's own parameter table, passed in rather than reached
+   for: this file must not depend on the report (§ the shell rule above), and a
+   lookup that silently finds nothing must degrade to the id rather than to an
+   empty name. */
+function readCardFacts(el, labels) {
   const d = (el && el.dataset) || {};
+  const param = d.param === undefined ? null : d.param;
+  const table = labels || {};
   return {
-    param:  d.param === undefined ? null : d.param,
-    band:   d.band === undefined ? null : d.band,
-    sev:    d.sev === undefined ? null : d.sev,
-    reason: d.reason === undefined ? null : d.reason
+    param:      param,
+    paramLabel: param === null ? null : (table[param] || param),
+    band:       d.band === undefined ? null : d.band,
+    sev:        d.sev === undefined ? null : d.sev,
+    reason:     d.reason === undefined ? null : d.reason
   };
+}
+
+/* ONE QUESTION, DERIVED FROM THE CARD RATHER THAN LISTED PER PARAMETER. A hand
+   written prompt for each of the eight parameters would be eight sentences with
+   no source, drifting apart the first time one card's behaviour changed. What
+   the card already states is enough to ask the right question: a reading that
+   landed in a band is a question about that band, a parameter that could not be
+   staged is a question about the refusal, and the corner control — which belongs
+   to no card — asks nothing extra and lets the form ask its own.
+
+   The band is quoted in the card's own word. Nothing here interprets it. */
+function promptFor(facts) {
+  const f = facts || {};
+  if (!f.param) return null;
+  const name = f.paramLabel || f.param;
+  if (f.band !== null && f.band !== undefined && f.band !== '') {
+    return 'This card placed ' + name + ' in the ' + f.band + ' band. ' +
+           'Does that match your own reading, and is the card clear about why?';
+  }
+  if (f.reason !== null && f.reason !== undefined && f.reason !== '') {
+    return name + ' was not staged. Should it have been, and is the reason the ' +
+           'card gives usable at the scanner?';
+  }
+  return null;
 }
 
 /* A CLOSED PANEL HOLDS NO FRAME. The third party is not contacted because the
@@ -162,15 +204,21 @@ function panelHtml(state) {
   const tab = '<button type="button" class="fb-tab" data-fb-open' +
               ' aria-label="Report a problem with this report">Feedback</button>';
   if (!st.open || !st.src) return '<div class="fb-root">' + tab + '</div>';
+  /* THE PANEL NAMES THE PARAMETER THE WAY THE CARD DOES. It printed the record
+     id — `pdff`, `t1` — which is the L9 rule arriving on a surface nobody had
+     applied it to: an internal filing id is not something a clinician can use. */
+  const name = st.paramLabel || st.param || null;
+  const prompt = promptFor(st);
   return '<div class="fb-root">' + tab +
-    '<div class="fb-panel" role="dialog" aria-label="Report a problem"' +
+    '<div class="fb-panel" role="dialog" aria-label="Flag an issue"' +
     ' data-fb-yield="false">' +
       '<div class="fb-head">' +
-        '<p class="fb-title">Report a problem' +
-          (st.param ? ' — ' + esc(st.param) : '') + '</p>' +
+        '<p class="fb-title">Flag an issue' +
+          (name ? ' · ' + esc(name) : '') + '</p>' +
         '<button type="button" class="fb-close" data-fb-close' +
         ' aria-label="Close the feedback panel">Close</button>' +
       '</div>' +
+      (prompt ? '<p class="fb-prompt">' + esc(prompt) + '</p>' : '') +
       '<p class="fb-notice">' + esc(NOTICE) + '</p>' +
       '<iframe class="fb-frame" title="Trial feedback form"' +
       ' src="' + esc(st.src) + '"' +
@@ -218,7 +266,7 @@ function surveyPromptHtml(url) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {readInvite, activationState, gateWatchNeeded, buildPayload, PAYLOAD_FIELDS,
                     TALLY, payloadToQuery, formUrl,
-                    cardButtonHtml, readCardFacts, panelHtml, NOTICE,
+                    cardButtonHtml, readCardFacts, promptFor, panelHtml, NOTICE,
                     surveyDue, surveyUrl, surveyPromptHtml, SURVEY_FIELDS,
                     FEEDBACK_VERSION};
 }
@@ -264,7 +312,13 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
     const root = document.createElement('div');
     document.body.appendChild(root);
 
-    let open = false, openParam = null, lastOpener = null;
+    let open = false, openFacts = null, lastOpener = null;
+
+    /* The report's own parameter table, read once per use and never cached: the
+       page can be rebuilt under this layer at any moment (W-046). */
+    function labelTable() {
+      return (typeof PARAMETER_LABELS === 'object' && PARAMETER_LABELS) || {};
+    }
 
     /* WHAT IS COUNTED IS REPORTS OPENED, NOT REPORTS SENT, and the difference is
        not hidden behind the field name by accident -- it cannot be closed. The
@@ -294,9 +348,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
               cohort: s.cohort || null, techniques: s.techniques || {}};
     }
 
-    function srcFor(cardEl) {
-      const facts = cardEl ? readCardFacts(cardEl)
-                           : {param: null, band: null, sev: null, reason: null};
+    function srcFor(facts) {
       return formUrl(buildPayload({
         invite: invite,
         selection: selectionFacts(),
@@ -309,12 +361,20 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
 
     let pendingSrc = null;
     function draw() {
-      root.innerHTML = panelHtml({open: open, param: openParam, src: pendingSrc});
+      const f = openFacts || {};
+      root.innerHTML = panelHtml({
+        open: open, src: pendingSrc,
+        param: f.param || null, paramLabel: f.paramLabel || null,
+        band: f.band === undefined ? null : f.band,
+        reason: f.reason === undefined ? null : f.reason
+      });
     }
 
     function openFor(cardEl, opener) {
-      pendingSrc = srcFor(cardEl);
-      openParam = cardEl ? readCardFacts(cardEl).param : null;
+      openFacts = cardEl
+        ? readCardFacts(cardEl, labelTable())
+        : {param: null, paramLabel: null, band: null, sev: null, reason: null};
+      pendingSrc = srcFor(openFacts);
       open = true;
       lastOpener = opener || null;
       counters.submissions += 1;
@@ -324,7 +384,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
     }
 
     function close() {
-      open = false; pendingSrc = null; openParam = null;
+      open = false; pendingSrc = null; openFacts = null;
       draw();
       if (lastOpener && document.contains(lastOpener)) lastOpener.focus();
       lastOpener = null;
@@ -368,12 +428,11 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       const cards = app.querySelectorAll('section.pcard');
       Array.prototype.forEach.call(cards, function (el) {
         if (el.querySelector('.fb-flag')) return;          /* idempotent */
-        const f = readCardFacts(el);
         /* The accessible name uses the report's own label for the parameter
            where one is reachable, and the parameter id otherwise. It is read
            from the same table the card's heading was built from, never from the
            heading's text: reading the printed words back is the W-051 defect. */
-        const labels = (typeof PARAMETER_LABELS === 'object' && PARAMETER_LABELS) || {};
+        const f = readCardFacts(el, labelTable());
         /* INTO THE IDENTITY COLUMN, NOT ONTO THE END OF THE CARD. The card is a
            three-column grid; a fourth child appended to it becomes a grid item
            of its own, wraps to a new row and stretches the full width -- which
@@ -381,8 +440,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
            under every measurement. The identity column is an ordinary stack, so
            a button placed there is just the next thing in it. */
         const host = el.querySelector('.pident') || el;
-        host.insertAdjacentHTML('beforeend',
-          cardButtonHtml(f.param, labels[f.param] || f.param));
+        host.insertAdjacentHTML('beforeend', cardButtonHtml(f.param, f.paramLabel));
       });
     }
     new MutationObserver(function () {
