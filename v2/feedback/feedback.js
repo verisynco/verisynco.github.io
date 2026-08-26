@@ -150,9 +150,27 @@ const NOTICE =
    labelled Report under a parameter reads as a second way to produce one. The
    word was reported as confusing by the developer on 2026-08-25 and is the only
    thing on this control that changed. */
+/* A PENNANT, DRAWN RATHER THAN TYPED. The obvious glyph is the emoji flag, and
+   it is rejected twice over: it renders red on most platforms, which would
+   re-import through the back door the clinical colour v2/feedback/feedback.css
+   explains at length why this control must not carry, and it is drawn by the
+   operating system, so nothing in this suite could assert what actually
+   reached the page. This one inherits `currentColor`, so it is the button's
+   colour in every state including the inverted one, and it is hidden from
+   assistive technology: the accessible name is already on `aria-label`, and a
+   glyph exposed beside it is that name announced a second time in a worse
+   vocabulary. The words stay -- an icon-only control is a control whose
+   meaning has to be guessed. */
+const FLAG_GLYPH =
+  '<svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true" focusable="false">' +
+  '<path d="M2.7 1.1v9.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>' +
+  '<path d="M3.9 1.7h5.9L8.1 4.2l1.7 2.5H3.9z" fill="currentColor"/>' +
+  '</svg>';
+
 function cardButtonHtml(param, label) {
   return '<button type="button" class="fb-flag" data-fb-param="' + esc(param) + '"' +
-         ' aria-label="Flag an issue with ' + esc(label) + '">Flag issue</button>';
+         ' aria-label="Flag an issue with ' + esc(label) + '">' +
+         FLAG_GLYPH + 'Flag issue</button>';
 }
 
 /* `labels` is the report's own parameter table, passed in rather than reached

@@ -26,7 +26,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.3';   /* W-071: the card states its band and refusal as data */
+const V2_RENDER_VERSION = '3.6';   /* W-079: the example line says it is a sample */
 
 const _RN = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -49,7 +49,15 @@ const _RN = (typeof module !== 'undefined' && module.exports)
               orderReferences: ven.orderReferences,
               V2_SCOPE_VERSION: sc.V2_SCOPE_VERSION,
               SCOPE_VERSION: require(p.join(__dirname, '..', 'data', 'scope.data.js')).SCOPE_VERSION,
-              REFERENCES: require(p.join(__dirname, '..', 'data', 'references.data.js')).REFERENCES};
+              REFERENCES: require(p.join(__dirname, '..', 'data', 'references.data.js')).REFERENCES,
+              /* W-066: the four record kinds a reference can be named by. The page
+                 already loads all four before this file (v2/index.html:132-138), so
+                 the grouping costs no new script tag and no fetch. */
+              CUTOFFS: require(p.join(__dirname, '..', 'data', 'cutoffs.data.js')).CUTOFFS,
+              CALIBRATIONS: require(p.join(__dirname, '..', 'data', 'calibrations.data.js')).CALIBRATIONS,
+              REFERENCE_RANGES: require(p.join(__dirname, '..', 'data', 'ranges.data.js')).REFERENCE_RANGES,
+              INTERACTIONS: require(p.join(__dirname, '..', 'data', 'interactions.data.js')).INTERACTIONS,
+              CARD_DOMAIN_ORDER: rep.CARD_DOMAIN_ORDER};
     })()
   : {DOMAIN_OF: DOMAIN_OF, CONTROLLED_DOMAINS: CONTROLLED_DOMAINS,
      optionsForDomain: optionsForDomain, displayExamples: displayExamples,
@@ -60,7 +68,10 @@ const _RN = (typeof module !== 'undefined' && module.exports)
      orderCards: orderCards, groupCardsByDomain: groupCardsByDomain,
      CONTEXT_INPUTS: CONTEXT_INPUTS, buildContext: buildContext,
      orderReferences: orderReferences, V2_SCOPE_VERSION: V2_SCOPE_VERSION,
-     SCOPE_VERSION: SCOPE_VERSION, REFERENCES: REFERENCES};
+     SCOPE_VERSION: SCOPE_VERSION, REFERENCES: REFERENCES,
+     CUTOFFS: CUTOFFS, CALIBRATIONS: CALIBRATIONS,
+     REFERENCE_RANGES: REFERENCE_RANGES, INTERACTIONS: INTERACTIONS,
+     CARD_DOMAIN_ORDER: CARD_DOMAIN_ORDER};
 
 /* ─────────────────────────────────────────────────────────────────── LABELS */
 
@@ -178,7 +189,14 @@ function methodControl(selection, domain) {
     /* displayExamples strips every manufacturer token (entry suite C1), so what
        reaches the screen is a sequence family, not somebody's brand. */
     const ex = _RN.displayExamples(chosen);
-    if (ex.length) html += '<span class="mex">' + esc(ex.join(' \u00b7 ')) + '</span>';
+    /* W-079. `etc.` because the list is now a SAMPLE and no longer looks like one:
+       seven product names were withdrawn, so most lines carry a single name, and a
+       single name reads as an identity -- "CSE-MRI IS IDEAL-IQ" -- where three read
+       as examples. The suffix makes no claim about what the others are, which is
+       the point: what was withdrawn was withdrawn deliberately. Developer decision
+       2026-08-26; `e.g.` was offered as the alternative and `etc.` chosen. An empty
+       list still prints nothing, so no line ever reads `etc.` on its own. */
+    if (ex.length) html += '<span class="mex">' + esc(ex.join(' \u00b7 ')) + ' etc.</span>';
   }
   return html + '</label>';
 }
@@ -1320,26 +1338,144 @@ function citationIndex(receipts) {
   return idx;
 }
 
+/* ══════════════════════════════════════ THE REFERENCE LIST'S GROUPS  (W-066)
+   A source's HOME is the measurement that names it, and the home is DERIVED FROM
+   THE RECORDS rather than written by hand: a cut-off, a calibration, a reference
+   range or an interaction that carries a reference id puts that reference under
+   its own parameter's heading. Where a source feeds more than one measurement it
+   still gets ONE home — the first in the report's own card order — and the other
+   measurements are named beside the row, so the fact that it is shared is on the
+   page rather than lost in the choice.
+
+   ⛔ THE POOL IS NOT FILTERED HERE and no row is dropped. Grouping changes the
+      ORDER and adds headings; forty records go in and forty come out, which N32
+      asserts by id and not by count alone.
+
+   ⛔ NO HEADING STRING IS INVENTED. The six measurement headings are the ones the
+      cards already print (DOMAIN_TITLES). Of the three that are not measurement
+      domains:
+        mast      the records' own word for a composite score this report carries
+                  cut-offs for (CUT-0069, CUT-0070, CAL-0007) and stages nowhere
+        unstaged  a parameter no card stages — dce, ivim, t2, ge-platform
+        uncited   no record of any kind names the reference
+      the last two were named by the developer on 2026-08-25, because naming is
+      theirs (CLAUDE.md § 2.4), and `mast` is the parameter id as the records
+      spell it. */
+
+const REFERENCE_GROUP_ORDER = DOMAIN_ORDER.concat(['mast', 'unstaged', 'uncited']);
+
+const REFERENCE_GROUP_TITLES = {
+  mast: 'MAST',
+  unstaged: 'Sequences this report does not stage',
+  uncited: 'Background \u2014 no boundary in this report cites it'
+};
+
+const referenceGroupTitle = key =>
+  DOMAIN_TITLES[key] || REFERENCE_GROUP_TITLES[key] || key;
+
+/* Every record that can name a reference, in one list. `parameter` is a report
+   parameter on a cut-off or a range ('lic', 'ct1'), and already a domain name on
+   an interaction ('iron', 'dce'), so DOMAIN_OF maps the first kind and the second
+   passes through unchanged. */
+function referenceFeeds() {
+  const feeds = {};
+  const records = [].concat(_RN.CUTOFFS || [], _RN.CALIBRATIONS || [],
+                            _RN.REFERENCE_RANGES || [], _RN.INTERACTIONS || []);
+  for (const rec of records) {
+    const domain = _RN.DOMAIN_OF[rec.parameter] || rec.parameter;
+    for (const id of [].concat(rec.sourceRefIds || [], rec.workbookRefIds || [])) {
+      const seen = feeds[id] || (feeds[id] = []);
+      if (seen.indexOf(domain) === -1) seen.push(domain);
+    }
+  }
+  return feeds;
+}
+
+/* refId -> {home, also[]}. `also` names the OTHER measurements this source feeds,
+   never its own group: the heading has already said that, and printing it twice is
+   the defect W-051 closed on a different field. */
+function referenceHomes() {
+  const feeds = referenceFeeds();
+  const homes = {};
+  for (const id of Object.keys(feeds)) {
+    const named = feeds[id].filter(d => REFERENCE_GROUP_ORDER.indexOf(d) !== -1);
+    const ranked = REFERENCE_GROUP_ORDER.filter(d => named.indexOf(d) !== -1);
+    homes[id] = ranked.length
+      ? {home: ranked[0], also: ranked.slice(1)}
+      : {home: 'unstaged', also: []};
+  }
+  return homes;
+}
+
+/* Partitions an ALREADY ORDERED pool. Splitting a stable list preserves the
+   relative order inside every part, which is how `orderReferences`' contract —
+   vendor class, then indication match, then record order — survives untouched:
+   it is still the only thing that orders two references, now within a group. */
+function groupReferences(ordered) {
+  const homes = referenceHomes();
+  const groups = REFERENCE_GROUP_ORDER.map(key => ({key: key, refs: []}));
+  const byKey = {};
+  groups.forEach(g => { byKey[g.key] = g; });
+  for (const ref of ordered) {
+    const h = homes[ref.id];
+    byKey[h ? h.home : 'uncited'].refs.push(
+      {ref: ref, also: h ? h.also : []});
+  }
+  return groups.filter(g => g.refs.length);
+}
+
 function tableD(profile, model, indication) {
   const ordered = _RN.orderReferences(_RN.REFERENCES, profile, indication);
   const cites = citationIndex(model.receipts);
   /* ONE LINE PER REFERENCE. The title and the boundaries citing it move to the
      tooltip — forty references still print, every one of them, because the pool is
      never filtered and compressing a row is not dropping it. */
-  const rows = ordered.map(r =>
-    '<tr class="d-row" title="' + esc(r.title + '\n\nCited by: ' +
-      ((cites[r.citation] || []).join(' \u00b7 ') || 'no boundary in this report')) + '">' +
-    '<td><span class="rid">' + esc(r.id) + '</span> ' + esc(r.citation) + '</td>' +
+  const row = entry => {
+    const r = entry.ref;
+    const also = entry.also.length
+      ? '<span class="alsofeeds"> \u00b7 also feeds ' +
+        esc(entry.also.map(referenceGroupTitle).join(', ')) + '</span>'
+      : '';
+    return '<tr class="d-row" data-ref="' + esc(r.id) +
+      '" title="' + esc(r.title + '\n\nCited by: ' +
+        ((cites[r.citation] || []).join(' \u00b7 ') || 'no boundary in this report')) + '">' +
+    '<td><span class="rid">' + esc(r.id) + '</span> ' + esc(r.citation) + also + '</td>' +
     '<td>' + esc(VENDOR_CLASS_LABELS[r.vendorClass] || r.vendorClass) + '</td>' +
     '<td>' + esc(String(r.year)) + '</td>' +
     '<td>' + esc(r.evidenceGrade) + '</td>' +
     '<td>' + (r.pmid ? esc(r.pmid)
                      : 'unresolved (' + esc(r.pmidProvenance) + ')') + '</td>' +
-    '</tr>').join('');
+    '</tr>';
+  };
+  const groups = groupReferences(ordered);
+  /* The heading is a row of the SAME table, not a table of its own: the print
+     stylesheet flows this one table in two columns, and a second table would break
+     that flow and cost the sheet a page. */
+  const rows = groups.map(g =>
+    '<tr class="d-group" id="refgroup-' + esc(g.key) + '">' +
+    '<th colspan="5">' + esc(referenceGroupTitle(g.key)) +
+    ' <span class="gcount">' + g.refs.length + '</span></th></tr>' +
+    g.refs.map(row).join('')).join('');
+  /* SCREEN ONLY (W-067, absorbed here 2026-08-25). The jump links are plain
+     anchors — no script reaches them — and the filter box is bound in js/app.js by
+     an event listener, never by an inline handler and never as a second gate
+     (W-052's lesson). `noprint` is what keeps both off the paper, and N32 asserts
+     the print output carries neither. */
+  const nav = '<div class="refnav noprint">' +
+    '<label class="reffilter">Filter <input type="search" id="ref-filter" ' +
+    'placeholder="author, year, PMID\u2026" autocomplete="off"></label>' +
+    '<nav class="refjump">' + groups.map(g =>
+      '<a href="#refgroup-' + esc(g.key) + '">' + esc(referenceGroupTitle(g.key)) +
+      ' (' + g.refs.length + ')</a>').join('') + '</nav>' +
+    '<p class="reffilternote">Filtering hides rows on screen only. Every printed ' +
+    'report carries all ' + _RN.REFERENCES.length + ' records.</p></div>';
   return tableHead('C', 'References') +
     '<p class="refnote">The reference pool is never filtered \u2014 not by vendor and ' +
     'not by indication. Every record this report can cite is printed below; the ' +
-    'acquisition path and the indication decide only which is cited first.</p>' +
+    'acquisition path and the indication decide only which is cited first. The ' +
+    'headings are derived from the records: a source sits under the measurement ' +
+    'whose cut-off, calibration, reference range or interaction names it.</p>' +
+    nav +
     /* `reflist` is a LAYOUT hook and nothing else: the print stylesheet sets this
        one table in two columns, which is how forty references fit the sheet
        without a row being dropped or a field being hidden. The markup, the row
@@ -1362,9 +1498,19 @@ function tableE(census) {
    whether this sheet is read or not (SCHEMA section 10.3). */
 function evidenceAppendix(evidence) {
   if (!evidence) return '';
+  /* W-037. A rule whose number was read out of a PUBLICATION prints that
+     publication's sentence here, and nowhere else. This is the only sheet on
+     which a reference id may appear at all, so it is the only sheet on which a
+     quote attributed to one can appear either; the clinical page carries the
+     FACT that a reading was withheld and never the paper behind it. Absent on
+     every workbook-sourced rule, which is thirteen of the fourteen. */
   const rows = evidence.rules.map(r =>
     '<li><b>' + esc(r.effect) + '</b> · ' + esc(r.statement) +
     (r.magnitude ? ' <i>' + esc(r.magnitude) + '</i>' : '') +
+    (r.sourceQuote
+      ? '<div class="quote">“' + esc(r.sourceQuote) + '” <span class="src">' +
+        esc(r.sourceRefId) + ' · read from ' + esc(r.sourceKind) + '</span></div>'
+      : '') +
     '<span class="src">' + esc(r.triggerId) + ' · ' + esc(r.interactionId) +
     ' · ' + esc(r.refIds.join(', ')) + '</span></li>').join('');
   const inherited = evidence.inherited.map(i =>
@@ -1423,6 +1569,8 @@ if (typeof module !== 'undefined' && module.exports) {
                     compositeSection, impressionSection, evidenceAppendix, reportFooter,
                     notInterpretableHtml, shortCite,
                     tableB, tableC, tableD, tableE, measurementNotes,
+                    groupReferences, referenceHomes, referenceGroupTitle,
+                    REFERENCE_GROUP_ORDER, REFERENCE_GROUP_TITLES,
                     gapReasonTable,
                     parameterCard, stampText, esc, toolbar, sampleLine,
                     entryRoute, IDENTITY_CELLS, STUDY_CELLS,

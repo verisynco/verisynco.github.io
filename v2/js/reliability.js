@@ -176,11 +176,20 @@ function applyReliability(input) {
     }
     if (!outcome) continue;
 
+    /* W-037: the quote channel travels with the modifier. A row whose number
+       comes from a PAPER rather than from the workbook sentence carries the
+       sentence that licenses it, and a licence no page can reach is not a
+       disclosure — the `withheldOf` defect W-050 found, and the reason these
+       three lines exist rather than the record standing alone in the data file.
+       Null on every workbook-sourced row, which is most of them. */
     const modifier = {
       triggerId: t.id, interactionId: t.interactionId, effect: t.effect,
       statement: rec ? rec.statement : null,
       refIds: rec ? rec.sourceRefIds.slice() : [],
-      magnitude: t.magnitude, note: t.note, inheritedFrom: null
+      magnitude: t.magnitude, note: t.note, inheritedFrom: null,
+      sourceQuote: t.sourceQuote || null,
+      sourceRefId: t.sourceRefId || null,
+      sourceKind: t.sourceKind || null
     };
     fired.push(modifier);
     /* A modifier attaches to a target only when the target HAS a value, or

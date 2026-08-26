@@ -788,6 +788,14 @@ svg.ruler .z-none{ stroke:var(--frame); }
 ul.ev{ margin:0; padding-left:var(--s-4); font-size:9px; line-height:1.35; }
 ul.ev .src{ display:block; font-family:var(--mono); font-size:7.5px;
             color:var(--ink-2); }
+/* W-037. The published sentence behind a rule whose number is not the
+   workbook's. Indented and ruled so it reads as somebody else's words rather
+   than as more of the engine's list, and its own `.src` stays inline because
+   the reference belongs to the quote, not to the rule above it. */
+ul.ev .quote{ margin:var(--s-1) 0 0; padding-left:var(--s-2);
+              border-left:1px solid var(--rule); color:var(--ink-2);
+              font-style:italic; }
+ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
 
 /* The two remaining amber surfaces are warnings, not severity states. They keep
    their own tint and are re-pointed at --sev-2's border so the page carries one
@@ -840,6 +848,48 @@ ul.ev .src{ display:block; font-family:var(--mono); font-size:7.5px;
    One redefinition of the spacing scale does the work that thirty overrides
    used to. Everything on the report surface reads --s-1..7, so tightening the
    print is these seven lines; the type scale is deliberately NOT touched. */
+/* ══════════════════════════════════ THE GROUPED REFERENCE LIST  (W-066)
+   The heading is a row of the reference table itself, so it flows with the rows
+   it heads instead of floating beside them. On paper it must never be the last
+   thing in a column: `break-after: avoid` is what keeps a heading with its first
+   record, and the two-column flow below is unchanged.
+
+   `.noprint` is the screen-only wrapper for the jump links and the filter box.
+   It carries no logic — the anchors are plain hrefs and the filter is bound in
+   js/app.js with a listener, never inline (W-052). */
+.mtab.reflist tr.d-group th{
+  text-align:left; font:600 var(--t-meta)/1.3 var(--sans); color:var(--ink);
+  padding:var(--s-4) 0 var(--s-1); border-bottom:1px solid var(--rule);
+  border-top:0;
+  /* `.mtab th` upper-cases and letter-spaces a COLUMN LABEL. A group heading is
+     a name the reader reads — one of them is a sentence — so it prints in the
+     words the developer chose, not in capitals. N33 locks this, because the
+     wording was a decision and a stylesheet can undo a decision silently. */
+  text-transform:none; letter-spacing:0;
+}
+.mtab.reflist tr.d-group:first-child th{ padding-top:0; }
+.mtab.reflist tr.d-group th .gcount{
+  color:var(--muted); font-weight:400; font-variant-numeric:tabular-nums;
+}
+.mtab.reflist .alsofeeds{ color:var(--muted); font-size:var(--t-micro); }
+
+.refnav{ margin:var(--s-3) 0 var(--s-4); }
+.refnav .reffilter{ display:inline-block; font:var(--t-micro)/1.4 var(--sans);
+  color:var(--muted); }
+.refnav .reffilter input{ font:var(--t-meta)/1.4 var(--sans); color:var(--ink);
+  background:var(--paper); border:1px solid var(--rule); border-radius:2px;
+  padding:var(--s-1) var(--s-3); width:22ch; margin-left:var(--s-2); }
+.refnav .refjump{ margin-top:var(--s-2); display:flex; flex-wrap:wrap;
+  gap:var(--s-2) var(--s-4); }
+.refnav .refjump a{ font:var(--t-micro)/1.4 var(--sans); color:var(--accent);
+  text-decoration:none; border-bottom:1px solid var(--accent-tint); }
+.refnav .refjump a:hover{ border-bottom-color:var(--accent); }
+.refnav .reffilternote{ margin:var(--s-2) 0 0; font:var(--t-micro)/1.4 var(--sans);
+  color:var(--muted); }
+/* A row the filter has hidden is hidden ON SCREEN ONLY. The print block below
+   restores every row unconditionally, so no filter state can reach the paper. */
+.mtab.reflist tr[hidden]{ display:none; }
+
 @media print{
   :root{
     --s-1:1px; --s-2:2px; --s-3:3px; --s-4:5px;
@@ -850,6 +900,16 @@ ul.ev .src{ display:block; font-family:var(--mono); font-size:7.5px;
      saving is a LAYOUT saving -- all forty rows still print, every field of
      every row with them. The markup is untouched, so v2/tests/render.test.js
      N12 still counts one .d-row per record. */
+  /* W-066: the group headings flow with the two columns, and the screen-only
+     navigation never reaches the paper. A filtered row prints anyway — the pool
+     is never filtered, and a filter is a reading aid, not an edit. */
+  .noprint{ display:none !important; }
+  #methodology .mtab.reflist tr.d-group{ display:block; break-inside:avoid;
+    break-after:avoid; page-break-after:avoid; margin:var(--s-3) 0 var(--s-1); }
+  #methodology .mtab.reflist tr.d-group th{ display:block; padding:0 0 var(--s-1);
+    font-size:8.5px; }
+  #methodology .mtab.reflist tr[hidden]{ display:block !important; }
+
   #methodology .mtab.reflist{ display:block; columns:2; column-gap:7mm;
                               font-size:8.5px; }
   #methodology .mtab.reflist thead{ display:none; }

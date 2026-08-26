@@ -16,7 +16,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_DOMAINS_VERSION = '1.0';
+const V2_DOMAINS_VERSION = '1.1';   /* W-079: seven product names withdrawn from the example line */
 
 /* Same `_D` loading pattern as thresholds.js:83 and scope.js — in the browser the
    data file has already run and left its consts as globals; under Node nothing is
@@ -84,6 +84,32 @@ const MANUFACTURERS = ['GE', 'Siemens', 'Philips', 'Canon', 'Perspectum',
 /* Entries that name no product at all — they would add noise, not recognition. */
 const GENERIC_PREFIXES = ['any ', 'research ', 'in-house ', 'legacy '];
 
+/* W-079. A THIRD list, and the only one whose members were chosen one by one rather
+   than by a rule. These seven belong to consoles this report is not produced on, so
+   they buy no recognition and read as a claim about equivalence nobody made. The
+   ones NOT here stay on purpose — IDEAL-IQ, IDEAL-IQ R2*, LAVA-Flex, StarMap,
+   MR-Touch, FerriScan, LiverMultiScan and the Gandon / Rennes protocol are what an
+   operator reads on the console they actually used.
+   ⛔ Presentation only. `techniques.data.js` keeps every name; filtering inside the
+      data layer is forbidden (SCHEMA § 0, § 3.6), and the menu LABELS keep theirs
+      for a safety reason — picking StarMap when MOLLI was acquired is a staging
+      error, and product recognition is what prevents it. */
+const WITHDRAWN_PRODUCTS = ['HISTO', 'LiverLab', 'mDIXON Quant', 'q-Dixon',
+                            'VIBE-Dixon', 'MyoMaps', 'Sonata'];
+
+/* Two shapes, measured across all 24 techniques: five of the seven ARE the whole
+   entry and take it with them, while `MyoMaps MOLLI` and `Sonata multi-echo GRE`
+   sit in front of a generic descriptor — there the name goes and the descriptor
+   stays. Same match the MANUFACTURERS strip above uses: exact, or the name
+   followed by a space. */
+function withoutWithdrawn(name) {
+  for (const p of WITHDRAWN_PRODUCTS) {
+    if (name === p) return '';
+    if (name.indexOf(p + ' ') === 0) name = name.slice(p.length + 1);
+  }
+  return name.trim();
+}
+
 function groupsOfDomain(domain) {
   return (DOMAIN_VOCABULARY[domain] || []).slice();
 }
@@ -112,6 +138,14 @@ function displayExamples(techniqueId) {
       name = name.split(' (' + m + ')').join('');
     }
     name = name.trim();
+    /* `q-Dixon / LiverLab` is ONE entry joining two products with a slash, and
+       dropping both leaves a bare separator — which reads as a name that failed to
+       print rather than one that was withdrawn. So the entry is split, each part
+       filtered, and only what survives is rejoined. `Gandon / Rennes protocol`
+       passes through untouched, which is the case that proves the split is not a
+       blanket rule about slashes. */
+    name = name.split(' / ').map(withoutWithdrawn)
+               .filter(part => part !== '').join(' / ');
     if (!name || MANUFACTURERS.indexOf(name) !== -1) continue;
     if (out.indexOf(name) === -1) out.push(name);
   }
@@ -120,6 +154,7 @@ function displayExamples(techniqueId) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {DOMAIN_OF, CONTROLLED_DOMAINS, DOMAIN_VOCABULARY, GE_DEFAULTS,
-                    groupsOfDomain, optionsForDomain, displayExamples,
+                    WITHDRAWN_PRODUCTS, groupsOfDomain, optionsForDomain,
+                    displayExamples, withoutWithdrawn,
                     V2_DOMAINS_VERSION};
 }

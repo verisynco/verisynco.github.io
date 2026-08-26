@@ -33,9 +33,9 @@ const _SEL = (typeof module !== 'undefined' && module.exports)
    field strength — which is why the question stays on the entry screen. */
 const PATHS = {
   ge:    {vendor: 'GE',    calibrationMode: 'ge-exclusive',
-          label: 'GEHC SIGNA MR'},
+          label: 'GE HealthCare | MRI'},
   other: {vendor: 'Other', calibrationMode: 'other-vendors-only',
-          label: 'Non-Specific'}
+          label: 'Other / Non-Specific'}
 };
 
 /* Closed lists. The engine THROWS on anything outside these arrays (W-027), so

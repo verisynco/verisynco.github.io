@@ -10,7 +10,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_APP_VERSION = '0.5.0';
+const V2_APP_VERSION = '0.6.0';
 
 /* Bumped independently of every other counter. V2 keeps its own namespace and its
    own storage key, so a V1 acknowledgement can never open V2 and vice versa. V1's
@@ -324,6 +324,19 @@ function wireSelectionScreen() {
      the button, the keyboard shortcut and the stylesheet all answer to. */
   app.querySelectorAll('button[data-action="print"]').forEach(el =>
     el.addEventListener('click', () => window.print()));
+  /* W-066: the reference filter. It hides ROWS ON SCREEN and nothing else — no
+     record leaves the model, the group headings stay so the reader can see which
+     measurement a surviving row belongs to, and the print stylesheet restores
+     every hidden row unconditionally. Bound here with a listener, because a
+     handler written into the markup would be a second place this behaviour is
+     decided (W-052). */
+  app.querySelectorAll('#ref-filter').forEach(el =>
+    el.addEventListener('input', () => {
+      const q = el.value.trim().toLowerCase();
+      app.querySelectorAll('.mtab.reflist tr.d-row').forEach(tr => {
+        tr.hidden = !!q && tr.textContent.toLowerCase().indexOf(q) === -1;
+      });
+    }));
   /* The patient and study text cells, the tier radios and the remove switches.
      `removed` is view state and never enters `selection`: it is a printing
      choice, and a presentation flag pushed through selection.js would reach the

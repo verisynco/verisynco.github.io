@@ -79,7 +79,7 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.3';
+const V2_THRESHOLDS_VERSION = '1.6';
 
 /* -------------------------------------------------------------- Data loading
    In the browser the data files have already run and left their consts as
@@ -773,7 +773,7 @@ function resolveCalibration(sel) {
     c.techniqueGroup === group &&
     c.inputQuantity === inputQuantity &&
     fieldMatches(c, fieldStrength) &&
-    (c.kind === 'linear-slope' || c.kind === 'power-law'));
+    (c.kind === 'linear-slope' || c.kind === 'linear-affine' || c.kind === 'power-law'));
 
   if (technique) pool = pool.filter(c => c.technique === technique);
 
@@ -930,6 +930,12 @@ function applyCalibration(resolved, inputValue) {
   if (inputValue === null || inputValue === undefined || isNaN(inputValue)) return null;
   const c = resolved.calibration;
   if (c.kind === 'linear-slope') return round(c.coefficients.slope * inputValue, 3);
+  /* W-069. A separate branch, not `(c.coefficients.intercept || 0) + ...` folded
+     into the one above: a proportional record ASSERTS its source published no
+     intercept, and a defaulted zero would let a dropped intercept evaluate
+     silently as a deliberate one. The whole point of `kind` is that the two
+     cannot be confused. */
+  if (c.kind === 'linear-affine') return round(c.coefficients.intercept + c.coefficients.slope * inputValue, 3);
   if (c.kind === 'power-law')    return round(c.coefficients.a * Math.pow(inputValue, c.coefficients.b), 3);
   return null;
 }

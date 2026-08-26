@@ -1,16 +1,28 @@
-/* VeriLiv V2 — RELIABILITY TRIGGERS (W-015)
+/* VeriLiv V2 — RELIABILITY TRIGGERS (W-015, extended W-037)
  * ---------------------------------------------------------------------------
  * HAND-AUTHORED, deliberately. interactions.data.js is generated from the
  * workbook and stays generated; this file is the small machine-readable layer
- * over the 12 of its 92 rules whose trigger can be evaluated against data this
- * report actually holds. The other 80 are acquisition and platform guidance
+ * over the 13 of its 92 rules whose trigger can be evaluated against data this
+ * report actually holds. The other 79 are acquisition and platform guidance
  * addressed to whoever runs the scanner — recorded as unfirable, not printed.
  *
- * ⛔ EVERY NUMBER HERE IS QUOTED FROM THE STATEMENT OF ITS interactionId.
- *    Schema rule R-39 asserts it verbatim. A number that is not in the workbook
- *    sentence cannot reach the report. R-39 catches a wrong VALUE; it cannot
- *    catch a wrong operator or a wrong target, which is why every row is
- *    reviewed against the sentence it cites.
+ * ⛔ EVERY NUMBER HERE IS QUOTED — never authored here. Schema rule R-39 asserts
+ *    it verbatim, from one of exactly two places: the workbook statement of its
+ *    interactionId, or the row's own `sourceQuote`. R-39 catches a wrong VALUE;
+ *    it cannot catch a wrong operator or a wrong target, which is why every row
+ *    is reviewed against the sentence it cites.
+ *
+ * THE QUOTE CHANNEL (W-037) — `sourceQuote` + `sourceRefId` + `sourceKind`.
+ *   Until W-037 a relationship could only be expressed if the WORKBOOK had
+ *   already stated its number. MEASURED then: `2 ms` occurs in no interaction
+ *   statement anywhere, so an edge read from a publication had no channel at
+ *   all and the table could only ever restate the sheet. The channel mirrors
+ *   `useCaveat` (SCHEMA § 5.8): the publication's sentence verbatim, the
+ *   reference it came from, and how it was read (fulltext / abstract /
+ *   workbook). R-50 forbids quoting a reference the row's own rule does not
+ *   already cite — the R-43 failure, one record type over: a paper must not
+ *   turn quietly into evidence for a rule that never named it.
+ *   All three fields travel together or none of them do.
  *
  * `when` grammar — one condition, or {all: [...]} for a conjunction:
  *   {param: 't2star', op: '<', value: 12}       a measured value
@@ -34,8 +46,8 @@
  * ---------------------------------------------------------------------------
  */
 
-const TRIGGERS_VERSION = '1.0';
-const TRIGGERS_HASH = '30eae02bb23398accbe280a3c9212b0a13e37c1b75336c057924cfd779791f46';
+const TRIGGERS_VERSION = '1.1';   /* W-037: TRG-0015, and the sourceQuote channel enters the lock */
+const TRIGGERS_HASH = '4200d878b3bef0eaa223d6084e90413fa7f4515ab000698a532d8565949b0b83';
 
 const TRIGGERS = [
   {
@@ -135,6 +147,33 @@ const TRIGGERS = [
     targets: ['pdff'], effect: 'biased',
     magnitude: 'over the anterior right lobe',
     note: 'Dielectric shading at 3.0 T can produce a regional signal void; the sheet names segments VI-VII as the unaffected fallback.'
+  },
+  {
+    /* W-037. THE FIRST ROW WHOSE NUMBER COMES FROM A PAPER RATHER THAN THE SHEET.
+       INT-0050 tells the reader to use cT1 when iron is present; REF-018 — the
+       paper INT-0050 already cites — states where that instruction stops. The
+       row is the boundary of its own rule, not a new claim beside it.
+       TARGET IS ct1 ALONE, and native t1 is deliberately absent: R-41 forbids a
+       note on a reading the report does not interpret, and native T1 stages
+       under no technique in its vocabulary. The paper names cT1 and only cT1.
+       QUOTED FROM THE FULL TEXT, held at reference/papers/fulltext/. The
+       retrieved file encodes the asterisk as `⁎` and the less-than as `&lt;`;
+       both are restored to their published characters here and nothing else in
+       the sentence is touched. */
+    id: 'TRG-0015', interactionId: 'INT-0050',
+    when: {param: 't2star', op: '<', value: 2},
+    targets: ['ct1'], effect: 'uninterpretable',
+    magnitude: 'the method returned a result in 77 of the source cohort of 79 patients',
+    sourceQuote: 'two of our patients had massive haemosiderosis, with T2* <2 ms, ' +
+                 'which did not allow for the estimation of cT1 to determine the degree of fibrosis',
+    sourceRefId: 'REF-018',
+    sourceKind: 'fulltext',
+    note: 'The same paper states the operational consequence in its own words — "in practical ' +
+          'terms, T2* values of <2 ms immediately indicate the presence of marked haemosiderosis, ' +
+          'but still requiring histological assessment of fibrosis" — so withholding the band is ' +
+          'the instruction of the authors themselves rather than an inference from their failure ' +
+          'count. The ' +
+          'value and its ruler stay on the page; the report withdraws only its own claim.'
   }
 ];
 

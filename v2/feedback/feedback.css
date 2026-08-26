@@ -51,27 +51,55 @@
 
 /* THE CARD CONTROL. A tablet has no hover, and the trial will be opened on
    tablets, so this is never revealed by pointing at anything -- it is drawn
-   from the start, quietly, at the size a finger needs. */
+   from the start, at the size a finger needs.
+
+   W-085 DREW IT IN THE ACCENT, AND THE COLOUR THAT WAS REJECTED IS THE POINT.
+   It shipped in --muted on a --hair edge, which is the state the tab above was
+   already moved OUT of for the same reason: a control nobody notices collects
+   nothing. What it may not become is warm. The one red this design system
+   declares means a CLINICAL red flag -- V1 paints the pediatric MRE warning
+   with it, v1/css/styles.css:110 -- and on a parameter card colour ALREADY
+   means severity, five steps of it. A warm
+   control here would be read as a statement about the patient rather than
+   about the tool, which is the opposite of what it is for. The accent means
+   chrome on this page, and the feedback layer's own tab already claims it, so
+   the layer now speaks in one colour. `G15` asserts no clinical token reaches
+   this file, so the rejection is enforced rather than remembered.
+
+   OUTLINED AT REST, FILLED ONLY ON HOVER AND FOCUS. A filled control would
+   out-weigh the verdict chip it sits beside, and the verdict is the reason the
+   card exists. The glyph carries the recognition instead of the fill. */
 .pcard .fb-flag {
   font: inherit;
   font-size: var(--t-micro);
+  font-weight: 600;
   /* The identity column is a stack, so an unconstrained button would fill its
      width. It is sized to its own text and left where the column starts. */
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
   align-self: start;
   width: auto;
   min-width: 44px;
   min-height: 44px;
   margin-top: var(--s-5);
   padding: var(--s-3) var(--s-5);
-  border: 1px solid var(--hair);
+  border: 1px solid var(--accent);
   border-radius: 5px;
   background: transparent;
-  color: var(--muted);
+  color: var(--accent);
   cursor: pointer;
 }
 
-.pcard .fb-flag:hover { color: var(--ink); border-color: var(--rule); }
+/* The pennant inherits the button. It is never given a colour of its own --
+   that is what makes one rule above enough to keep this control monochrome. */
+.pcard .fb-flag svg { flex: none; }
+
+/* A keyboard user is given what a pointer is given. The tab above has hover
+   alone because it is already filled and has nowhere further to go; this one is
+   outlined, so the filled state is the whole of its feedback. */
+.pcard .fb-flag:hover,
+.pcard .fb-flag:focus-visible { background: var(--accent); color: var(--paper); }
 
 .fb-panel {
   width: min(28rem, calc(100vw - 2 * var(--s-5)));

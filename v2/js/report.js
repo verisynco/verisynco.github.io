@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.0';   /* W-071: the promoted refusal travels as a code */
+const V2_REPORT_VERSION = '3.1';   /* W-037: the trigger quote channel reaches the evidence half */
 
 const _R = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -1675,7 +1675,8 @@ function buildImpression(model) {
   const evidence = {
     rules: rel.fired.map(m => ({
       triggerId: m.triggerId, interactionId: m.interactionId, effect: m.effect,
-      statement: m.statement, refIds: m.refIds, magnitude: m.magnitude, note: m.note
+      statement: m.statement, refIds: m.refIds, magnitude: m.magnitude, note: m.note,
+      sourceQuote: m.sourceQuote, sourceRefId: m.sourceRefId, sourceKind: m.sourceKind
     })),
     inherited: Object.keys(rel.byParameter)
       .map(p => ({parameter: p, from: rel.byParameter[p].inherited}))
@@ -1745,7 +1746,7 @@ function buildReceipts(report) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {REPORT_PARAMETERS, PARAMETER_LABELS, PARAMETER_UNITS,
-                    INDICATION_COHORTS, matchedScale,
+                    INDICATION_COHORTS, matchedScale, CARD_DOMAIN_ORDER,
                     orderCards, groupCardsByDomain, severityClass, LAB_INPUTS,
                     CONTEXT_INPUTS, buildContext,
                     buildReport, buildRow, buildCoverage, buildCards, buildReceipts,

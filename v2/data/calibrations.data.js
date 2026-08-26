@@ -28,13 +28,17 @@
  *              Meloni/St Pierre 2019, multi-vendor-incl-ge, FerriScan-
  *              equivalent), 4.7% higher than Wood's 0.0254. So the Other
  *              path at 1.5T does NOT have to fall back to the GE slope.
- *     at 3.0T  only ONE slope is published anywhere in the workbook — 0.0472
- *              (CAL-0004, Serai/Reeder 2022), and its derivation is
+ *     at 3.0T  only ONE calibration is published anywhere in the workbook
+ *              (CAL-0004, Hernando 2022), and its derivation is recorded as
  *              ge-explicit. The Other path at 3.0T therefore genuinely has
- *              no vendor-neutral alternative and MUST return this slope with
- *              the rung-5 flag. Inventing a 3T non-GE slope — for instance by
- *              scaling 0.0266 by the 1.86 field ratio — would be fabricating
- *              a clinical number. Do not.
+ *              no vendor-neutral alternative and MUST return this calibration
+ *              with the rung-5 flag. Inventing a 3T non-GE slope — for instance
+ *              by scaling 0.0266 by a field ratio — would be fabricating a
+ *              clinical number. Do not. W-069 note: that prohibition got
+ *              STRONGER, not weaker. The record used to ship 0.0472, which is
+ *              0.0254 x 1.858 — the very scaling forbidden here, in the wrong
+ *              direction, sitting inside the record that forbids it. Its own
+ *              cited paper publishes -0.03 + 0.01349 x R2*.
  *
  *   A third iron calibration exists and is genuinely non-GE (CAL-0003,
  *   Garbowski 2014) but it is a POWER LAW on T2*, not a linear R2* slope.
@@ -45,10 +49,17 @@
  *   Every record carries `externalRefIds` and `citationProvenance`, the pair
  *   REFERENCE-RANGE has had since W-020 (SCHEMA § 5.7.1) and CUT-OFF gained in
  *   the same task. It is how a paper the workbook does NOT contain (§ 3.7)
- *   attaches to a calibration, and what that attachment means. All seven ship
+ *   attaches to a calibration, and what that attachment means. Six ship
  *   `[]` / `'workbook'`: the workbook's citation stands and nothing contradicts
  *   it. That is what `workbook` asserts and all it asserts — it does NOT claim
  *   the cited paper's full text was read.
+ *
+ *   W-069 filled the third class for the first time on this record type.
+ *   CAL-0001 is `workbook-rejected-unresolved`: W-018 read both of its cited
+ *   sources in full and NEITHER contains 0.0254, and no publication holding it
+ *   was found. Its value did not move — an unsupported citation is not a wrong
+ *   number, and an independent paper's 95% CI contains this one. R-49 enforces
+ *   the class here as R-38 enforces it on cut-offs, and the split is 6 / 0 / 1.
  *
  *   ⛔ A CITATION CHANNEL, NEVER A VALUE CHANNEL. Nothing here lets a paper
  *      supply, adjust or corroborate a coefficient. Changing one is still the
@@ -63,23 +74,33 @@
  */
 
 const CALIBRATIONS_REV = 'xlsx-v1';
-const CALIBRATIONS_VERSION = '1.3';   /* W-056: the two iron slope notes; no coefficient moved */
+const CALIBRATIONS_VERSION = '1.4';   /* W-069: CAL-0004 rewritten from REF-015 Table 3 (affine, 0.0472 -> 0.01349); CAL-0001 citation rejected, value unchanged */
 
 /* SHA-256 over the canonical serialisation of every record. See
    v2/tests/logic.test.js. Covers vendorClass, technique and evidenceGrade for
    the same reason CUTOFFS_HASH does: a re-classification changes what a report
    may SAY about a number exactly as a value change does. */
-const CALIBRATIONS_HASH = '7ea577c5adf6d4a97c829a7eb70524406bc3179ef67354f18700fff9a73a25c7';
+const CALIBRATIONS_HASH = '23e90adfa2628250d5cade57b6943e6e5af5c859682b8e04629e8355f469db79';
 
 /* `kind` vocabulary — what shape the formula has, and therefore how
    v2/js/thresholds.js may evaluate it.
 
      linear-slope    out = slope * in                     (coefficients.slope)
+     linear-affine   out = intercept + slope * in         (.intercept, .slope)
      power-law       out = a * in^b                       (coefficients.a, .b)
      compound-rule   a conjunction of thresholds; not evaluable as arithmetic
      formula         a named clinical formula over lab values
      not-published   the workbook uses the quantity but publishes no formula.
                      A DELIBERATE record: the gap is documented, not hidden.
+
+   `linear-affine` is NOT `linear-slope` with an extra field and the two must never
+   be collapsed (W-069). A proportional record ASSERTS that its source published no
+   intercept; an affine record carries the one its source did publish. Collapsing
+   them would make a dropped intercept invisible, and a dropped intercept is a
+   defect this repository has now found twice: CAL-0001 still drops Wood's, and
+   CAL-0004 dropped Hernando's until W-069 read Table 3. `kind` is what keeps the
+   difference visible to a reader and to the evaluator, exactly as it keeps a power
+   law from being evaluated as a slope.
 
    `provenance` reuses the CUTOFF vocabulary (SCHEMA § 5.1) plus `not-published`.
 
@@ -109,7 +130,23 @@ const CALIBRATIONS = [
     techniqueGroup: 'iron-r2star',
     sourceRefIds: ['REF-001', 'REF-038'],
     externalRefIds: [],
-    citationProvenance: 'workbook',
+    citationProvenance: 'workbook-rejected-unresolved',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-unresolved'],
+    dataQualityNote: 'W-069. NEITHER cited source contains this coefficient. REF-001 (Wood ' +
+          '2005) publishes "a slope of 37.4 Hz per mg/g dry weight, and a y-intercept of ' +
+          '23.7 Hz"; the strings 0.0254, 0.025 and 25.4 occur zero times in it, and the ' +
+          'search is self-verifying because the same sweep finds its own R2 line ' +
+          '("6.54 Hz per mg/g dry weight ... y-intercept of 47.4 Hz") once. REF-038 was read ' +
+          'in full at W-056 and does not endorse it either. Searched for a replacement: ' +
+          'inverting Wood gives 1/37.4 = 0.0267, which is a DIFFERENT number and an invalid ' +
+          'inversion besides (a least-squares line of y on x is not the inverse of x on y ' +
+          'unless the correlation is perfect, CLAUDE.md 1.3). No publication holding ' +
+          '0.0254 was found, so the citation stays unresolved. THE VALUE IS NOT MOVED, and ' +
+          'the reason is measured rather than deferential: REF-015 Table 3 publishes an ' +
+          'independent 1.5-T slope of 0.02603 with a 95% CI of 0.02468 to 0.02738, and ' +
+          '0.0254 falls INSIDE it (LITERATURE.md 9.24.2). "The cited paper does not ' +
+          'contain this number" is not the claim "this number is wrong" - SCHEMA 5.7.1.',
     vendorClass: 'guideline',
     vendorClassAmbiguous: false,
     derivation: {
@@ -205,11 +242,11 @@ const CALIBRATIONS = [
 
   {
     id: 'CAL-0004',
-    kind: 'linear-slope',
+    kind: 'linear-affine',
     parameter: 'lic',
-    name: 'Serai / Reeder 2022 R2*->LIC calibration (3.0T)',
-    expression: 'LIC = 0.0472 x R2*',
-    coefficients: {slope: 0.0472},
+    name: 'Hernando 2022 confounder-corrected R2*->LIC calibration (3.0T)',
+    expression: 'LIC = -0.03 + 0.01349 x R2*',
+    coefficients: {intercept: -0.03, slope: 0.01349},
     inputQuantity: 'r2star',
     inputUnit: 'Hz',
     outputUnit: 'mg Fe/g dw',
@@ -224,23 +261,35 @@ const CALIBRATIONS = [
     derivation: {
       refId: 'REF-015',
       vendorClass: 'ge-explicit',
-      note: 'Serai/Reeder 2022 multicentre validation, n=207, on GE Signa 3T + Signa Premier ' +
-            '(with a 1.5T Signa arm). W-056: ESGAR/SAR 2023 (REF-038) does NOT carry this ' +
-            'slope - 0.0472 occurs zero times in it and it refers its calibrations to Table ' +
-            'S2 and to Hernando et al (LITERATURE.md 9.18.3). REF-015 is where the ' +
-            'coefficient comes from and it is untouched. As with CAL-0001 the reduction to ' +
-            '`guideline` hides a GE-explicit derivation, which `derivation` preserves.'
+      note: 'W-069 rewrote this record from REF-015 Table 3. W-056: ESGAR/SAR 2023 (REF-038) ' +
+            'does NOT carry a coefficient of its own and refers its calibrations to Table S2 ' +
+            'and to Hernando et al (LITERATURE.md 9.18.3), which IS REF-015 - so the two ' +
+            'cited sources agree and the reduction to `guideline` still hides where the ' +
+            'measurement was made, which `derivation` preserves. ⛔ QUEUED, NOT FIXED HERE: ' +
+            'this vendorClass reads ge-explicit and REF-015 is MULTI-VENDOR in its own words ' +
+            '("clinical MRI systems from three vendors (GE Healthcare, Philips Healthcare, ' +
+            'and Siemens Healthineers)", LITERATURE.md 9.20.4). Correcting it moves the ' +
+            'no-vendor-neutral-evidence flag the Other path prints, so it is a decision with ' +
+            'its own blast radius and outside W-069 approval to move twelve VALUES.'
     },
     evidenceGrade: 'A',
-    population: 'Multicentre iron overload, n=207 (Serai/Reeder 2022)',
+    population: 'Multicentre iron overload, n=207, three vendors, 1.5T and 3.0T (Hernando 2022)',
     provenance: 'transcribed',
-    note: 'THE RUNG-5 RECORD. This is the ONLY 3.0T R2*->LIC slope published anywhere in the ' +
-          'workbook, and its derivation is ge-explicit. An Other-path report at 3.0T has no ' +
-          'vendor-neutral alternative and must return this slope carrying the ' +
-          '"no vendor-neutral evidence" flag. Deriving a 3T non-GE slope by scaling ' +
-          'CAL-0002 by the 1.86 field ratio (INT-0024) would be inventing a clinical number ' +
-          'and is forbidden. The ratio 0.0472 / 0.0254 = 1.858 is the field effect INT-0024 ' +
-          'describes; it is an observation about these two records, not a conversion rule.',
+    note: 'THE RUNG-5 RECORD, AND W-018 FOUND IT WRONG BY A FACTOR OF 3.50. It shipped ' +
+          'LIC = 0.0472 x R2* until 2026-08-25. Its own cited paper publishes, in Table 3 ' +
+          'and verbatim, "LIC (in milligrams per gram) = intercept + slope x R2* (1/second)" ' +
+          'with intercept -0.03 (95% CI -0.51, 0.45) and slope 1.349 x 10^-2 (95% CI ' +
+          '1.282 x 10^-2, 1.417 x 10^-2), R2 = 0.87. The shipped 0.0472 was 0.0254 x 1.858, ' +
+          'a MULTIPLICATION where the field relation calls for a division: R2* is a decay ' +
+          'rate and roughly DOUBLES at 3.0T for the same iron (INT-0024, and REF-008 states ' +
+          'R2*(3T) = 2 x R2*(1.5T) - R_d-d), so the coefficient converting R2* to LIC must be ' +
+          'about HALF the 1.5T one. The shipped number was on the wrong side of CAL-0001. ' +
+          'LITERATURE.md 9.20.3, 9.20.3a and 9.24 carry the reading and the arithmetic. ' +
+          'The intercept is TRANSCRIBED, not judged: its 95% CI contains zero, which is a ' +
+          'property of the published fit and not a licence to delete a published coefficient ' +
+          '(the dropped-intercept defect CAL-0001 still carries is exactly what that would ' +
+          'repeat). Deriving a 3T non-GE slope by scaling CAL-0002 by the 1.86 field ratio ' +
+          'remains forbidden and is now doubly wrong: it scales in the wrong direction.',
     source: {sheet: 'GE_Protocols_3T', row: 11}
   },
 
@@ -269,6 +318,12 @@ const CALIBRATIONS = [
     population: 'Not stated — the workbook uses FIB-4 but does not publish or cite the formula',
     provenance: 'editorial-unsourced',
     dataQualityFlags: ['formula-origin-not-in-workbook'],
+    dataQualityNote: 'The workbook applies FIB-4 but publishes neither the formula nor its '
+          + 'originating paper, and no REFERENCES record is the FIB-4 derivation study. The '
+          + 'expression here was transcribed from v1/js/app.js computeFib4(), i.e. from CODE. '
+          + 'W-069 added this field: R-49 found the flag standing alone, and a flag with no '
+          + 'note records that something is wrong while destroying what it was (R-15). The '
+          + 'reason had been in `note` all along; it is now where a rule can read it.',
     note: 'DECLARED GAP, NOT A GAP FILLED. The workbook applies FIB-4 (the MEFIB rule needs ' +
           'it) but nowhere publishes the formula or cites its originating paper, and no ' +
           'reference in REFERENCES is the FIB-4 derivation study. The expression recorded ' +
@@ -351,6 +406,10 @@ const CALIBRATIONS = [
     population: 'NAFLD (Noureddin 2022)',
     provenance: 'not-published',
     dataQualityFlags: ['formula-not-in-workbook'],
+    dataQualityNote: 'The workbook publishes MAST two operating thresholds (CUT-0069 / '
+          + 'CUT-0070) and never its coefficients, so `expression` is null by decision and '
+          + 'stays null until they are transcribed from REF-025. W-069 added this field for '
+          + 'the reason given on CAL-0005: R-49 found the flag with no note beside it.',
     note: 'DELIBERATE EMPTY RECORD. MAST is a logistic score over MRI-PDFF, MRE and AST, and ' +
           'the workbook publishes ONLY its two operating thresholds (0.242 rule-in, 0.165 ' +
           'rule-out — CUT-0069 / CUT-0070), never the coefficients. So the score cannot be ' +
