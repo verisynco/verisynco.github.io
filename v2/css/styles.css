@@ -1023,3 +1023,95 @@ body[data-mode="sample"] .page {
     font-size: var(--t-meta); color: var(--muted); letter-spacing: .04em; }
   .meta .cell:has(> .unset) > input { display: none; }
 }
+
+/* ═══════════════════════════════════════ W-091 — GROUP AND CARD SEPARATION,
+   AND ONE BOXED LANGUAGE FOR BOTH SHEETS
+   Three levels were readable in the markup and not readable on the page: the
+   tier heading sat on a bare line, the domain heading was a thin label a
+   reader scanning the sheet could miss, and cards inside one domain group had
+   no edge at all — W-040 removed that edge on purpose, reasoning "cards inside
+   a group are separated by proximity". That reasoning held only because
+   nothing else marked the group either; it stops holding once the group has
+   its own box, which is what this task adds.
+
+   ⛔ NO NEW COLOUR. Every value below is --paper / --rule / --hair / --hair2 /
+   --accent-tint, all already declared at the top of this file. The five-step
+   severity ramp (--sev-0..4) and the epistemic registers (--uncertain,
+   --uncertain-edge) are deliberately NOT reused here: a structural grouping
+   line makes no clinical or evidentiary claim, and borrowing one of those
+   tokens would make it read as if it did (the W-085 lesson, this file's own
+   history above — a surface that already spends a colour on one meaning does
+   not get to spend it again on another).
+
+   ⛔ NOT `break-inside: avoid` on the group. W-009 measured that a bigger
+   atomic unit than the CARD costs a page — "the atomic unit here is the CARD,
+   not the section that collects them" — and a domain group can hold more
+   cards than a sheet has room left for. The box may legitimately split across
+   a page break; the card inside it stays atomic exactly as
+   `.pcard{break-inside:avoid}` already requires, untouched by this task. */
+
+.domaingroup, .mgroup, .evidence {
+  border: 1px solid var(--hair); border-radius: 6px; background: var(--hair2);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.domaingroup { padding: var(--s-3) var(--s-4) var(--s-1); margin: 0 0 var(--s-5); }
+.domaingroup:last-child { margin-bottom: 0; }
+.domaingroup .domainhead { margin-top: 0; }
+/* L3. The line W-040 removed, legitimate again: the card no longer floats in
+   the open — it sits inside a box that already told the reader where the
+   group starts and ends — and the divider says where ONE card ends and the
+   next begins inside it. */
+.domaingroup .pcard + .pcard { border-top: 1px solid var(--hair2); }
+
+/* L1. The 2px accent rule (W-040) still marks where a tier begins; the
+   heading text now sits on its own tinted label so it reads as a landmark
+   while scanning, not only as text sitting above a line. Left/right/bottom
+   padding only — each selector's own padding-top, the gap under the accent
+   rule, is declared where that selector already lives and is NOT overridden
+   here. */
+.psection > h2, .section-head h3, .impression h3 {
+  display: inline-block; background: var(--accent-tint); border-radius: 3px;
+  padding-left: var(--s-3); padding-right: var(--s-3); padding-bottom: var(--s-1);
+}
+
+/* The methodology sheet's own version of the same box, around each lettered
+   table and the evidence appendix. Density stays allowed here
+   (DESIGN-DIRECTION § 5.2) — a dense block still needs a visible edge saying
+   where it ends, which is what was missing between table B, C, D, E and the
+   evidence appendix that follows them. */
+.mgroup { padding: var(--s-3) var(--s-4); margin: 0 0 var(--s-4); }
+.mgroup:last-of-type { margin-bottom: 0; }
+.mgroup .p2-h { margin-top: 0; }
+.evidence { padding: var(--s-3) var(--s-4); margin: var(--s-4) 0 0; }
+.evidence h3 { margin-top: 0; }
+
+/* The evidence appendix's four sub-findings, each in its own left-ruled block
+   — the STRUCTURAL idiom .nointerp already uses elsewhere in this stylesheet,
+   on the NEUTRAL --rule token rather than --uncertain-edge: that token already
+   carries one meaning on this page (a withheld or qualified reading,
+   W-015/W-038), and a grouping line borrowing it would make a structural
+   device read as a second clinical qualification. */
+.evblock { border-left: 2px solid var(--rule); padding-left: var(--s-3);
+  margin: 0 0 var(--s-3); }
+.evblock:last-child { margin-bottom: 0; }
+.evblock h4 { margin: 0 0 var(--s-2); }
+
+/* MEASURED, Edge headless → PDF, three variants (GE path research scope with
+   every parameter filled; Other/non-specific path research scope; GE path
+   cleared scope): the report at this point in the repo's history already
+   prints 5 pages with none of this task's rules present — a drift the
+   4-page figure in CLAUDE.md § 5 predates, accumulated by the many W-0xx
+   tasks landed since that number was last measured, and not something this
+   task caused or is scoped to fix. Printing the SAME three fixtures again
+   with every W-091 rule below applied read back 5 pages as well, in all
+   three — this task's boxes cost no additional page against whatever the
+   report already prints. These print-only values still tighten the boxes'
+   padding and margin below the shared --s-* scale, matching the density
+   the methodology sheet's own document already allows (§ 5.2), on the
+   token scale N17 locks — not to buy back a page, since none was lost. */
+@media print {
+  .domaingroup { padding: var(--s-2) var(--s-3) var(--s-1); margin-bottom: var(--s-2); }
+  .mgroup { padding: var(--s-1) var(--s-2); margin-bottom: var(--s-1); }
+  .evidence { padding: var(--s-1) var(--s-2); margin-top: var(--s-1); }
+  .evblock { margin-bottom: var(--s-1); }
+}

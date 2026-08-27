@@ -121,7 +121,7 @@
   border-bottom: 1px solid var(--hair2);
 }
 
-.fb-title { margin: 0; font-size: var(--t-name); color: var(--ink); }
+.fb-title { margin: 0; font-size: var(--t-name); font-weight: 700; color: var(--ink); }
 
 .fb-close {
   font: inherit;

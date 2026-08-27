@@ -11,9 +11,11 @@
  *              (62010 bytes). Its content differs ONLY in the demo input row of
  *              each interactive sheet; nothing migrated here differs between them.
  *
- * 9 papers the workbook does NOT contain. Two were identified by
- * W-020 while auditing its citations; three more by W-031's second literature pass;
- * four by W-053's native-T1 pass. SCHEMA.md § 3.7.
+ * 9 papers and 1 manufacturer document, none of which the workbook contains.
+ * Two were identified by W-020 while auditing its citations; three more by
+ * W-031's second literature pass; four by W-053's native-T1 pass; one
+ * (EXT-010, a manufacturer document rather than a paper) by W-042. SCHEMA.md
+ * § 3.7.
  *
  * EXT-006 is the first record here that supports NOTHING. It is a candidate source
  * that was found and rejected, and it is kept so the next pass does not spend its
@@ -41,6 +43,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-001',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '14990831',
     doi: null,
     citation: 'de Bazelaire CM, Duhamel GD, Rofsky NM, Alsop DC. Radiology 2004;230:652-9.',
@@ -56,6 +59,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-002',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '23382291',
     doi: '10.1148/radiol.12120896',
     citation: 'Tang A, Tan J, Sun M, Hamilton G, Bydder M, et al. Radiology 2013;267:422-31.',
@@ -71,6 +75,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-003',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '16374880',
     doi: '10.1002/jmri.20489',
     citation: 'Alexopoulou E, Stripeli F, Baras P, Seimenis I, Kattamis A, Ladis V, Efstathopoulos E, Brountzos EN, Kelekis AD, Kelekis NL. J Magn Reson Imaging 2006;23:163-170.',
@@ -86,6 +91,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-004',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '32960728',
     doi: '10.1148/radiol.2020201513',
     citation: 'Trout AT, Anupindi SA, Gee MS, Khanna G, Xanthakos SA, Serai SD, Baikpour M, Calle-Toro JS, Ozturk A, Zhang B, Dillman JR. Radiology 2020;297:663-669.',
@@ -101,6 +107,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-005',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '37227944',
     doi: '10.1148/rg.220181',
     citation: 'Guglielmo FF, Barr RG, Yokoo T, Ferraioli G, Lee JT, Dillman JR, Horowitz JM, Jhaveri KS, Miller FH, Modi RY, Mojtahed A, Ohliger MA, Pirasteh A, Reeder SB, et al. RadioGraphics 2023;43:e220181.',
@@ -116,6 +123,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-006',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '27937040',
     doi: '10.1080/17474124.2017.1271710',
     citation: 'Unal E, Idilman IS, Karcaaltincaba M. Expert Rev Gastroenterol Hepatol 2017;11(2):167-182.',
@@ -131,6 +139,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-007',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '38019376',
     doi: '10.1007/s10334-023-01135-6',
     citation: 'Meloni A, Carnevale A, Gaio P, Positano V, Passantino C, Pepe A, et al. MAGMA 2024;37(1):93-100.',
@@ -146,6 +155,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-008',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '39194308',
     doi: '10.2214/AJR.24.31643',
     citation: 'Serai SD, Robson MD, Tirkes T, Trout AT. AJR Am J Roentgenol 2025;224(6):e2431643.',
@@ -161,6 +171,7 @@ const EXTERNAL_REFERENCES = [
     id: 'EXT-009',
     sourceKind: 'literature',
     notInWorkbook: true,
+    assetId: null,
     pmid: '31049609',
     doi: '10.1007/s00247-019-04411-7',
     citation: 'Gilligan LA, Dillman JR, Tkach JA, Xanthakos SA, Gill JK, Trout AT. Pediatr Radiol 2019;49(8):1018-1024.',
@@ -171,6 +182,22 @@ const EXTERNAL_REFERENCES = [
     retrievedVia: 'europepmc:EXT_ID:31049609',
     foundBy: 'W-053',
     supports: 'The one traceable normative liver T1 measurement in the AJR 2025 chain (EXT-008 Table 2, reference 76), reproduced there verbatim. Abstract read; full text not held. Modified Look-Locker, healthy children aged 7-17, 32 participants with n = 16 at 1.5T; median liver T1 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T, with no significant association with age or sex at either field strength. It is recorded for TWO reasons, and the second matters more than the first. First: it is the reason AJR Table 2 can be traced at all. Second: it is PEDIATRIC, and CUT-0071..CUT-0074 are cohort adult-general, so it may not be adopted for them — that is the extrapolation CLAUDE.md § 1.3 forbids, the same rule read in the opposite direction from the pediatric MRE bound this repository refused to manufacture. What it COULD legitimately support is a pediatric T1 reference range of its own; the repository already carries pediatric cohorts and RNG-012 is the precedent for a literature-only range. That is a separate task and is queued, not done here. Cited by no cut-off.'
+  },
+  {
+    id: 'EXT-010',
+    sourceKind: 'manufacturer-document',
+    notInWorkbook: true,
+    assetId: 'cardiovascular-imaging-for-signa-starmap-cs-en',
+    pmid: null,
+    doi: null,
+    citation: 'GE HealthCare. "Cardiovascular Imaging for SIGNA — StarMap." Product document, asset id cardiovascular-imaging-for-signa-starmap-cs-en, hosted at s7d9.scene7.com. Developer-supplied 2026-08-26.',
+    title: 'Cardiovascular Imaging for SIGNA — StarMap (from the asset id; the document\'s own title page could not be read, see supports)',
+    year: null,
+    journal: null,
+    fieldStrength: 'not stated',
+    retrievedVia: 'developer-supplied URL, 2026-08-26',
+    foundBy: 'W-042',
+    supports: 'Settles what GE\'s StarMap product actually measures, which the workbook\'s Technical_Limitations row 133 (AVL-0003) got wrong: "StarMap is GE\'s proprietary T1/T2 mapping package", citing REF-020 — a citation that does not contain the word "StarMap" (0 occurrences in REF-020\'s full text; it is a Siemens/LiverMultiScan MOLLI study). This document\'s text layer is vector outlines and could not be extracted; its EMBEDDED FIGURES were read directly and show a decay-curve plot captioned "T2* Curve" (sub-labelled "Cardiac T2*" / "Liver T2*") and a liver T2* colour map. No T1 map, no T1 curve, and no text mentioning T1 appears anywhere in the readable figures. CLAUDE.md § 1.1: the manufacturer is the authoritative source for what its own product measures, so this settles StarMap as GE\'s T2* mapping application, not a T1 sequence — its cut-off vocabulary moved to iron-r2star-gre / iron-t2star-gre in techniques.data.js (both report the same acquisition, R2* = 1000/T2*). Does NOT support any claim about MAGiC (a separate GE product, AVL-0004/INT-0089) or about clearance status.'
   }
 ];
 

@@ -27,11 +27,11 @@
  */
 
 const SCOPE_REV = 'w013-v1';
-const SCOPE_VERSION = '1.1';
+const SCOPE_VERSION = '1.2';
 
 /* Paste the value HASH-SCOPE prints when a change to SCOPE_MATRIX is intended,
    and bump SCOPE_VERSION in the same edit (CLAUDE.md § 4). */
-const SCOPE_HASH = 'e5c0456d71c014b21ff88fbbf9c0b508c1709cbe3629caf3bb8d23ad6192bbb3';
+const SCOPE_HASH = 'b46ace53dc2ee1d7a81bc15347903705d0e0957fa68aa1acc28cf7112873702a';
 
 /* The two declared axes. They exist so R-35 has something to be complete against:
    without them, "every cell is accounted for" is a claim about a set nobody wrote
@@ -115,13 +115,13 @@ const SCOPE_MATRIX = [
     param: 't1',
     acquisition: 'product',
     quantification: 'native',
-    product: 'StarMap',
+    product: 'MOLLI',
     dependsOn: [],
-    factProvenance: 'workbook',
-    availabilityIds: ['AVL-0003', 'AVL-0004'],
+    factProvenance: 'v1-report',
+    availabilityIds: [],
     sourceRefIds: [],
     flags: ['availability-is-not-cutoff-availability'],
-    note: 'StarMap is GE\'s own T1/T2 mapping package, so the number can be produced. That is a different fact from having a cut-off for it: SCHEMA § 4.1 and § 10.6 hold that StarMap is not MOLLI and that resolveTechniqueGroup throws rather than answer with a neighbouring sequence\'s boundary. AVL-0004 records that MAGiC is NOT a validated liver T1 mapping tool.'
+    note: 'W-042 (2026-08-26): corrected. This row named StarMap, sourced from AVL-0003, which the workbook\'s own citation (REF-020) never actually supported — GE\'s own SIGNA StarMap product document (EXT-010) confirms StarMap is a T2* mapping application, not T1, so it no longer supports a T1 availability claim at all (CLAUDE.md § 1.1). AVL-0003 and AVL-0004 are corrected, not deleted, but neither backs a "GE ships a native-T1 product" claim any more — AVL-0004 (MAGiC) was always a warning, never a positive claim, and is itself now workbook-rejected-unresolved. The one remaining source for a GE native-T1 product is V1\'s own shipped page (v1/index.html:338, frozen and left uncorrected there per CLAUDE.md § 3), which names "StarMap / MOLLI"; only the MOLLI half is carried forward, since StarMap is no longer credibly a T1 product at all. This asserts only that a native T1 product exists on the GE platform, not which — SCHEMA § 4.1 and § 10.6 hold that MOLLI is not SMART1Map (techniques.data.js t1-smart1map, GE\'s other native-T1 method) and resolveTechniqueGroup throws rather than answer with a neighbouring sequence\'s boundary; the developer\'s 2026-08-26 decision removed the GE default for t1 entirely so the report asks which sequence was used rather than guessing (domains.js).'
   },
   {
     id: 'SCP-0006',

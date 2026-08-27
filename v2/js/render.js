@@ -26,7 +26,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.6';   /* W-079: the example line says it is a sample */
+const V2_RENDER_VERSION = '3.10';  /* W-091: card/domain-group separation and methodology-sheet hierarchy. W-072: the impression paragraph this renders grew a new clause shape. Both branches bumped 3.8 to 3.9 independently; the collision is resolved here, at the merge, rather than by rewriting either branch's history. */
 
 const _RN = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -36,7 +36,9 @@ const _RN = (typeof module !== 'undefined' && module.exports)
       const rep = require(p.join(__dirname, 'report.js'));
       const ven = require(p.join(__dirname, 'vendors.js'));
       const sc = require(p.join(__dirname, 'scope.js'));
-      return {DOMAIN_OF: d.DOMAIN_OF, CONTROLLED_DOMAINS: d.CONTROLLED_DOMAINS,
+      const tech = require(p.join(__dirname, '..', 'data', 'techniques.data.js'));
+      return {DOMAIN_OF: d.DOMAIN_OF, CONTROLLED_UNITS: d.CONTROLLED_UNITS,
+              GE_IRON_PRODUCTS: d.GE_IRON_PRODUCTS, TECHNIQUES: tech.TECHNIQUES,
               optionsForDomain: d.optionsForDomain, displayExamples: d.displayExamples,
               PATHS: sel.PATHS, FIELD_STRENGTHS: sel.FIELD_STRENGTHS,
               AGE_GROUPS: sel.AGE_GROUPS, SCOPE_CHOICES: sel.SCOPE_CHOICES,
@@ -59,7 +61,8 @@ const _RN = (typeof module !== 'undefined' && module.exports)
               INTERACTIONS: require(p.join(__dirname, '..', 'data', 'interactions.data.js')).INTERACTIONS,
               CARD_DOMAIN_ORDER: rep.CARD_DOMAIN_ORDER};
     })()
-  : {DOMAIN_OF: DOMAIN_OF, CONTROLLED_DOMAINS: CONTROLLED_DOMAINS,
+  : {DOMAIN_OF: DOMAIN_OF, CONTROLLED_UNITS: CONTROLLED_UNITS,
+     GE_IRON_PRODUCTS: GE_IRON_PRODUCTS, TECHNIQUES: TECHNIQUES,
      optionsForDomain: optionsForDomain, displayExamples: displayExamples,
      PATHS: PATHS, FIELD_STRENGTHS: FIELD_STRENGTHS, AGE_GROUPS: AGE_GROUPS,
      SCOPE_CHOICES: SCOPE_CHOICES, INDICATIONS: INDICATIONS,
@@ -76,7 +79,8 @@ const _RN = (typeof module !== 'undefined' && module.exports)
 /* ─────────────────────────────────────────────────────────────────── LABELS */
 
 const DOMAIN_LABELS = {
-  pdff: 'PDFF method', iron: 'Iron method', mre: 'MRE method',
+  pdff: 'PDFF method', r2star: 'R2* method', t2star: 'T2* method',
+  lic: 'LIC method', mre: 'MRE method',
   t1: 'Native T1 method', ct1: 'cT1 method'
 };
 
@@ -199,6 +203,33 @@ function methodControl(selection, domain) {
     if (ex.length) html += '<span class="mex">' + esc(ex.join(' \u00b7 ')) + ' etc.</span>';
   }
   return html + '</label>';
+}
+
+/* W-090. A SECOND control, GE-only, offered beside the technique control for
+   r2star/t2star specifically — which GE console produced the reading. It
+   never changes which cut-off ladder or calibration resolves (that is still
+   `technique`, untouched); it only feeds `row.product`, which acquisitionLine
+   (report.js) prefers over the scope-based default when set. Visible
+   regardless of whether the TECHNIQUE control itself is showing (GE still
+   hides that one by default — see parameterCard) because the product choice
+   is the whole point of this task even when the technique stays defaulted. */
+function productControl(selection, parameter, technique) {
+  const offered = _RN.GE_IRON_PRODUCTS[parameter];
+  if (selection.path !== 'ge' || !offered) return '';
+  const t = technique ? _RN.TECHNIQUES[technique] : null;
+  if (!t || t.group !== 'iron-r2star') return '';
+
+  const chosen = (selection.products && selection.products[parameter]) || '';
+  let html = '<label class="method screen-only">' +
+    '<span class="mlabel">GE product</span>' +
+    '<select data-product="' + esc(parameter) + '">' +
+    '<option value=""' + (chosen ? '' : ' selected') + '>Not selected</option>';
+  for (const o of offered) {
+    html += '<option value="' + esc(o.id) + '"' +
+            (o.id === chosen ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+  }
+  html += '</select></label>';
+  return html;
 }
 
 /* ═════════════════════════════════════════════════════════════════ THE FRAME
@@ -781,9 +812,14 @@ function calibrationLineHtml(card, canDerive) {
 }
 
 function parameterCard(row, card, selection, tag) {
-  const controlled = _RN.CONTROLLED_DOMAINS.indexOf(row.domain) !== -1;
+  /* W-090. Was `row.domain` — the SAME value ('iron') for lic/r2star/t2star,
+     which is why they used to draw an IDENTICAL control on all three cards.
+     `row.controlKey` is that value for every other parameter and the
+     parameter's OWN name for the iron trio (report.js TECHNIQUE_CONTROL_KEY),
+     so each card now gates and keys its OWN control. */
+  const controlled = _RN.CONTROLLED_UNITS.indexOf(row.controlKey) !== -1;
   const preset = _RN.defaultTechniques(selection.path);
-  const showControl = controlled && !preset[row.domain];
+  const showControl = controlled && !preset[row.controlKey];
 
   /* W-071. Two facts the card already prints, stated once more as data so that
      a consumer never has to read the printed sentence back. The band is the
@@ -810,7 +846,8 @@ function parameterCard(row, card, selection, tag) {
       '</p>' +
       valueAreaHtml(row, card, row.calibration !== null) +
       calibrationLineHtml(card, row.calibration !== null) +
-      (showControl ? methodControl(selection, row.domain) : '') +
+      (showControl ? methodControl(selection, row.controlKey) : '') +
+      productControl(selection, row.parameter, row.technique) +
     '</div>' +
     '<div class="pbars"' +
       (card.singleLadderReason ? ' title="' + esc(card.singleLadderReason) + '"' : '') + '>' +
@@ -884,6 +921,15 @@ function domainHeadHtml(domain) {
   return '<h3 class="domainhead">' + esc(DOMAIN_TITLES[domain] || domain) + '</h3>';
 }
 
+/* W-091. The domain group as its own boxed container, so "these cards are one
+   group" is a shape the reader sees rather than a small label they might miss.
+   No card is added, dropped or reordered here — this wraps exactly what
+   groupCardsByDomain already returned. */
+function domainGroupHtml(g, build) {
+  return '<div class="domaingroup">' + domainHeadHtml(g.domain) +
+    g.pairs.map(build).join('') + '</div>';
+}
+
 function sectionHtml(section, pairs, counter, build) {
   if (!pairs.length) return '';
   /* The title stays; the long note does NOT. Each card already carries the short
@@ -892,8 +938,7 @@ function sectionHtml(section, pairs, counter, build) {
   return '<section class="psection" id="section-' + esc(section.id) + '">' +
     (section.title ? '<h2>' + esc(section.title) + '</h2>' : '') +
     (section.grouped
-      ? _RN.groupCardsByDomain(pairs).map(
-          g => domainHeadHtml(g.domain) + g.pairs.map(build).join('')).join('')
+      ? _RN.groupCardsByDomain(pairs).map(g => domainGroupHtml(g, build)).join('')
       : pairs.map(build).join('')) +
     '</section>';
 }
@@ -949,7 +994,7 @@ function censusHtml(census) {
 function stampText(model, selection, versions) {
   const s = model.report.stamp;
   const p = _RN.PATHS[selection.path];
-  const techs = _RN.CONTROLLED_DOMAINS
+  const techs = _RN.CONTROLLED_UNITS
     .map(d => DOMAIN_LABELS[d].replace(' method', '') + ' ' +
               (selection.techniques[d] || '—')).join(' · ');
   return 'VeriLiv V2 · Tool v' + versions.app + ' · Renderer v' + V2_RENDER_VERSION +
@@ -1161,9 +1206,22 @@ function entryRoute(model, selection) {
     route.push({attr: 'data-value', key: row.parameter});
     /* The same condition parameterCard uses to decide whether it draws one. A
        second rule here would let the route point at a control that is not on
-       the page, which is a dead stop the reader falls out of. */
-    if (_RN.CONTROLLED_DOMAINS.indexOf(row.domain) !== -1 && !preset[row.domain]) {
-      route.push({attr: 'data-domain', key: row.domain, param: row.parameter});
+       the page, which is a dead stop the reader falls out of. W-090: keyed by
+       `row.controlKey`, so r2star/t2star/lic each route their own element
+       instead of all three pointing at 'iron'. */
+    if (_RN.CONTROLLED_UNITS.indexOf(row.controlKey) !== -1 && !preset[row.controlKey]) {
+      route.push({attr: 'data-domain', key: row.controlKey, param: row.parameter});
+    }
+    /* The product control (W-090) is independent of the technique control's
+       visibility — it can show even when the technique stays defaulted/hidden
+       on the GE path, so it needs its own route entry rather than piggy-
+       backing on the condition above. Written as a negative comparison
+       (K6, above, forbids the positive form in this file) — mirrors
+       productControl's own guard. */
+    if (selection.path !== 'ge' || !_RN.GE_IRON_PRODUCTS[row.parameter]) continue;
+    const tech = row.technique ? _RN.TECHNIQUES[row.technique] : null;
+    if (tech && tech.group === 'iron-r2star') {
+      route.push({attr: 'data-product', key: row.parameter, param: row.parameter});
     }
   }
   return route;
@@ -1525,16 +1583,38 @@ function evidenceAppendix(evidence) {
     '<li>' + esc(_RN.PARAMETER_LABELS[g.parameter] || g.parameter) + ' — ' +
     esc(g.reason) + '</li>').join('');
 
+  /* W-091. Four sub-findings used to sit as four <h4><ul> pairs in one run, with
+     nothing telling the eye where one ended and the next began. Each now sits in
+     its own left-ruled block — the STRUCTURAL idiom .nointerp already uses
+     elsewhere in this stylesheet, on the NEUTRAL --rule token rather than
+     --uncertain-edge: that colour already carries one meaning here (a withheld
+     or qualified reading, W-015/W-038) and a grouping line borrowing it would
+     make a structural device look like a second clinical qualification
+     (CLAUDE.md § 5, the W-085 lesson — a surface that already spends a colour on
+     one meaning does not get to spend it again on another). */
+  const evBlock = (title, items) => items
+    ? '<div class="evblock"><h4>' + esc(title) + '</h4><ul class="ev">' + items + '</ul></div>'
+    : '';
+
   return '<section class="evidence"><h3>Impression — the evidence behind it</h3>' +
     '<p class="floor">Evidence floor <b>' + esc(evidence.floor) + '</b> — ' +
     esc(evidence.floorLabel) + '. At this floor the report ' +
     esc(evidence.verb) + ' rather than asserts more strongly.</p>' +
-    (rows ? '<h4>Rules that fired</h4><ul class="ev">' + rows + '</ul>' : '') +
-    (inherited ? '<h4>Inherited downgrades</h4><ul class="ev">' + inherited + '</ul>' : '') +
-    (abst ? '<h4>Rules that abstained</h4><ul class="ev">' + abst + '</ul>' : '') +
-    (gaps ? '<h4>Measured, with no published boundary</h4><ul class="ev">' + gaps +
-            '</ul>' : '') +
+    evBlock('Rules that fired', rows) +
+    evBlock('Inherited downgrades', inherited) +
+    evBlock('Rules that abstained', abst) +
+    evBlock('Measured, with no published boundary', gaps) +
     '</section>';
+}
+
+/* W-091. The same boxed language domainGroupHtml gives the clinical sheet's
+   groups, on the sheet whose own document says density is allowed here (§ 5.2)
+   — a dense block still needs a visible edge saying where it ends. One wrapper
+   per lettered table; the evidence appendix already draws its own <section
+   class="evidence">, so the CSS selector list covers it directly instead of a
+   second wrapper. */
+function mgroup(html) {
+  return html ? '<div class="mgroup">' + html + '</div>' : '';
 }
 
 function renderMethodology(model, profile, selection, versions, view) {
@@ -1544,8 +1624,9 @@ function renderMethodology(model, profile, selection, versions, view) {
     acquisitionSummary(profile, selection) +
     /* "What was measured" is gone: it repeated the identity block of every card the
        reader has just read, and its room is what the remaining tables needed. */
-    tableB(profile) + tableC(profile, model) +
-    tableD(profile, model, selection.indication) + tableE(model.receipts.census) +
+    mgroup(tableB(profile)) + mgroup(tableC(profile, model)) +
+    mgroup(tableD(profile, model, selection.indication)) +
+    mgroup(tableE(model.receipts.census)) +
     evidenceAppendix(model.impression && model.impression.evidence) +
     (sample ? sampleLine() : '') +
     '<footer><pre id="ver-line">' + esc(stampText(model, selection, versions)) + '</pre>' +

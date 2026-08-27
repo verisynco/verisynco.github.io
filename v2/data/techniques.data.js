@@ -94,13 +94,6 @@ const TECHNIQUE_GROUPS = {
     rationale: 'Accuracy-optimised; reads systematically HIGHER than MOLLI for the same ' +
                'tissue. Separate group.'
   },
-  't1-spgr-vfa': {
-    parameter: 't1',
-    label: 'SPGR variable-flip-angle mapping (GE StarMap)',
-    poolable: true,
-    rationale: 'B1+-sensitive, especially at 3T. Separate group from bSSFP-based mapping.'
-  },
-
   /* ---- MRE ----------------------------------------------------------- */
   'mre-60hz-stiffness': {
     parameter: 'mre',
@@ -150,9 +143,9 @@ const TECHNIQUES = {
   'pdff-two-point-dixon': {group: 'pdff-uncorrected-fsf',   label: 'Two-point Dixon fat signal fraction',                     vendorExamples: ['GE LAVA-Flex', 'Siemens VIBE-Dixon'],
                            methodLabel: 'Two-point Dixon fat signal fraction (not confounder-corrected)'},
   /* Iron */
-  'iron-r2star-gre':      {group: 'iron-r2star',            label: 'Multi-echo GRE R2* mapping',                              vendorExamples: ['GE IDEAL-IQ R2*', 'in-house multi-echo GRE'],
+  'iron-r2star-gre':      {group: 'iron-r2star',            label: 'Multi-echo GRE R2* mapping',                              vendorExamples: ['GE IDEAL-IQ R2*', 'GE StarMap', 'in-house multi-echo GRE'],
                            methodLabel: 'Multi-echo gradient-echo R2* mapping'},
-  'iron-t2star-gre':      {group: 'iron-r2star',            label: 'Multi-echo GRE T2* mapping (reported as T2*)',            vendorExamples: ['GE multi-echo GRE', 'Siemens Sonata multi-echo GRE'],
+  'iron-t2star-gre':      {group: 'iron-r2star',            label: 'Multi-echo GRE T2* mapping (reported as T2*)',            vendorExamples: ['GE multi-echo GRE', 'GE StarMap', 'Siemens Sonata multi-echo GRE'],
                            methodLabel: 'Multi-echo gradient-echo T2* mapping'},
   'iron-r2-ferriscan':    {group: 'iron-r2-spin-echo',      label: 'Spin-echo R2 relaxometry, St Pierre calibration',         vendorExamples: ['FerriScan (Resonance Health)'],
                            methodLabel: 'Spin-echo R2 relaxometry, St Pierre calibration'},
@@ -169,8 +162,8 @@ const TECHNIQUES = {
                            methodLabel: 'Saturation-recovery native T1 mapping'},
   't1-ir-se':             {group: 't1-saturation-recovery', label: 'Inversion-recovery spin-echo T1 (reference method)',      vendorExamples: ['research IR-SE'],
                            methodLabel: 'Inversion-recovery spin-echo T1 (reference method)'},
-  't1-starmap':           {group: 't1-spgr-vfa',            label: 'GE StarMap variable-flip-angle T1',                       vendorExamples: ['GE StarMap'],
-                           methodLabel: 'SPGR variable-flip-angle T1 mapping'},
+  't1-smart1map':         {group: 't1-saturation-recovery', label: 'SMART1Map saturation-recovery T1',                        vendorExamples: ['GE SMART1Map'],
+                           methodLabel: 'Saturation-recovery native T1 mapping'},
   /* MRE */
   'mre-2d-gre-60hz':      {group: 'mre-60hz-stiffness',     label: '2D GRE MRE, 60 Hz driver',                                vendorExamples: ['GE MR-Touch (Resoundant)'],
                            methodLabel: '2D gradient-echo MR elastography, 60 Hz driver'},

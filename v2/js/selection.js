@@ -11,15 +11,17 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_SELECTION_VERSION = '2.0';
+const V2_SELECTION_VERSION = '2.1';   /* W-090: products field, GE IDEAL-IQ/StarMap choice */
 
 const _SEL = (typeof module !== 'undefined' && module.exports)
   ? (function () {
       const path = require('path');
       const d = require(path.join(__dirname, 'domains.js'));
-      return {CONTROLLED_DOMAINS: d.CONTROLLED_DOMAINS, GE_DEFAULTS: d.GE_DEFAULTS};
+      return {CONTROLLED_UNITS: d.CONTROLLED_UNITS, GE_DEFAULTS: d.GE_DEFAULTS,
+              GE_IRON_PRODUCTS: d.GE_IRON_PRODUCTS};
     })()
-  : {CONTROLLED_DOMAINS: CONTROLLED_DOMAINS, GE_DEFAULTS: GE_DEFAULTS};
+  : {CONTROLLED_UNITS: CONTROLLED_UNITS, GE_DEFAULTS: GE_DEFAULTS,
+     GE_IRON_PRODUCTS: GE_IRON_PRODUCTS};
 
 /* The acquisition question. `vendor` is the token the scope resolver reads;
    `calibrationMode` is what the R2*->LIC calibration is resolved against.
@@ -58,8 +60,8 @@ const INDICATIONS = ['iron-overload', 'steatotic-liver-disease',
 
 function defaultTechniques(path) {
   const out = {};
-  for (const domain of _SEL.CONTROLLED_DOMAINS) {
-    out[domain] = (path === 'ge') ? (_SEL.GE_DEFAULTS[domain] || null) : null;
+  for (const unit of _SEL.CONTROLLED_UNITS) {
+    out[unit] = (path === 'ge') ? (_SEL.GE_DEFAULTS[unit] || null) : null;
   }
   return out;
 }
@@ -77,6 +79,7 @@ function createSelection() {
     accession: null,
     age: null,
     techniques: defaultTechniques(null),
+    products: {r2star: null, t2star: null},
     values: {}
   };
 }
@@ -103,6 +106,7 @@ function applySelection(state, patch) {
     accession: pick(p, 'accession', state.accession),
     age: pick(p, 'age', state.age),
     techniques: Object.assign({}, state.techniques),
+    products: Object.assign({}, state.products),
     values: Object.assign({}, state.values)
   };
 
@@ -122,8 +126,33 @@ function applySelection(state, patch) {
      was done and survives every other change on the screen (W-015 § 4). */
   if (next.path !== state.path) {
     next.techniques = defaultTechniques(next.path);
+    /* A product choice is GE-console-specific; leaving it set across a path
+       switch to "Other" would silently claim a GE product on a report that
+       says no manufacturer at all (mirrors the technique reset above). */
+    next.products = {r2star: null, t2star: null};
   }
   if (p.techniques) Object.assign(next.techniques, p.techniques);
+  if (p.products) {
+    /* Only a product this PARAMETER actually offers is accepted — an
+       'idealiq' patch for t2star (nothing sources it) is dropped rather than
+       stored, the same way an unknown technique id fails a hard gate rather
+       than being silently accepted (resolveTechniqueGroup, thresholds.js).
+       A product choice is GE-console-specific (see the path-change reset
+       above), so a real product value is only ever stored when the RESOLVED
+       path for this same call is 'ge' — checked against `next.path`, not
+       `state.path`, so a patch that sets both `path: 'ge'` and a product in
+       one call still works. Off the GE path a product id is dropped exactly
+       like an unrecognised one: silently, never stored, never thrown. */
+    for (const param of Object.keys(p.products)) {
+      const value = p.products[param];
+      const offered = (_SEL.GE_IRON_PRODUCTS[param] || []).map(o => o.id);
+      const allowed = value === null || value === undefined ||
+        (next.path === 'ge' && offered.indexOf(value) !== -1);
+      if (allowed) {
+        next.products[param] = value === undefined ? next.products[param] : value;
+      }
+    }
+  }
   if (p.values) Object.assign(next.values, p.values);
 
   return next;

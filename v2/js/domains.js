@@ -16,7 +16,9 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_DOMAINS_VERSION = '1.1';   /* W-079: seven product names withdrawn from the example line */
+const V2_DOMAINS_VERSION = '1.3';   /* W-090: CONTROLLED_DOMAINS -> CONTROLLED_UNITS,
+                                        lic/r2star/t2star each control their own
+                                        technique instead of sharing 'iron' */
 
 /* Same `_D` loading pattern as thresholds.js:83 and scope.js — in the browser the
    data file has already run and left its consts as globals; under Node nothing is
@@ -31,8 +33,12 @@ const _DD = (typeof module !== 'undefined' && module.exports)
     })()
   : {TECHNIQUES: TECHNIQUES, TECHNIQUE_GROUPS: TECHNIQUE_GROUPS};
 
-/* Parameter -> domain. `TECHNIQUE_GROUPS[g].parameter` uses 'iron' and 't1' as
-   domain names already; 'ct1' is this module's own split (see the header). */
+/* Parameter -> CARD SECTION. `TECHNIQUE_GROUPS[g].parameter` uses 'iron' and
+   't1' as section names already; 'ct1' is this module's own split (see the
+   header). THIS NEVER CHANGES WITH W-090 — lic/r2star/t2star still print
+   under one "Iron" heading (render.js DOMAIN_TITLES); only which TECHNIQUE
+   CONTROL each uses changed, and that is CONTROLLED_UNITS below, a different
+   axis from this one. */
 const DOMAIN_OF = {
   pdff: 'pdff',
   lic: 'iron', r2star: 'iron', t2star: 'iron',
@@ -42,7 +48,14 @@ const DOMAIN_OF = {
   adc: 'adc'
 };
 
-const CONTROLLED_DOMAINS = ['pdff', 'iron', 'mre', 't1', 'ct1'];
+/* W-090. Was CONTROLLED_DOMAINS = ['pdff', 'iron', 'mre', 't1', 'ct1'] — one
+   entry per DOMAIN_OF value. A site can run R2* on one console, T2* on
+   another, and derive LIC from whichever it trusts; a single shared 'iron'
+   control could not represent that. lic/r2star/t2star now each control their
+   OWN technique, so this list names the technique-SELECTION axis, which is no
+   longer the same set as DOMAIN_OF's values — 'iron' is not in this list at
+   all. Order matches v2/js/report.js REPORT_PARAMETERS. */
+const CONTROLLED_UNITS = ['pdff', 'r2star', 't2star', 'lic', 'mre', 't1', 'ct1'];
 
 /* The domain's own vocabulary, as the engine sees it. `ct1` is carved out of the
    't1' parameter vocabulary: it offers only the proprietary group, because that
@@ -51,29 +64,84 @@ const DOMAIN_VOCABULARY = {
   pdff: ['pdff-quantitative', 'pdff-uncorrected-fsf'],
   iron: ['iron-r2star', 'iron-r2-spin-echo', 'iron-sir'],
   mre:  ['mre-60hz-stiffness', 'mre-40hz-stiffness', 'mre-shear-wave-speed'],
-  t1:   ['t1-ir-bssfp', 't1-saturation-recovery', 't1-spgr-vfa'],
+  t1:   ['t1-ir-bssfp', 't1-saturation-recovery'],
   ct1:  ['ct1-proprietary'],
   adc:  ['dwi-adc-monoexp']
 };
 
-/* Sourced, not invented — one AVAILABILITY record per domain:
-     pdff, iron   AVL-0001 / AVL-0007   IDEAL-IQ, IDEAL-IQ R2*
-     mre          AVL-0002              MR Touch (Resoundant)
-     t1           AVL-0003              StarMap
+/* Sourced, not invented — one AVAILABILITY record per unit:
+     pdff, r2star, lic   AVL-0001 / AVL-0007   IDEAL-IQ, IDEAL-IQ R2*
+     mre                 AVL-0002              MR Touch (Resoundant)
 
-   `ct1` HAS NO GE DEFAULT, deliberately. Its only technique is `ct1-lms-molli`,
-   whose vendorExamples names `Perspectum LiverMultiScan` — a third-party service,
-   not something any scanner vendor ships. AVL-0003 says so itself: "StarMap is
-   GE's proprietary T1/T2 mapping package — not equivalent to Perspectum
-   LiverMultiScan cT1." Supplying it as a GE default would assert the user ran a
-   product GE does not sell — an invented routing decision (CLAUDE.md § 1.3).
-   cT1 opens unselected on BOTH paths. It is also a `cleared`-tier row, so it does
-   not render at all at the default `native` scope. */
+   `t1` and `ct1` BOTH have NO GE default, deliberately, and for related but
+   distinct reasons.
+
+   `ct1`'s only technique is `ct1-lms-molli`, whose vendorExamples names
+   `Perspectum LiverMultiScan` — a third-party service, not something any
+   scanner vendor ships. Supplying it as a GE default would assert the user
+   ran a product GE does not sell — an invented routing decision
+   (CLAUDE.md § 1.3).
+
+   `t1` HAD a GE default through W-041: AVL-0003 recorded "StarMap is GE's
+   proprietary T1/T2 mapping package", citing REF-020 (McKay 2018). W-042
+   measured that citation and found it does not support the claim — the
+   string "StarMap" occurs zero times in REF-020's full text, which is a
+   Siemens/LiverMultiScan cT1 study about MOLLI. GE's own SIGNA StarMap
+   product document (EXT-010) settles what the product actually measures:
+   its embedded figures show a decay plot captioned "T2* Curve" and a liver
+   T2* colour map — StarMap is GE's T2* mapping application, not a T1
+   sequence at all, and its vendorExamples moved to `iron-r2star-gre` /
+   `iron-t2star-gre` in techniques.data.js. GE ships two REAL native-T1
+   methods, MOLLI and SMART1Map, which read differently on the same tissue
+   (SCHEMA 4.1 — different technique groups are not interchangeable), so
+   supplying either as a silent default would be exactly the invented
+   routing decision already refused for cT1. Both `t1` and `ct1` open
+   unselected on the GE path; `ct1` is also a `cleared`-tier row, so it does
+   not render at all at the default `native` scope.
+
+   W-090 SPLIT the old single 'iron' default across three keys. `r2star` and
+   `lic` keep the exact technique id the shared default used to supply — no
+   behaviour change for a user who never touches the new independent
+   controls. `t2star` gets ITS OWN quantity-correct id (`iron-t2star-gre`)
+   instead of inheriting r2star's — this is a small, deliberate behaviour
+   change (see the design spec § 5.2 open question 1): a T2* CARD defaulting
+   to a T2*-labelled technique is more correct than one defaulting to an
+   R2*-labelled one, even though W-087's acquisitionLine sibling-swap already
+   printed the right word either way. Nothing here names a GE PRODUCT — that
+   is GE_IRON_PRODUCTS below, a presentation-only addition on top of this. */
 const GE_DEFAULTS = {
-  pdff: 'pdff-cse-mri',
-  iron: 'iron-r2star-gre',
-  mre:  'mre-2d-gre-60hz',
-  t1:   't1-starmap'
+  pdff:   'pdff-cse-mri',
+  r2star: 'iron-r2star-gre',
+  t2star: 'iron-t2star-gre',
+  lic:    'iron-r2star-gre',
+  mre:    'mre-2d-gre-60hz'
+};
+
+/* W-090. Presentation-only: which GE PRODUCT the acquisition card may name,
+   per parameter, when the user says so explicitly. This is NOT a clinical
+   record and carries no hash lock — it changes what BRAND prints, never
+   which cut-off ladder or calibration slope resolves (those still key on
+   `iron-r2star-gre`/`iron-t2star-gre`, untouched).
+
+   Sourced exactly as the technique catalogue already is:
+     r2star: IDEAL-IQ from AVL-0001 (v2/data/availability.data.js) /
+             SCP-0002 (v2/data/scope.data.js); StarMap from the developer's
+             2026-08-26 statement recorded in
+             docs/superpowers/specs/2026-08-26-starmap-product-identity-design.md
+             § 2, resting on TECHNIQUE_GROUPS['iron-r2star'].rationale
+             ("R2* = 1000/T2*, same measurement") — no new clinical fact.
+     t2star: StarMap only, from GE's own SIGNA StarMap product document
+             (EXT-010, v2/data/external-refs.data.js) via the same W-042
+             record. IDEAL-IQ is deliberately ABSENT here: AVL-0001 lists
+             `parameters: ['pdff', 'r2star']` and nothing sources IDEAL-IQ
+             producing a T2* output (CLAUDE.md § 1.3 — never claim what the
+             source does not say).
+
+   No Siemens/Philips/Canon entry anywhere here — developer constraint,
+   2026-08-26: the GE panel offers GE products only. */
+const GE_IRON_PRODUCTS = {
+  r2star: [{id: 'idealiq', label: 'GE IDEAL-IQ'}, {id: 'starmap', label: 'GE StarMap'}],
+  t2star: [{id: 'starmap', label: 'GE StarMap'}]
 };
 
 /* Presentation only. Firm names go; product names stay, because a product name is
@@ -110,8 +178,13 @@ function withoutWithdrawn(name) {
   return name.trim();
 }
 
-function groupsOfDomain(domain) {
-  return (DOMAIN_VOCABULARY[domain] || []).slice();
+/* W-090. `unit` is a CONTROLLED_UNITS entry now, not always a DOMAIN_OF value:
+   'r2star'/'t2star'/'lic' have no DOMAIN_VOCABULARY entry of their own, so
+   fall back through DOMAIN_OF to the domain's vocabulary they always shared
+   ('iron'). pdff/mre/t1/ct1 are unaffected — DOMAIN_VOCABULARY already has a
+   same-named entry for each, so the fallback never triggers for them. */
+function groupsOfDomain(unit) {
+  return (DOMAIN_VOCABULARY[unit] || DOMAIN_VOCABULARY[DOMAIN_OF[unit]] || []).slice();
 }
 
 function optionsForDomain(domain) {
@@ -153,7 +226,8 @@ function displayExamples(techniqueId) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {DOMAIN_OF, CONTROLLED_DOMAINS, DOMAIN_VOCABULARY, GE_DEFAULTS,
+  module.exports = {DOMAIN_OF, CONTROLLED_UNITS, DOMAIN_VOCABULARY, GE_DEFAULTS,
+                    GE_IRON_PRODUCTS,
                     WITHDRAWN_PRODUCTS, groupsOfDomain, optionsForDomain,
                     displayExamples, withoutWithdrawn,
                     V2_DOMAINS_VERSION};

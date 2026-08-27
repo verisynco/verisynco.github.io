@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.1';   /* W-037: the trigger quote channel reaches the evidence half */
+const V2_REPORT_VERSION = '3.5';   /* W-072: impression opens with entered history and states each banded finding's own fired-modifier meaning */
 
 const _R = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -32,7 +32,8 @@ const _R = (typeof module !== 'undefined' && module.exports)
               calibrationInputQuantity: t.calibrationInputQuantity,
               methodRankingReason: t.methodRankingReason,
               resolveScope: s.resolveScope, isRenderedAtScope: s.isRenderedAtScope,
-              DOMAIN_OF: d.DOMAIN_OF, CONTROLLED_DOMAINS: d.CONTROLLED_DOMAINS,
+              DOMAIN_OF: d.DOMAIN_OF, CONTROLLED_UNITS: d.CONTROLLED_UNITS,
+              GE_IRON_PRODUCTS: d.GE_IRON_PRODUCTS,
               PATHS: sel.PATHS, TECHNIQUES: tech.TECHNIQUES,
               CUTOFFS: require(path.join(__dirname, '..', 'data', 'cutoffs.data.js')).CUTOFFS,
               REFERENCES: require(path.join(__dirname, '..', 'data', 'references.data.js')).REFERENCES,
@@ -47,7 +48,8 @@ const _R = (typeof module !== 'undefined' && module.exports)
      calibrationInputQuantity: calibrationInputQuantity,
      methodRankingReason: methodRankingReason,
      resolveScope: resolveScope, isRenderedAtScope: isRenderedAtScope,
-     DOMAIN_OF: DOMAIN_OF, CONTROLLED_DOMAINS: CONTROLLED_DOMAINS,
+     DOMAIN_OF: DOMAIN_OF, CONTROLLED_UNITS: CONTROLLED_UNITS,
+     GE_IRON_PRODUCTS: GE_IRON_PRODUCTS,
      PATHS: PATHS, TECHNIQUES: TECHNIQUES,
      CUTOFFS: CUTOFFS, REFERENCES: REFERENCES, CALIBRATIONS: CALIBRATIONS,
      INTERACTIONS: INTERACTIONS, TRIGGERS: TRIGGERS, applyReliability: applyReliability};
@@ -106,20 +108,40 @@ function isTechniqueGate(e) {
          m.indexOf('does not measure') !== -1;
 }
 
-function techniqueFor(selection, domain) {
-  if (_R.CONTROLLED_DOMAINS.indexOf(domain) === -1) return null;  /* adc infers */
-  return selection.techniques[domain] || null;
+/* W-090. `TECHNIQUE_CONTROL_KEY` maps a PARAMETER to the selection key that
+   controls its technique. Before this task every parameter's key was its
+   DOMAIN_OF value (three parameters shared 'iron'); now lic/r2star/t2star map
+   to THEMSELVES — three independent keys — and everything else is unchanged
+   (still resolved through its domain, exactly as before). Building this once
+   from DOMAIN_OF, rather than writing five domain entries plus three
+   parameter entries by hand, keeps pdff/mre/t1/ct1/adc correct automatically
+   if a domain is ever renamed. */
+const TECHNIQUE_CONTROL_KEY = Object.assign({}, _R.DOMAIN_OF,
+  {lic: 'lic', r2star: 'r2star', t2star: 't2star'});
+
+function techniqueFor(selection, parameter) {
+  const key = TECHNIQUE_CONTROL_KEY[parameter];
+  if (_R.CONTROLLED_UNITS.indexOf(key) === -1) return null;  /* adc infers */
+  return selection.techniques[key] || null;
 }
 
 function buildRow(selection, vendor, calibrationMode, parameter) {
   const domain = _R.DOMAIN_OF[parameter];
-  const technique = techniqueFor(selection, domain);
+  const technique = techniqueFor(selection, parameter);
   const scope = _R.resolveScope(vendor, parameter);
 
   const row = {
     parameter: parameter,
     domain: domain,
+    /* W-090. The key that controls THIS row's own technique — 'r2star',
+       't2star', 'lic' for the iron trio, `domain` for everything else. The
+       renderer (Task 4) uses this instead of `domain` to draw one method
+       control per row rather than one per domain. */
+    controlKey: TECHNIQUE_CONTROL_KEY[parameter],
     technique: technique,
+    /* W-090. Only r2star/t2star ever carry a product choice; every other
+       parameter (including lic) reads null here, unconditionally. */
+    product: (selection.products && selection.products[parameter]) || null,
     scope: scope,
     rendered: _R.isRenderedAtScope(scope, selection.scope),
     mountPoint: scope.mountPoint,
@@ -406,9 +428,39 @@ function derivationOf(row) {
           calibrationName: rec.name};
 }
 
+/* W-087. `lic`, `r2star` and `t2star` share ONE technique control per domain
+   (domains.js) — a deliberate design — so whichever id the user picks is
+   stamped onto all three rows. `iron-r2star-gre` and `iron-t2star-gre` are two
+   catalog entries for that SAME acquisition
+   (techniques.data.js TECHNIQUE_GROUPS['iron-r2star'].rationale: "R2* =
+   1000/T2*, so R2*-reported and T2*-reported studies are the same
+   measurement"), so printing whichever one was selected onto BOTH the R2*
+   card and the T2* card names the wrong quantity on one of them. Swap to the
+   sibling record that actually names the card's own parameter; nothing is
+   invented — both labels were already in the catalog. Every other technique
+   group is untouched. */
+const IRON_QUANTITY_SIBLING = {r2star: 'iron-r2star-gre', t2star: 'iron-t2star-gre'};
+
 function acquisitionLine(row) {
-  const t = row.technique ? _R.TECHNIQUES[row.technique] : null;
+  let techId = row.technique;
+  const sibling = IRON_QUANTITY_SIBLING[row.parameter];
+  if (sibling && techId && _R.TECHNIQUES[techId] &&
+      _R.TECHNIQUES[techId].group === _R.TECHNIQUES[sibling].group) {
+    techId = sibling;
+  }
+  const t = techId ? _R.TECHNIQUES[techId] : null;
   if (!t) return 'Acquisition method not selected';
+
+  /* W-090. An explicit product choice (GE path, r2star/t2star only) wins over
+     the vendor+parameter scope lookup below, because it names the SPECIFIC
+     console the user says was used rather than a fixed per-parameter default.
+     Checked against GE_IRON_PRODUCTS, never trusted blind — the same table
+     selection.js validated the patch against, so an id that reaches this
+     point is always one this parameter legitimately offers. */
+  const offered = _R.GE_IRON_PRODUCTS[row.parameter] || [];
+  const chosen = offered.find(o => o.id === row.product);
+  if (chosen) return `${chosen.label} — ${t.methodLabel}`;
+
   /* `matchedVendor`, never `vendor`: the first says which matrix row owns the
      product, the second only says who asked. Reading `vendor` here printed
      "GE LiverMultiScan (Perspectum)" — a GE product that does not exist. */
@@ -514,6 +566,20 @@ const INDICATION_COHORTS = {
   'steatotic-liver-disease': ['adult-nafld', 'pediatric-nafld'],
   'chronic-liver-disease':   ['adult-hcv', 'adult-multi-etiology'],
   'non-specific':            []
+};
+
+/* Reader-facing indication words for the history clause (W-072). Deliberately
+   NOT the render.js `INDICATION_LABELS` map (render.js:259) -- that map is
+   Title Case for a form <select>; this one is lower-case so it reads inside a
+   sentence ("requested for iron overload"), and report.js has no dependency
+   on render.js today. Two labels for one vocabulary, kept apart on purpose:
+   a shared map would make report.js's plain-language output depend on a
+   render-layer casing decision it has no reason to know about. */
+const INDICATION_READER_LABEL = {
+  'iron-overload': 'iron overload',
+  'steatotic-liver-disease': 'steatotic liver disease',
+  'chronic-liver-disease': 'chronic liver disease',
+  'non-specific': 'no specific indication'
 };
 
 /* W-038 — the scope-of-use caveats attached to the records this row actually
@@ -1582,11 +1648,57 @@ function listWords(words) {
   return words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
 }
 
+/* W-072. Only fields the physician actually entered reach this sentence.
+   Age is deliberately NOT restated here: no age boundary derives the cohort
+   anywhere in v2/data/ or v2/js/ (the `age` cell's own note in render.js's
+   IDENTITY_CELLS says the same, checked rather than recalled), and printing
+   a raw age beside the cohort would imply the report reasons from it, which
+   it does not. `readerWord`/`listWords` are the same helpers the abstention
+   sentences already use (lines 1590-1602) -- one vocabulary, not two. */
+function buildHistory(selection, context, labs) {
+  const identity = (selection.cohort === 'adult' ? 'An adult' : 'A paediatric') +
+    ' study at ' + selection.fieldStrength + ', requested for ' +
+    (INDICATION_READER_LABEL[selection.indication] || INDICATION_READER_LABEL['non-specific']) + '.';
+
+  const provided = [];
+  for (const f of CONTEXT_INPUTS) {
+    const v = context[f.key];
+    if (v === null || v === undefined) continue;
+    provided.push(f.label + ' ' + (f.type === 'boolean' ? (v ? 'present' : 'absent')
+                                                          : v + (f.unit ? ' ' + f.unit : '')));
+  }
+  for (const f of labs.inputs) {
+    if (f.value === null) continue;
+    provided.push(f.label + ' ' + f.value + (f.unit ? ' ' + f.unit : ''));
+  }
+
+  if (!provided.length) {
+    return identity + ' No laboratory or clinical-context values were provided.';
+  }
+  return identity + ' ' + listWords(provided) + (provided.length === 1 ? ' was' : ' were') +
+    ' entered; other laboratory and clinical-context fields were not entered.';
+}
+
 function buildImpression(model) {
   const rows = model.report.rows;
   const cards = model.cards.filter((c, i) => rows[i].rendered);
   const rel = model.reliability ||
               buildReliability(cards, model.labs, model.selection);
+
+  /* W-072. `useCaveatsOf` needs the ROW (row.scales, row.drawable), which
+     `cards` alone does not carry past this point. Same filter, same order,
+     as the line above -- renderedRows[i] and cards[i] are always the same
+     row. Only the first caveat per row is taken (there is at most one
+     useCaveat-bearing cut-off drawn per row today; buildReceipts() keeps the
+     full array for the methodology sheet, this is the clinical-page copy). */
+  const renderedRows = rows.filter(row => row.rendered);
+  const rowCaveats = {};
+  for (let i = 0; i < cards.length; i++) {
+    const rr = renderedRows[i];
+    if (!rr || !rr.scales) continue;
+    const caveats = useCaveatsOf(rr);
+    if (caveats.length) rowCaveats[cards[i].parameter] = caveats[0];
+  }
 
   /* clinical: plain language. No citation, no reference id, no grade letter.
      EVERY rendered card reaches exactly one of these three branches, and no
@@ -1594,7 +1706,9 @@ function buildImpression(model) {
      `clinical` (fix round 1: a `gap`ped card with a value used to fall
      through both this loop and `notAssessed` below, which is a breach of
      CLAUDE.md § 1.2 this project does not get to relax). */
-  const facts = [];
+  const facts = [{parameter: null,
+                  text: buildHistory(model.selection, buildContext(model.selection), model.labs)}];
+  const usedStatements = new Set();
   const gapDetails = [];
   for (const c of cards) {
     const r = rel.byParameter[c.parameter];
@@ -1614,9 +1728,32 @@ function buildImpression(model) {
                         'not a normal result.'});
       gapDetails.push({parameter: c.parameter, reason: c.gap});
     } else if (c.verdict && c.verdict.band) {
-      facts.push({parameter: c.parameter,
-                  text: c.label + ' ' + c.value + (c.unit ? ' ' + c.unit : '') +
-                        ' — ' + c.verdict.band + '.'});
+      let text = c.label + ' ' + c.value + (c.unit ? ' ' + c.unit : '') +
+                 ' — ' + c.verdict.band + '.';
+      /* W-072. Every modifier that fired for this parameter and does NOT
+         block interpretability (fails/uninterpretable already produced the
+         OTHER branch above, via r.clinicalReason) is a published statement
+         about why this reading may look the way it does. Printed once per
+         report -- usedStatements is the W-051 guard, so a modifier that
+         fired on two targets is not read out twice. */
+      const modifiers = (r && r.modifiers) || [];
+      for (const m of modifiers) {
+        if (m.effect === 'fails' || m.effect === 'uninterpretable') continue;
+        if (!m.statement || usedStatements.has(m.statement)) continue;
+        usedStatements.add(m.statement);
+        text += ' ' + m.statement;
+      }
+      /* W-072. The one existing useCaveat (CUT-0009, peds PDFF) is the
+         source's OWN stated scope-of-use limit, quoted verbatim -- the same
+         record buildReceipts() already prints on the methodology sheet, now
+         also reaching the clinical paragraph. usedStatements is shared with
+         the modifiers loop above so the same statement never prints twice. */
+      const caveat = rowCaveats[c.parameter];
+      if (caveat && !usedStatements.has(caveat.statement)) {
+        usedStatements.add(caveat.statement);
+        text += ' “' + caveat.statement + '”';
+      }
+      facts.push({parameter: c.parameter, text: text});
     }
   }
 
@@ -1750,8 +1887,8 @@ if (typeof module !== 'undefined' && module.exports) {
                     orderCards, groupCardsByDomain, severityClass, LAB_INPUTS,
                     CONTEXT_INPUTS, buildContext,
                     buildReport, buildRow, buildCoverage, buildCards, buildReceipts,
-                    buildLabs, buildComposite, buildImpression, readerReason,
+                    buildLabs, buildComposite, buildHistory, buildImpression, readerReason,
                     READER_REASONS, rankedReasons,
                     buildReliability, evidenceFloor, markInterpretability,
-                    FLAG_SENTENCES, V2_REPORT_VERSION};
+                    FLAG_SENTENCES, V2_REPORT_VERSION, TECHNIQUE_CONTROL_KEY};
 }

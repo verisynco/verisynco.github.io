@@ -382,6 +382,12 @@ function wireSelectionScreen() {
       selection = applySelection(selection, {techniques: t});
       reRender();
     }));
+  app.querySelectorAll('select[data-product]').forEach(el =>
+    el.addEventListener('change', () => {
+      const pr = {}; pr[el.dataset.product] = el.value || null;
+      selection = applySelection(selection, {products: pr});
+      reRender();
+    }));
   app.querySelectorAll('input[data-value]').forEach(el =>
     el.addEventListener('change', () => {
       const v = {}; v[el.dataset.value] = el.value === '' ? null : Number(el.value);

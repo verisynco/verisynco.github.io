@@ -48,6 +48,8 @@ const AVAILABILITY = [
     product: 'IDEAL-IQ',
     requirement: 'IDEAL-IQ requires 6 echoes minimum for confounder-corrected PDFF; older 3-echo protocols do NOT produce fat-corrected R2*. Verify sequence version on scanner.',
     sourceRefIds: ['REF-005', 'REF-007', 'REF-038'],
+    externalRefIds: [],
+    citationProvenance: 'workbook',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 131}
   },
@@ -60,6 +62,8 @@ const AVAILABILITY = [
     product: 'MR Touch (Resoundant)',
     requirement: 'MR Touch (MRE) requires separate license and hardware (Resoundant passive driver). Software-only \'MRE\' toggles without driver ≠ MRE.',
     sourceRefIds: ['REF-039'],
+    externalRefIds: [],
+    citationProvenance: 'workbook',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 132}
   },
@@ -67,11 +71,16 @@ const AVAILABILITY = [
     id: 'AVL-0003',
     vendorRaw: 'GE Healthcare',
     vendorClass: 'ge-explicit',
-    parameters: ['t1', 'ct1'],
+    parameters: ['r2star', 'ct1'],
     capability: 'quantification',
     product: 'StarMap',
-    requirement: 'StarMap is GE\'s proprietary T1/T2 mapping package — not equivalent to Perspectum LiverMultiScan cT1.',
+    requirement: 'StarMap is GE\'s T2* mapping application (confirmed from GE\'s own SIGNA StarMap product document, EXT-010: its embedded figures show a "T2* Curve" decay plot and a liver T2* colour map, since its text layer cannot be extracted) — it is not a T1 sequence, and its T2* output is not equivalent to Perspectum LiverMultiScan cT1.',
     sourceRefIds: ['REF-020'],
+    externalRefIds: ['EXT-010'],
+    citationProvenance: 'external-corrected',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-corrected-from-manufacturer-document'],
+    dataQualityNote: 'W-042 (2026-08-26): REF-020 (McKay 2018, PMID 30032383) does not support the workbook\'s original claim that "StarMap is GE\'s proprietary T1/T2 mapping package" — the string "StarMap" occurs 0 times in its full text, while "MOLLI" occurs 7 times; it is a Siemens/LiverMultiScan cT1 study. The corrected claim is sourced instead from GE\'s own SIGNA StarMap product document (EXT-010), authoritative for what its own product measures (CLAUDE.md § 1.1). REF-020 is preserved in sourceRefIds as the rejected workbook citation, not deleted.',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 133}
   },
@@ -82,9 +91,14 @@ const AVAILABILITY = [
     parameters: ['t1'],
     capability: 'quantification',
     product: 'MAGiC',
-    requirement: 'MAGiC (synthetic MRI) produces multiple contrast-weighted images but is NOT a validated T1 mapping tool for liver — use dedicated MOLLI/shMOLLI instead.',
+    requirement: 'MAGiC (synthetic MRI) produces multiple contrast-weighted images; whether it is a validated T1 mapping tool for liver is UNRESOLVED — no reference in this repository supports or refutes it. Until one does, do not treat this as a validated limitation.',
     sourceRefIds: ['REF-018'],
-    cited: true,
+    externalRefIds: [],
+    citationProvenance: 'workbook-rejected-unresolved',
+    workbookCitationRejected: true,
+    dataQualityFlags: ['citation-unresolved'],
+    dataQualityNote: 'W-042 (2026-08-26): the workbook\'s original claim, "MAGiC ... is NOT a validated T1 mapping tool for liver", cites REF-018 (Banerjee 2014, PMID 24036007). Checked the same way AVL-0003\'s REF-020 was checked: REF-018\'s full text contains zero occurrences of "MAGiC" or "synthetic MRI" — self-verifying, since Banerjee 2014 predates GE MAGiC\'s clinical release and is a Siemens MOLLI/cT1/PDFF study. Unlike StarMap, no manufacturer document was supplied for MAGiC, so no replacement source exists. Recorded as an unresolved gap (CLAUDE.md § 1.2) rather than corrected.',
+    cited: false,
     source: {sheet: 'Technical_Limitations', row: 134}
   },
   {
@@ -96,6 +110,8 @@ const AVAILABILITY = [
     product: 'KAT-ARC / DISCO',
     requirement: 'KAT-ARC / DISCO for DCE requires appropriate license; older GE 3T systems (pre-2018 Discovery MR750) may not support KAT-ARC.',
     sourceRefIds: ['REF-031'],
+    externalRefIds: [],
+    citationProvenance: 'workbook',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 135}
   },
@@ -108,6 +124,8 @@ const AVAILABILITY = [
     product: 'AW server / ReadyView',
     requirement: 'AW server / ReadyView post-processing: some parametric maps (LIC map, cT1 map) are NOT auto-generated — must be manually derived or offline software used.',
     sourceRefIds: ['REF-038'],
+    externalRefIds: [],
+    citationProvenance: 'workbook',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 136}
   },
@@ -120,6 +138,8 @@ const AVAILABILITY = [
     product: 'IDEAL-IQ',
     requirement: 'IDEAL-IQ dynamic range differs at 1.5T vs 3T — minimum TE @1.5T ≈ 1.2 ms, @3T ≈ 0.9 ms. Verify vendor firmware version.',
     sourceRefIds: ['REF-005', 'REF-007', 'REF-038'],
+    externalRefIds: [],
+    citationProvenance: 'workbook',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 137}
   }
