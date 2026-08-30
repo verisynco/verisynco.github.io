@@ -245,21 +245,27 @@ const PROTOCOLS = {
       keyResult: 'IVIM D, D*, f field-strength comparison',
       source: {sheet: 'GE_Protocols_3T', row: 6}
     },
+    /* Corrected W-099 (2026-08-28) against the full text now at
+       reference/papers/fulltext/PMID-29178028.pdf. The row's author/scanner fields
+       carried the same "Henninger" mixup as references.data.js REF-011 (LITERATURE.md
+       § 9.29.2/9.29.4); its population figure (n=105) was already correct and is the
+       fact that first tied this row to the real paper. Every field below except
+       `techniques`, `population` and `keyResult` changed. */
     'REF-011': {
       refId: 'REF-011',
-      study: 'Henninger B / França M (2017)',
-      scanner: '3T (Siemens Skyra + GE multi-vendor)',
-      vendorClass: 'multi-vendor-incl-ge',
-      coil: '18-ch body array',
-      sequence: 'Multi-echo GRE + SIR',
+      study: "d'Assignies G (2018)",
+      scanner: '3T (Philips Achieva + Siemens Magnetom Verio, no GE)',
+      vendorClass: 'non-ge',
+      coil: 'Body coil (receive)',
+      sequence: 'Multi-echo GRE (11 echoes) + SIR (5 single-echo GRE, first 4 used)',
       techniques: ['iron-r2star-gre', 'iron-sir-gandon'],
-      trTe: 'TR 200 / TE varies',
-      echoTrain: 'First TE 1.0, ΔTE 1.5, 8 echoes',
-      sliceMm: 6,
-      sliceRaw: '6 mm',
-      matrixFov: '192 × 144 / 40 cm',
-      breathing: 'Breath-hold',
-      reconSoftware: 'In-house Levenberg-Marquardt fit',
+      trTe: 'TR 120 ms / TE ~1.15 ms×n (Philips) or ~1.23 ms×n (Siemens)',
+      echoTrain: '11 echoes, 20° flip angle',
+      sliceMm: 7,
+      sliceRaw: '7 mm',
+      matrixFov: '128×121 acq / 256×256 recon / 40×40 cm FOV',
+      breathing: 'Breath-hold (~15 s)',
+      reconSoftware: 'In-house Java (ImageJ) — simplex non-linear T2* fit',
       population: 'Iron overload (n=105 biopsy-confirmed)',
       keyResult: 'Direct 3T LIC calibration',
       source: {sheet: 'GE_Protocols_3T', row: 7}

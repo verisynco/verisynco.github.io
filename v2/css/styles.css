@@ -252,8 +252,15 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
    are still printed, as .ticks. */
 .why { font-size: 10.5px; color: var(--muted); margin: 4px 0 0; }
 
+/* W-097. A one-line caution used to fill the whole page width for a sentence
+   using ~15% of it. `display: table` shrink-wraps to content like inline-block
+   would, but -- unlike inline-block -- still forces its own line, so a card
+   printing two of these back to back (a gap and a noData, say) never lays
+   them out side by side. `max-width: 100%` is the fallback: a caution long
+   enough to need the full column still gets it. */
 .gap, .withheld, .scopegap { font-size: 11px; margin: 6px 0 0; padding: 7px 9px;
-       border-radius: 5px; border: 1px solid var(--hair); background: var(--hair2); }
+       border-radius: 5px; border: 1px solid var(--hair); background: var(--hair2);
+       display: table; max-width: 100%; }
 .withheld { border-color: var(--mid); background: #fdf6e6; }
 .gap b, .withheld b { font-weight: 600; }
 
@@ -288,9 +295,13 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
 
 /* The acquisition summary — the one line that says which path produced this
    sheet. It repeats on every sheet, because a sheet can be read on its own. */
+/* W-097. Was a full-width bar for a line that only ever uses about half of
+   it; shrinks to its content, still a flex row so the badges lay out left to
+   right, and still falls back to the full column if the line ever grows. */
 .acqsum { display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: center;
           border: 1px solid var(--hair); border-radius: 6px; padding: var(--s-3) var(--s-4);
-          margin: 0 0 var(--s-4); font-family: var(--mono); font-size: 9px; }
+          margin: 0 0 var(--s-4); font-family: var(--mono); font-size: 9px;
+          width: fit-content; max-width: 100%; }
 .acqsum .badge { background: var(--accent); color: #fff; font-weight: 600;
                  letter-spacing: .06em; padding: var(--s-1) var(--s-4); border-radius: 3px; }
 .acqsum .axis { color: var(--muted); letter-spacing: .04em; }
@@ -302,6 +313,12 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
 .labs-head .t { font-family: var(--mono); font-size: 8.5px; letter-spacing: .11em;
                 text-transform: uppercase; color: var(--accent); font-weight: 600; }
 .labs-pending { margin: 0; padding: var(--s-4) var(--s-4); font-size: 10.5px; color: var(--muted); }
+/* W-104 — the clinical-context block is secondary to Laboratory: same
+   structure, lighter head. No fill, and the label drops from accent to muted,
+   on screen and on paper both (developer decision 2026-08-29). Scoped away
+   from the screen-only performed/tier-2 heads, which keep the strong form. */
+.ctx-head:not(.screen-only) { background: transparent; }
+.ctx-head:not(.screen-only) .t { color: var(--muted); font-weight: 400; }
 
 /* A mounted section, its heading, and the domain blocks inside it. */
 .psection { margin: 0 0 var(--s-5); }
@@ -362,7 +379,10 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
       collapse to grey and the report still reads. */
 
 .rulers { margin-top: var(--s-4); }
-.rul + .rul { margin-top: var(--s-3); }
+/* W-124. Tighter than before: the boundary values now sit ABOVE each bar, so
+   the gap between a consensus ruler and the slim matched strip below it can
+   close up without the strip riding into the numbers. */
+.rul + .rul { margin-top: var(--s-2); }
 .rul-head { display: flex; align-items: baseline; gap: var(--s-4);
             font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em;
             text-transform: uppercase; }
@@ -372,7 +392,7 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
 .rul.staging .rul-role { color: var(--marker); font-weight: 600; }
 
 svg.ruler { display: block; width: 100%; height: auto; overflow: visible;
-            margin-top: var(--s-1); }
+            margin-top: 0; }
 /* Band fills. z-none is the case that matters: a parameter for which no severity
    could be sourced is drawn as an outlined band with no fill at all. */
 svg.ruler .z { fill-opacity: .9; }
@@ -410,36 +430,100 @@ svg.ruler .frame { fill: none; stroke: var(--hair); stroke-width: .6; }
    a side: declared as a ring, delivered as a suggestion. */
 svg.ruler .mkh { stroke: var(--paper); stroke-width: 5; }
 svg.ruler .mk { stroke: var(--marker); stroke-width: 2; }
-svg.ruler .mkf, svg.ruler .mkc { fill: var(--marker); }
-/* THE ONE SIZE DECLARED ABOVE THE FLOOR, and the reason is the scaling: this
-   text is inside the SVG because its meaning is its horizontal position, so it
-   cannot move to the HTML the way the band names did. MEASURED with Edge
-   headless: the drawing runs at 0.753 of its viewBox on the worst-case sheet, so
-   11 px would deliver 8.3 px — on the 8 px floor with 0.3 px to spare, which is
-   not a margin. 12 px delivers 9.0 px and is what ships. A typed literal on
-   purpose: if the card's middle column ever changes, this number has to move, and
-   a literal is what makes that move fail a test instead of passing quietly. */
-svg.ruler .mkt { font-family: var(--mono); font-size: 12px; font-weight: 600; fill: #fff; }
+svg.ruler .mkf { fill: var(--marker); }
+/* W-125. The patient value LABEL (`.mkt`) and its chip rect (`.mkc`) left the
+   SVG for their own HTML row — see `.mkval` below. What stays here is the flag
+   (`.mkf`), a shape, and the line/halo (`.mk` / `.mkh`). W-040's reason for
+   keeping the label in the drawing (its meaning is its x) is met the way
+   `.tickvals` meets it: an inline `left`% from the same axisXOf(). */
 svg.ruler.slim { opacity: .8; }
 
 /* The band legend, printed under EVERY bar since W-040. The swatch repeats the
    band's fill so the legend and the bar are read as one object; the NAME is what
    carries the meaning, and this is now the only place it is set — in HTML, at a
-   declared size that is the delivered size. */
-.bands { display: flex; flex-wrap: wrap; gap: var(--s-4); margin: var(--s-1) 0 0;
+   declared size that is the delivered size.
+
+   W-120. Each `.bd` carries its own inline `left`/`width` (render.js — the
+   same x-mapping the bar's rects use), so this is a positioning CONTEXT, not a
+   flow: `position: relative` and a fixed height replace the old flex row, and
+   each box is `position: absolute` inside it. A band too narrow for its own
+   name is allowed to overflow past its own box (`overflow: visible`, the
+   default, kept unset on purpose) rather than being clipped or wrapped —
+   measured 2026-08-29: the flowed legend this replaces put a band's name up
+   to ~130 px from the segment it named.
+
+   `.bands-rot` (fourth correction, render.js's `needsRotation`): three
+   earlier fixes tried keeping every word upright and MOVING the ones that
+   did not fit, and each still read, on a developer's screenshot, as a stray
+   word sitting in empty space. This replaces all three with the convention
+   already standard for a dense categorical axis in a published figure: when
+   ANY pair on a ruler would collide upright, EVERY label on that ruler's
+   legend rotates, so the reader sees one consistent tilted axis rather than
+   a mix of upright and tilted words.
+
+   THE DOT SITS AT ITS OWN BAND'S LEFT EDGE, not centred, when rotated —
+   developer refinement 2026-08-29: a centred dot has no counterpart on the
+   bar above it (nothing marks a band's centre); its LEFT edge is the same x
+   as the boundary tick already drawn there, so the dot now sits on a point
+   the bar itself marks. The word's LAST letter is the pivot, at that same x,
+   so the reader's eye lands on "…e" right beside the tick it belongs to and
+   reads backward (down-left) from there — the small end of the word stays
+   tight to the bar; only the far end trails away. */
+.bands { position: relative; height: 16px; margin: var(--s-2) 0 0;
          font-family: var(--mono); font-size: 8.5px; color: var(--ink); }
-.bands .bd { display: inline-flex; align-items: center; gap: var(--s-3); }
-.bands .bd::before { content: ""; width: 8px; height: 8px; border-radius: 2px;
+/* `.bands-rot`'s real height is set inline per ruler (render.js
+   `rotatedLegendHeightPx` — the longest label on THIS ruler decides it, so a
+   short-worded rotated legend does not pay for a long one it does not have);
+   this is only the floor if that inline height were ever missing. */
+.bands.bands-rot { height: 46px; }
+.bands .bd { position: absolute; top: 0; height: 16px; display: flex;
+             align-items: center; justify-content: center; gap: var(--s-3);
+             white-space: nowrap; }
+.bands-rot .bd { justify-content: flex-start; }
+.bands .bd::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 2px;
                      border: 1px solid var(--hair); background: var(--hair2); }
+.bands-rot .bd-t { position: absolute; top: 13px; right: 100%;
+                    transform-origin: 100% 0%; transform: rotate(-45deg); }
 .bands .bd-ok::before   { background: var(--ok);   border-color: var(--ok); }
 .bands .bd-low::before  { background: var(--low);  border-color: var(--low); }
 .bands .bd-mid::before  { background: var(--mid);  border-color: var(--mid); }
 .bands .bd-high::before { background: var(--high); border-color: var(--high); }
 .bands .bd-sev::before  { background: var(--sev);  border-color: var(--sev); }
 
-.ticks { display: flex; flex-wrap: wrap; gap: var(--s-5); margin: var(--s-1) 0 0;
-         font-family: var(--mono); font-size: 9px; color: var(--muted); }
-.ticks .tk b { color: var(--faint); font-weight: 500; margin-right: var(--s-2); }
+/* W-124. The interior boundary VALUES as a positioned row ABOVE the bar (every
+   ruler, consensus and slim matched strip alike) — each number centred on its
+   own tick's x (inline `left`%, from the same axisXOf() the bar's rects and the
+   `.bands` legend use). A positioning context like `.bands`, not a flow. It
+   sits between the ruler head and the SVG: a small margin each side keeps it
+   off the head above and the bar's marker flag below. No severity colour (W-085). */
+.tickvals { position: relative; height: 12px; margin: 0;
+            font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.tickvals .tv { position: absolute; top: 0; transform: translateX(-50%);
+                white-space: nowrap; }
+
+/* W-125. The patient's measured value, lifted out of the SVG onto its own
+   positioned row ABOVE `.tickvals`. A chip that slides horizontally to any x can
+   then never sit on top of a boundary number — they are on different rows. The
+   `left`% is inline per-patient geometry (render.js — the same axisXOf() the
+   bar's marker line uses); everything else is here. */
+.mkval { position: relative; height: 28px; margin: 0;
+         font-family: var(--mono); }
+/* W-125 follow-up: the chip is a third larger, sits half a row below its row
+   top, and drops a faint dashed connector (`::after`) from its own centre — the
+   same x as the marker line, so it lands on the bar's value notch — down past
+   the boundary-value row to the bar. The boundary numbers sit in `.tickvals`
+   below and paint over the faint line, so it reads as behind them. */
+.mkval .mv { position: absolute; top: var(--s-3); transform: translateX(-50%);
+             padding: var(--s-2) var(--s-4); border-radius: 3px; white-space: nowrap;
+             font-size: 12px; font-weight: 600; line-height: 1;
+             background: var(--marker); color: #fff; }
+.mkval .mv::after { content: ""; position: absolute; left: 50%; top: 100%;
+                    width: 0; height: 26px; border-left: 1px dashed var(--faint);
+                    transform: translateX(-50%); }
+/* Under the band legend: the pooled n>1 spread and any kept non-redundant
+   boundary name, then the short citation / missing-rung note. */
+.ticknames { font-family: var(--mono); font-size: 8.5px; color: var(--muted);
+             line-height: 1.45; margin: var(--s-2) 0 0; }
 .bandnote { font-size: 10px; color: var(--muted); line-height: 1.45; margin: var(--s-2) 0 0; }
 
 /* The verdict chip — v1/css/styles.css:85-92, ported. v-none is V2's own: a band
@@ -488,8 +572,30 @@ svg.ruler.slim { opacity: .8; }
 
 @media print {
   /* The page box owns the margins, not .page — a sheet that overflows continues
-     flush to the paper edge, and @page re-applies the margin on every sheet. */
-  @page { size: A4 portrait; margin: 8mm 11mm; }
+     flush to the paper edge, and @page re-applies the margin on every sheet.
+     W-096: page numbering and a continuation mark live entirely in the @page
+     margin boxes, MEASURED working in Edge headless (Blink renders
+     counter(page)/counter(pages) and the :first pseudo-class correctly; a raw
+     CDP print + pdftotext check confirmed "1 of 3"/"2 of 3"/"3 of 3" on a
+     three-page fixture). @page :nth() is NOT supported (tested, silently
+     ignored) — there is no way to select "the last page" in this engine, so a
+     matching bottom mark for the forward direction is not attempted: it would
+     print on the true last sheet too, a false statement on paper.
+     "continued from previous page" at the top, cleared on page 1 via
+     @page :first (also confirmed working), carries the same information from
+     the other direction without that risk. */
+  @page {
+    size: A4 portrait; margin: 8mm 11mm;
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: var(--mono); font-size: 7px; color: var(--faint); letter-spacing: .05em;
+    }
+    @top-right {
+      content: "continued from previous page";
+      font-family: var(--mono); font-size: 7px; color: var(--faint); letter-spacing: .05em;
+    }
+  }
+  @page :first { @top-right { content: none; } }
   body { background: #fff; font-size: 10.5px; }
   .page { width: auto; min-height: auto; margin: 0; box-shadow: none; padding: 0; }
   .pagebreak { break-before: page; page-break-before: always; }
@@ -523,6 +629,9 @@ svg.ruler.slim { opacity: .8; }
      the band names inside them are what a greyscale printer falls back to. */
   .rulers { margin-top: var(--s-3); }
   svg.ruler { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* W-125. The value chip is now an HTML element with a filled background —
+     force it through so the marker still prints on a colour printer. */
+  .mkval .mv { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .verdict { padding: var(--s-2) var(--s-3); }
   .acqsum { padding: var(--s-2) var(--s-4); margin-bottom: var(--s-3); }
   .labs { margin-bottom: var(--s-3); }
@@ -539,6 +648,12 @@ svg.ruler.slim { opacity: .8; }
 
 .masthead { display: flex; justify-content: space-between; align-items: flex-start;
   border-bottom: 2px solid var(--accent); padding-bottom: var(--s-4); margin-bottom: var(--s-4); }
+/* W-130. The brand mark sits on the existing spacing scale (--s-7, 26px) — no
+   new size token for one image. border-radius:50% clips the source PNG's
+   square canvas to its own circular mark (see masthead()'s comment); flex:none
+   so a narrow-screen wrap (the 700px breakpoint below) never shrinks it. */
+.brand-mark { width: var(--s-7); height: var(--s-7); border-radius: 50%; flex: none;
+  margin-right: var(--s-3); }
 .masthead h1 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
 .masthead .detail { max-width: 62ch; font-size: 10.5px; color: var(--muted);
   margin: var(--s-3) 0 0; line-height: 1.45; }
@@ -577,10 +692,14 @@ svg.ruler.slim { opacity: .8; }
   align-items: start; padding: var(--s-4) 0; }
 .pcard .pident h4 { margin: 0 0 var(--s-1); font-size: 12.5px; }
 .pcard .acq { margin: 0 0 var(--s-3); font-size: 9.5px; color: var(--muted); }
-.pcard .pval { display: flex; align-items: baseline; gap: var(--s-3); }
+/* W-097. The unit never breaks word by word (LIC's "mg Fe/g dw" was landing
+   three lines deep) -- it prints whole, or the whole thing wraps to its own
+   line beneath the input, never split at each internal space. */
+.pcard .pval { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; }
 .pcard .pval input { width: 74px; font-family: var(--mono); font-size: 14px;
   font-weight: 600; border: 1px solid var(--hair); border-radius: 4px; padding: var(--s-1) var(--s-3); }
-.pcard .pval .unit { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.pcard .pval .unit { font-family: var(--mono); font-size: 9px; color: var(--muted);
+  white-space: nowrap; }
 /* W-033 -- A DERIVED LIC IS A READOUT, NOT A FIELD. The readout carries the
    value's weight (the same --t-value as an entered number, DESIGN-DIRECTION
    § 1), the badge names which of the two states this card is in, and the
@@ -614,6 +733,10 @@ svg.ruler.slim { opacity: .8; }
 .pcard .pval.can-derive { min-height: 46px; }
 .pcard .calline-reserved { min-height: 37.8px; margin: var(--s-2) 0 0; }
 .pcard .pfacts { grid-column: 1 / -1; }
+/* W-097. The chip used to sit pinned to the top of the row, leaving dead
+   space beneath it whenever the ruler beside it was taller -- centred
+   against that ruler instead. */
+.pcard .pverdict { align-self: center; }
 .pcard .pfacts p { margin: var(--s-2) 0 0; font-size: 10px; }
 .pcard svg.ruler { width: 100%; height: auto; display: block; }
 .rul { margin-bottom: var(--s-3); }
@@ -626,8 +749,12 @@ svg.ruler.slim { opacity: .8; }
 .ptag { display: inline-block; font-family: var(--mono); font-size: 9px;
   letter-spacing: .07em; text-transform: uppercase; color: var(--accent);
   background: var(--accent-tint); padding: var(--s-1) var(--s-3); border-radius: 3px; margin-bottom: var(--s-2); }
-.onebar, .matched, .alsomatched, .bandnote, .ticks { font-size: 10px; color: var(--muted);
+.onebar, .matched, .alsomatched, .bandnote, .ticks, .ticknames { font-size: 10px; color: var(--muted);
   margin: var(--s-1) 0 0; }
+/* W-124. The positioned value row keeps its geometry on paper — only its type
+   scale is trimmed to the print register; position/height come from the screen
+   rule above, which @media print does not reset. */
+.tickvals { font-size: 9px; color: var(--muted); }
 .matched { color: var(--ink); }
 .method { display: block; margin-top: var(--s-3); font-size: 10px; }
 .method .mlabel { display: block; font-family: var(--mono); font-size: 8px;
@@ -635,6 +762,15 @@ svg.ruler.slim { opacity: .8; }
 .method .mgroup, .method .mex { display: block; font-size: 9px; color: var(--faint); }
 
 .labs-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s-3); }
+/* W-106 — the clinical-context block reuses `.labs-grid` (one rule, two rows,
+   N25) but carries 3 fields with Fibrosis off and 6 with it on, so the shared
+   5-column track wrapped the 6th field onto a second line. This override — the
+   context grid only, via the `.ctx-head` sibling — puts every field on ONE row
+   whatever the count: N children become N equal columns. The Laboratory grid
+   keeps repeat(5, 1fr). Cells still shrink (`.lc { min-width: 0 }`) and long
+   labels wrap (`.lc label { overflow-wrap: anywhere }`). */
+.ctx-head + .labs-grid { grid-auto-flow: column; grid-auto-columns: 1fr;
+  grid-template-columns: none; }
 /* W-040 — THE CELL THAT HAD NO RULE. `.lc` carried no declaration anywhere in
    this file, so every laboratory and clinical-context field took the browser's
    default number input, roughly 173 px wide. A `1fr` track cannot shrink below
@@ -654,6 +790,14 @@ svg.ruler.slim { opacity: .8; }
   font-family: var(--mono); font-size: var(--t-body); padding: var(--s-1) var(--s-2); }
 .lc .u { font-family: var(--mono); font-size: var(--t-micro); color: var(--muted);
   flex: none; }
+.perf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-4); }
+.perf-row { display: flex; align-items: flex-start; gap: var(--s-2); font-size: 10px; }
+.perf-text { display: flex; flex-direction: column; }
+.perf-sub { font-size: 9px; color: var(--faint); }
+.lc-note { font-size: 9px; color: var(--faint); margin: var(--s-1) 0 0; }
+.bmi-computed { display: block; font-size: 9px; color: var(--muted); margin-top: var(--s-1); }
+.pval-warn { font-size: 9px; color: var(--muted); margin: var(--s-1) 0 0; }
 .labs-prov, .labs-pending { font-size: 9.5px; color: var(--muted); margin: var(--s-3) 0 0; }
 .tier-offer { border: 1px dashed var(--hair); border-radius: 6px; padding: var(--s-4) var(--s-5);
   margin: var(--s-4) 0; }
@@ -668,6 +812,33 @@ svg.ruler.slim { opacity: .8; }
 .composite .cnote, .impression .flags { font-size: 10px; color: var(--muted); }
 .impression h3 { margin: var(--s-5) 0 var(--s-2); font-size: 12px;
                  padding-top: var(--s-3); border-top: 2px solid var(--accent); }
+/* W-112. Sub-heads splitting the impression into the readings that carry weight
+   and the normal ones. Muted and small — a structural label, not a second
+   clinical heading (the W-085 rule: this surface already spends weight on the
+   H3). Kept on the same ~80% centred measure as `.impression p` so a sub-head
+   sits directly above the paragraph it introduces. */
+.impression h4 { margin: var(--s-4) 0 var(--s-1); font-size: 10px;
+                 text-transform: uppercase; letter-spacing: .06em;
+                 color: var(--muted); font-weight: 600; }
+.impression p.history { font-size: 10.5px; color: var(--muted); }
+/* id-qualified so it beats `#clinical p { margin: 0 0 ... }` — the history line
+   wants a little air above it whether or not an "Other findings" block precedes. */
+#clinical .impression p.history { margin-top: var(--s-4); }
+#clinical .impression h4 { max-width: 80%; margin-left: auto; margin-right: auto; }
+/* W-098. The closing "Summary" block. `.summary-body` is set bold — it is the
+   one paragraph the developer asked to carry weight (spec § 7) — while
+   `.summary-mech`, the "assembled from N sources" line, is meta and stays
+   muted/small like `p.history`. The block sits on the same ~80% centred measure
+   as the rest of the impression. */
+.summary { margin-top: var(--s-4); }
+.summary h4 { margin: var(--s-4) 0 var(--s-1); font-size: 10px;
+              text-transform: uppercase; letter-spacing: .06em;
+              color: var(--muted); font-weight: 600; }
+.summary p.summary-mech { font-size: 10px; color: var(--muted); margin: 0 0 var(--s-1); }
+.summary p.summary-body { font-family: var(--serif); line-height: 1.45; font-weight: 600; }
+#clinical .summary h4,
+#clinical .summary p.summary-mech,
+#clinical .summary p.summary-body { max-width: 80%; margin-left: auto; margin-right: auto; }
 .reportfoot { margin-top: var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--hair2);
   font-size: 9.5px; color: var(--muted); }
 .reportfoot pre { font-family: var(--mono); font-size: 8px; white-space: pre-wrap;
@@ -693,7 +864,33 @@ svg.ruler.slim { opacity: .8; }
   #methodology { break-before: page; page-break-before: always; }
   .pcard { break-inside: avoid; page-break-inside: avoid; }
   .mtab tr { break-inside: avoid; page-break-inside: avoid; }
+  /* W-104. An entered value is the report's own statement, so it prints
+     without the fillable frame it wore on screen — the label and the unit
+     stay, only the input's border and padding go. */
+  .lc input, .lc select { border: none; background: transparent; padding: 0; }
+  /* W-104. An un-entered optional cell (marked `lc-empty` by render.js from
+     the model) is dead space on paper — the block heading, the FIB-4 / AAR
+     line and the "not entered" pending line still print; only the empty
+     labelled boxes go. */
+  .lc-empty { display: none !important; }
+  /* W-081. Same idea for the IVIM research blocks: an un-entered parameter is
+     dropped, and the whole section with it (`ivim-section-empty`, set by
+     render.js from the model — no `:has()` dependency) when nothing was entered. */
+  .ivim-empty { display: none !important; }
+  .ivim-section-empty { display: none !important; }
 }
+
+/* W-130. IVIM's card reuses `.pcard`'s own grid and typography wholesale (its
+   print break-avoid included) — only the middle column's two lines are new:
+   the reference/interval sentence, then the record's own quoted caveat set
+   apart from it rather than run into one clause, small and muted either way
+   since provenance is supporting information and never bold (existing rule,
+   `.prov,.acq,...` above). `.ivim-card` itself carries no layout of its own. */
+.icn-ref { font-size: 10px; color: var(--muted); margin: 0 0 var(--s-1); }
+.icn-caveat { font-size: 10px; color: var(--muted); font-style: italic; margin: 0 0 var(--s-1); }
+.icn-trend { font-size: 9.5px; color: var(--faint); margin: 0; }
+.ivim-note { color: var(--muted); }
+.ivim-crossread { display: inline; }
 
 
 /* ═══════════════════════════════════ W-009 — HIERARCHY, CONTRAST, PAGE BUDGET
@@ -723,10 +920,10 @@ svg.ruler.slim { opacity: .8; }
 .verdict{ font-size:var(--t-band); }
 /* Provenance is supporting information and is never bold -- the rule that stops
    a citation competing with the number it supports. */
-.prov,.acq,.ticks,.bandnote,.refs .rid,.mtab .d-cites,.rul-head,.census{
+.prov,.acq,.ticks,.tickvals,.ticknames,.bandnote,.refs .rid,.mtab .d-cites,.rul-head,.census{
   font-weight:400; }
 .prov,.bandnote{ font-size:var(--t-body); }
-.acq,.ticks{ font-size:var(--t-meta); }
+.acq,.ticks,.tickvals,.ticknames{ font-size:var(--t-meta); }
 .rul-head,.census,.meta label{ font-size:var(--t-micro); }
 
 /* ── 2. CONTRAST — every pair measured, none assumed ─────────────────────────
@@ -828,15 +1025,26 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
    layout, which is a taller card and not a broken one. */
 .pcard:has(.pbars:empty) .pbars{ display:none; }
 .pcard:has(.pbars:empty) .pfacts{ grid-column:2 / 3; grid-row:1; }
+/* W-097. The value column no longer needs a full 1fr track once the ruler
+   beside it is gone -- min-content lets it shrink, and the freed width goes
+   to .pfacts (the sourced-gap sentence) rather than sitting empty. Where
+   :has() is unsupported the card keeps the 1fr track above, unchanged. */
+.pcard:has(.pbars:empty){ grid-template-columns: min-content 2fr 1fr; }
 
 /* ── 3. MEASURE — line length where the page grows ───────────────────────────
-   The impression is the one human sentence on the sheet and keeps a book
-   measure. The methodology prose does NOT: it is consulted, not read through,
-   and a 62ch column there was costing 28 mm of the clinical sheet's masthead
-   for no reading benefit. MEASURED: 28.2 mm -> 14.1 mm at full width. */
-.impression p{ font-family:var(--serif); line-height:1.45; max-width:66ch; }
+   W-111 (developer visual call, § 2.4): on a wide window the impression and
+   the methodology prose each left a large empty band on the right. The
+   impression keeps a reading measure but is now ~80% wide and CENTRED, so
+   the gutters are equal instead of all on the right (this reverses W-097's
+   preserved 66ch left-aligned column; N47 finding 1 is rewritten to match).
+   The methodology prose was already full-consult-not-read text — its 92ch
+   cap is removed outright. */
+.impression p{ font-family:var(--serif); line-height:1.45; max-width:80%; }
+/* Centre it: #clinical p (below) sets `margin:0 0 var(--s-3)` at higher
+   specificity than `.impression p`, so the auto side-margins need the id. */
+#clinical .impression p{ margin-left:auto; margin-right:auto; }
 .masthead .detail{ max-width:none; }
-#methodology p{ max-width:92ch; }
+#methodology p{ max-width:none; }
 
 /* Screen-only affordance: the reasons that left the card are on the element they
    belong to, as a native tooltip. No script, works under file://, and — the whole
@@ -979,9 +1187,21 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
    breaks into, and `print-color-adjust: exact` is what stops the browser
    dropping it as decoration. Both halves are measured, not assumed. */
 body[data-mode="sample"] .page {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='250'%3E%3Ctext x='6' y='170' transform='rotate(-30 215 125)' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='27' font-weight='600' letter-spacing='2' fill='%230f1b26' fill-opacity='0.075'%3ESAMPLE - NOT A PATIENT REPORT%3C/text%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='250'%3E%3Ctext x='6' y='170' transform='rotate(-30 215 125)' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='27' font-weight='600' letter-spacing='2' fill='%23c2571c' fill-opacity='0.13'%3ESAMPLE - NOT A PATIENT REPORT%3C/text%3E%3C/svg%3E");
   background-repeat: repeat;
 }
+/* W-091 boxed the domain / methodology / evidence groups with an opaque
+   `--hair2` fill, which paints over the watermark above — inside every box it
+   showed only in the gaps. On the SAMPLE page only, drop that fill so the
+   `.page` watermark shows through continuously and reads in front of the
+   layout. Every W-091 border / radius / divider rule is untouched; only the
+   fill is removed, and only in sample mode. NOT a foreground overlay
+   (`.page::after`): each container flows over two printed sheets (W-038), so
+   an inside-the-container layer would leave the second sheet of each pair
+   clean — the note above this rule block is exactly that reasoning. */
+body[data-mode="sample"] .domaingroup,
+body[data-mode="sample"] .mgroup,
+body[data-mode="sample"] .evidence { background: transparent; }
 
 /* The toolbar (W-052; `.samplebar` until then). The print control sits at the
    left, the sample control is pushed to the right edge, and the bar is
@@ -992,8 +1212,15 @@ body[data-mode="sample"] .page {
   border: 1px solid var(--hair2); border-radius: 6px; }
 .tb-note, .tb-reason { font-family: var(--mono); font-size: var(--t-meta);
   color: var(--muted); letter-spacing: .04em; }
+/* EVERY toolbar button is one fixed box (W-126): the same width and the same
+   two-line height, label allowed to wrap and centred. Print / Save PDF, Send to
+   requestor and the sample toggle then look identical, and the toolbar does not
+   shift between the sample page and the live report. */
 .toolbar button { font: inherit; font-size: var(--t-band);
-  padding: var(--s-3) var(--s-5); border: 1px solid var(--accent);
+  box-sizing: border-box; min-width: 5.5rem; max-width: 5.5rem; min-height: 2.7rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  white-space: normal; text-align: center; line-height: 1.3;
+  padding: var(--s-3) var(--s-4); border: 1px solid var(--accent);
   background: var(--accent); color: #fff; border-radius: 4px; cursor: pointer; }
 .toolbar button:hover { filter: brightness(1.08); }
 .toolbar button[data-sample] { margin-left: auto; }
@@ -1001,6 +1228,18 @@ body[data-mode="sample"] .page {
    reader acts on, so the control stays legible while it cannot be pressed. */
 .toolbar button[disabled] { background: var(--paper); color: var(--muted);
   border-color: var(--hair2); cursor: not-allowed; filter: none; }
+
+/* The scenario menu (W-116) — a DEVELOPMENT control only, present when app.js
+   hands the toolbar a dev host and a scenario list. It takes the push-right
+   margin instead of the button beside it, so the two sit together at the
+   right edge rather than splitting the free space between them. */
+.tb-scenario { margin-left: auto; display: inline-flex; align-items: center;
+  gap: var(--s-2); font-family: var(--mono); font-size: var(--t-meta);
+  color: var(--muted); letter-spacing: .04em; }
+.tb-scenario select { font: inherit; font-size: var(--t-band);
+  padding: var(--s-2) var(--s-3); border: 1px solid var(--hair2);
+  border-radius: 4px; background: var(--paper); color: var(--ink); }
+.tb-scenario + button[data-sample] { margin-left: 0; }
 
 .sampleline { margin-top: var(--s-5); padding: var(--s-3) var(--s-4);
   border: 1px solid var(--mid); border-radius: 4px;
@@ -1060,8 +1299,16 @@ body[data-mode="sample"] .page {
 /* L3. The line W-040 removed, legitimate again: the card no longer floats in
    the open — it sits inside a box that already told the reader where the
    group starts and ends — and the divider says where ONE card ends and the
-   next begins inside it. */
-.domaingroup .pcard + .pcard { border-top: 1px solid var(--hair2); }
+   next begins inside it.
+
+   W-095: the token is --rule, not --hair2. This rule fires only inside the
+   Iron group (R2* / T2* / LIC) — the one multi-card group (DOMAIN_OF). The
+   .domaingroup box is filled with --hair2, so a --hair2 border on it drew a
+   line the same colour as its own ground: present in the markup, invisible on
+   the page, and the three iron rows read as one block. --rule is the visible
+   hairline this file already uses for the box edge and the domainhead line;
+   no new token. Must not equal the box-fill token (N46 locks that). */
+.domaingroup .pcard + .pcard { border-top: 1px solid var(--rule); }
 
 /* L1. The 2px accent rule (W-040) still marks where a tier begins; the
    heading text now sits on its own tinted label so it reads as a landmark
@@ -1082,6 +1329,23 @@ body[data-mode="sample"] .page {
 .mgroup { padding: var(--s-3) var(--s-4); margin: 0 0 var(--s-4); }
 .mgroup:last-of-type { margin-bottom: 0; }
 .mgroup .p2-h { margin-top: 0; }
+
+/* W-130. "Read like a contract" — the methodology sheet's own prose (tableB's
+   derivation sentences, tableC's caveats/notes, this task's moved FIB-4 note)
+   numbers itself as a clause via a CSS counter. Zero content removed or
+   shortened — this only tightens the reading rhythm to use the page better,
+   per the developer's own framing 2026-08-30. `.mtab` (the reference table
+   etc.) is untouched — W-009's page-budget-measured layout, out of scope
+   here. `.counted` is the engine's own machine-derived readout (already
+   mono/accent-coloured, W-098) and is excluded: a clause number in front of a
+   stat line reads as noise, not structure. */
+.mgroup { counter-reset: clause; }
+.mgroup > p:not(.counted) { padding-left: var(--s-5); position: relative; line-height: 1.4; }
+.mgroup > p:not(.counted)::before {
+  counter-increment: clause; content: counter(clause) ".";
+  position: absolute; left: 0; top: 0;
+  font-family: var(--mono); font-size: 9px; color: var(--faint);
+}
 .evidence { padding: var(--s-3) var(--s-4); margin: var(--s-4) 0 0; }
 .evidence h3 { margin-top: 0; }
 
@@ -1112,6 +1376,73 @@ body[data-mode="sample"] .page {
 @media print {
   .domaingroup { padding: var(--s-2) var(--s-3) var(--s-1); margin-bottom: var(--s-2); }
   .mgroup { padding: var(--s-1) var(--s-2); margin-bottom: var(--s-1); }
+  .mgroup > p:not(.counted) { margin: 0 0 var(--s-2); }
   .evidence { padding: var(--s-1) var(--s-2); margin-top: var(--s-1); }
   .evblock { margin-bottom: var(--s-1); }
+}
+
+/* ═══════════════════════════════════════════════════ W-017 — NARROW SCREEN
+   The report is read on a phone, not only on a desktop and on A4. One
+   breakpoint, one document — no separate mobile page and no second
+   stylesheet (the V1/V2 split already forbids a duplicate template).
+   Screen only: `@media print` is untouched, so the printed sheet keeps its
+   fixed A4 box and its measured page structure. The shape below — a fluid
+   `.page`, collapsed grids — is the one `@media print` (line ~543) already
+   proves the layout survives; this block stops at a wider breakpoint and
+   keeps more padding, because a phone is read, not trimmed to paper. */
+@media (max-width: 700px) {
+  /* The A4 box becomes fluid. Fixed 210mm was the sole reason the whole
+     report overflowed a phone sideways. Spacing stays on the --s-* scale
+     N17 locks — the card runs full-bleed and its own padding holds the
+     content off the screen edge. */
+  .page { width: auto; min-height: auto; margin: var(--s-4) 0;
+    padding: var(--s-6) var(--s-5); }
+
+  /* The toolbar loses its 210mm track and is allowed to wrap. */
+  .toolbar { width: auto; margin: 0 0 var(--s-4); flex-wrap: wrap; }
+
+  /* The masthead lockup stacks instead of being squeezed side to side. */
+  .masthead { flex-wrap: wrap; gap: var(--s-3); }
+
+  /* Fixed multi-column grids fold to two columns. The clinical-context grid
+     keeps its W-106 single-row rule at desktop width (N25 reads that exact
+     `.ctx-head + .labs-grid` selector); this id-qualified override wins only
+     inside `#clinical` at phone width, where six fields on one row is ~56 px
+     a column. */
+  .meta { grid-template-columns: repeat(2, 1fr); }
+  .labs-grid { grid-template-columns: repeat(2, 1fr); }
+  #clinical .ctx-head + .labs-grid { grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: row; }
+
+  /* Each parameter card stacks: identity / value, then the ruler, then the
+     verdict chip and the facts — one column, in source order. */
+  .pcard,
+  .pcard:has(.pbars:empty) { grid-template-columns: 1fr; gap: var(--s-3); }
+  .pcard .pfacts,
+  .pcard:has(.pbars:empty) .pfacts { grid-column: 1 / -1; grid-row: auto; }
+  .pcard .pverdict { align-self: start; }
+  /* A grid track is 1fr, but a grid item's default `min-width: auto` still
+     lets its widest indivisible child (the acquisition-method `<select>`,
+     whose longest option runs well past a phone's width) push the whole card
+     past the screen. `min-width: 0` lets the item shrink to its track; the
+     select then wraps its label and scrolls its options like any narrow one. */
+  .pcard > * { min-width: 0; }
+  .pcard select { max-width: 100%; width: 100%; }
+
+  /* The impression and its closing Summary drop the centred ~80% measure —
+     in a phone-width column that only strands text between two thin gutters. */
+  .impression p,
+  #clinical .impression p,
+  #clinical .impression h4,
+  #clinical .summary h4,
+  #clinical .summary p.summary-mech,
+  #clinical .summary p.summary-body { max-width: none;
+    margin-left: 0; margin-right: 0; }
+
+  /* Touch targets: the fields and controls a thumb has to hit. The tiny
+     `.povr` override box is a secondary affordance and is left as it is. */
+  .meta input, .meta select,
+  .labs-grid input, .labs-grid select,
+  .pcard .pval input,
+  .toolbar button, .toolbar select { min-height: 44px; }
 }

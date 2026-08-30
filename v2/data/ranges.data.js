@@ -11,10 +11,13 @@
  *              (62010 bytes). Its content differs ONLY in the demo input row of
  *              each interactive sheet; nothing migrated here differs between them.
  *
- * 12 reference values in four shapes: a bare central value, a central with
+ * 14 reference values in four shapes: a bare central value, a central with
  * an IQR, a central with a stated SD, and a two-edged interval with no centre at all.
- * Eleven come from the T1_T2 and Diffusion sheets. ONE — RNG-012, added by W-031 —
- * comes from a paper instead, and says so in `provenance` and a null `source`.
+ * Eleven come from the T1_T2 and Diffusion sheets. THREE — RNG-012 (W-031) and
+ * RNG-013/RNG-014 (W-054) — come from a paper instead, and say so in `provenance`
+ * and a null `source`. RNG-013/RNG-014 are a pediatric native-T1 range (Gilligan
+ * 2019, EXT-009) and are deliberately NOT linked to the adult-general T1 cut-offs
+ * (CUT-0071..CUT-0074) — see their own notes and LITERATURE.md § 9.31.4.
  * 
  * ⛔ THESE ARE NOT THRESHOLDS. Every value here describes a typical or reference
  *    population, not a boundary between two clinical states. No record carries an
@@ -58,10 +61,10 @@
  */
 
 const RANGES_REV = 'xlsx-v1';
-const RANGES_VERSION = '1.2';
+const RANGES_VERSION = '1.3';   /* W-054: two records added, RNG-013/RNG-014, a pediatric native T1 reference range (Gilligan 2019, EXT-009) at 1.5T and 3.0T. Not linked to the adult-general T1 cut-offs. */
 
 /* SHA-256 over the canonical serialisation of every record. See v2/tests/schema.test.js. */
-const RANGES_HASH = '7c88dc11781554e57af340a7960ceb407db6087d5c85e3f70b2539682425dac2';
+const RANGES_HASH = '1fe38213aa64a2e51363268e8c4ae618adc8600d5ad0639d144447858849df85';
 
 const REFERENCE_RANGES = [
   {
@@ -308,6 +311,54 @@ const REFERENCE_RANGES = [
     provenance: 'transcribed',
     note: 'The cell reads "20-30% (higher at 3T)": two edges and no centre. No central value is emitted, because the midpoint would be arithmetic on numbers the workbook does not state. The unit comes from the row label in column B, which is "IVIM — f (perfusion fraction, %)" — the value cell carries none. Evidence grade "C" is the sheet\'s own and is not upgraded. Population, as the sheet states it: "Dyvorne + Luciani". The sheet\'s own caveat on this parameter: "Sensitive to b-value distribution & motion". The row publishes no sensitivity/specificity ("—"), and none are borrowed.',
     source: {sheet: 'Diffusion', cell: 'D15'}
+  },
+  {
+    id: 'RNG-013',
+    parameter: 't1',
+    fieldStrength: '1.5T',
+    cohort: 'pediatric-general',
+    kind: 'central-with-sd',
+    central: 581,
+    sd: 64,
+    approximate: false,
+    unit: 'ms',
+    valueRaw: 'liver: 581±64 (1.5 T)',
+    technique: 't1-molli',
+    techniqueGroup: 't1-ir-bssfp',
+    evidenceGrade: 'B',
+    population: 'Healthy children aged 7-17y (mean 12.2±3.1y), MOLLI, n=32 (16 at 1.5T); no significant difference by age or sex (Gilligan LA et al, Pediatr Radiol 2019;49(8):1018-1024, EXT-009).',
+    workbookRefIds: [],
+    externalRefIds: ['EXT-009'],
+    citationProvenance: 'literature-only',
+    dataQualityFlags: ['abstract-only-not-full-text'],
+    dataQualityNote: 'EXT-009 (Gilligan 2019, Pediatr Radiol) sits behind a Springer paywall with no PMC deposit — confirmed against the Europe PMC REST API directly (isOpenAccess: N, inPMC: N, inEPMC: N), not merely assumed. This record is built from the abstract only: the author\'s own published abstractText, read verbatim from Europe PMC\'s stored record, and independently cross-checked against EXT-008 (Serai 2025, AJR), which reproduces the identical liver figures in its own Table 2 as a direct quotation of this paper. Both readings agree exactly (LITERATURE.md § 9.31.4). Single-centre primary study, so evidenceGrade is B per SCHEMA § 3.5 even though "Reference population" studies otherwise grade A.',
+    provenance: 'literature',
+    note: 'W-054: a pediatric native T1 reference range, queued by CUT-0071\'s own note (W-053) and by the W-054 board card. ⛔ NOT LINKED to CUT-0071/CUT-0072 (adult-general, 1.5T): this is a separate cohort record, and adopting a pediatric mean for an adult boundary — or the reverse — would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that already refused to manufacture a pediatric MRE bound in the opposite direction (RNG-012\'s own note). No bound is derived from mean ± SD; this record carries the reported range and nothing computed from it. Full text unobtainable; see dataQualityNote.',
+    source: null
+  },
+  {
+    id: 'RNG-014',
+    parameter: 't1',
+    fieldStrength: '3.0T',
+    cohort: 'pediatric-general',
+    kind: 'central-with-sd',
+    central: 783,
+    sd: 88,
+    approximate: false,
+    unit: 'ms',
+    valueRaw: 'liver: 783±88 (3 T)',
+    technique: 't1-molli',
+    techniqueGroup: 't1-ir-bssfp',
+    evidenceGrade: 'B',
+    population: 'Healthy children aged 7-17y (mean 12.2±3.1y), MOLLI, n=32 (16 at 3T); no significant difference by age or sex (Gilligan LA et al, Pediatr Radiol 2019;49(8):1018-1024, EXT-009).',
+    workbookRefIds: [],
+    externalRefIds: ['EXT-009'],
+    citationProvenance: 'literature-only',
+    dataQualityFlags: ['abstract-only-not-full-text'],
+    dataQualityNote: 'EXT-009 (Gilligan 2019, Pediatr Radiol) sits behind a Springer paywall with no PMC deposit — confirmed against the Europe PMC REST API directly (isOpenAccess: N, inPMC: N, inEPMC: N), not merely assumed. This record is built from the abstract only: the author\'s own published abstractText, read verbatim from Europe PMC\'s stored record, and independently cross-checked against EXT-008 (Serai 2025, AJR), which reproduces the identical liver figures in its own Table 2 as a direct quotation of this paper. Both readings agree exactly (LITERATURE.md § 9.31.4). Single-centre primary study, so evidenceGrade is B per SCHEMA § 3.5 even though "Reference population" studies otherwise grade A.',
+    provenance: 'literature',
+    note: 'W-054: a pediatric native T1 reference range, queued by CUT-0071\'s own note (W-053) and by the W-054 board card. ⛔ NOT LINKED to CUT-0073/CUT-0074 (adult-general, 3.0T): this is a separate cohort record, and adopting a pediatric mean for an adult boundary — or the reverse — would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that already refused to manufacture a pediatric MRE bound in the opposite direction (RNG-012\'s own note). No bound is derived from mean ± SD; this record carries the reported range and nothing computed from it. Full text unobtainable; see dataQualityNote.',
+    source: null
   },
   {
     id: 'RNG-012',

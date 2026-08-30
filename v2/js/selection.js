@@ -11,7 +11,11 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_SELECTION_VERSION = '2.1';   /* W-090: products field, GE IDEAL-IQ/StarMap choice */
+const V2_SELECTION_VERSION = '2.5';   /* W-063b: performed[group] axis (was
+                                          performed[parameter], W-063).
+                                          W-105: Tier-1 groups default ON.
+                                          W-017 round 2: requestorName /
+                                          requestorEmail identity axes. */
 
 const _SEL = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -78,8 +82,24 @@ function createSelection() {
     studyDate: null,
     accession: null,
     age: null,
+    /* W-017 round 2. The clinician who requested the study — a name and an
+       e-mail address, so the finished report can be sent to them. Identity
+       data, not measurement data: null until typed, never invented, and
+       handled by the same blank-safe rules as accession/studyDate. */
+    requestorName: null,
+    requestorEmail: null,
     techniques: defaultTechniques(null),
     products: {r2star: null, t2star: null},
+    /* W-063b. Absent or false both mean "off" — there is no third state.
+       W-105 reverses the W-063b default (which showed an untouched report as
+       empty): a fresh selection declares the three Tier-1 purpose groups
+       (fat/iron/fibrosis) performed, so a fresh GE report opens with pdff +
+       the iron trio + mre. The three Tier-2 groups (t1/ct1/adc) stay absent
+       = off, offered separately in render.js's "Additional measurements"
+       block. Developer decision 2026-08-28 (CLAUDE.md § 2.4). The surviving
+       half of spec § 4.1's safety net is unchanged: a MEASURED value is
+       never hidden by this axis — enforced in report.js, not here. */
+    performed: {fat: true, iron: true, fibrosis: true},
     values: {}
   };
 }
@@ -105,8 +125,11 @@ function applySelection(state, patch) {
     studyDate: pick(p, 'studyDate', state.studyDate),
     accession: pick(p, 'accession', state.accession),
     age: pick(p, 'age', state.age),
+    requestorName: pick(p, 'requestorName', state.requestorName),
+    requestorEmail: pick(p, 'requestorEmail', state.requestorEmail),
     techniques: Object.assign({}, state.techniques),
     products: Object.assign({}, state.products),
+    performed: Object.assign({}, state.performed),
     values: Object.assign({}, state.values)
   };
 
@@ -153,6 +176,12 @@ function applySelection(state, patch) {
       }
     }
   }
+  /* W-063b. `performed` is keyed by GROUP_PARAMETERS keys (domains.js:
+     fat/iron/fibrosis/t1/ct1/adc), which selection.js does not import — the
+     same arrangement as `values` and the same as W-063's original
+     per-parameter keying: an unrecognised key never matches a group in
+     report.js and has no effect. */
+  if (p.performed) Object.assign(next.performed, p.performed);
   if (p.values) Object.assign(next.values, p.values);
 
   return next;

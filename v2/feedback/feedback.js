@@ -16,7 +16,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const FEEDBACK_VERSION = '1.1';
+const FEEDBACK_VERSION = '1.2';
 
 /* A token names a clinician to the developer's own list and to nothing else.
    The page never asks for a name or an address, and none travels. */
@@ -451,13 +451,24 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
            from the same table the card's heading was built from, never from the
            heading's text: reading the printed words back is the W-051 defect. */
         const f = readCardFacts(el, labelTable());
-        /* INTO THE IDENTITY COLUMN, NOT ONTO THE END OF THE CARD. The card is a
+        /* INTO THE VERDICT COLUMN, NOT ONTO THE END OF THE CARD. The card is a
            three-column grid; a fourth child appended to it becomes a grid item
            of its own, wraps to a new row and stretches the full width -- which
-           is what shipped, and what a reader reasonably read as a broken panel
-           under every measurement. The identity column is an ordinary stack, so
-           a button placed there is just the next thing in it. */
-        const host = el.querySelector('.pident') || el;
+           is what shipped once, and what a reader reasonably read as a broken
+           panel under every measurement. .pverdict is an existing grid item
+           (the third column), an ordinary block, so a button placed there is
+           just the next thing in it -- the same reasoning that used to argue
+           for .pident.
+
+           W-107 MOVED IT HERE FROM .pident, and the reason is which column is
+           SHORT. .pident carries the label, the acquisition line, the value
+           and sometimes a method control -- it is the card's tallest column in
+           nearly every state, and appending a 44px-tall button to its bottom
+           stretched the whole grid row with it (the developer's own reading of
+           a printed card). .pverdict carries only the chip and one small
+           ".vfrom" line, so it almost always has slack the button can sit in
+           without growing the row at all. */
+        const host = el.querySelector('.pverdict') || el;
         host.insertAdjacentHTML('beforeend', cardButtonHtml(f.param, f.paramLabel));
       });
     }

@@ -53,6 +53,27 @@
    tablets, so this is never revealed by pointing at anything -- it is drawn
    from the start, at the size a finger needs.
 
+   W-107 MOVED THE HOST FROM .pident TO .pverdict (feedback.js decorateCards)
+   so the button would sit in the card's short column rather than stretch its
+   tall one, and this rule keeps it there, in the column's own flow, directly
+   under the chip and ".vfrom". A W-118 FIRST TRY PINNED IT INSTEAD TO A FIXED
+   OFFSET FROM THE CARD'S TOP -- reasoning that .pverdict is vertically
+   centred in its grid row (styles.css, W-097's own fix for the dead space a
+   taller ruler left beside it), so a button living inside that flow lands at
+   a different height on every card. True, but the fixed offset traded one
+   defect for a worse one: on a short row, .pverdict's centred slack leaves
+   LESS room above the chip than the constant offset assumed, and the button
+   landed on top of the chip it was supposed to sit under (reported against
+   the rendered page). Flow does not have that failure mode -- the button
+   always renders after the chip, however tall the chip's own box turns out
+   to be. What flow does still owe the reader is a straight edge: `.pverdict`
+   is text-align:right on every card that carries the button, so the button
+   lines its edge up with ".vfrom" above it -- already right-aligned -- and
+   the two read as one edge going down the page rather than the chip and the
+   button disagreeing on which side they belong to. Scoped with `:has()` to a
+   card that actually has the button, so a card without one (every mode this
+   layer is not active in, the printed report included) is untouched.
+
    W-085 DREW IT IN THE ACCENT, AND THE COLOUR THAT WAS REJECTED IS THE POINT.
    It shipped in --muted on a --hair edge, which is the state the tab above was
    already moved OUT of for the same reason: a control nobody notices collects
@@ -67,22 +88,21 @@
    this file, so the rejection is enforced rather than remembered.
 
    OUTLINED AT REST, FILLED ONLY ON HOVER AND FOCUS. A filled control would
-   out-weigh the verdict chip it sits beside, and the verdict is the reason the
-   card exists. The glyph carries the recognition instead of the fill. */
+   out-weigh the verdict chip it now sits beneath, and the verdict is the
+   reason the card exists. The glyph carries the recognition instead of the
+   fill. */
+.pcard .pverdict:has(.fb-flag) { text-align: right; }
 .pcard .fb-flag {
   font: inherit;
   font-size: var(--t-micro);
   font-weight: 600;
-  /* The identity column is a stack, so an unconstrained button would fill its
-     width. It is sized to its own text and left where the column starts. */
   display: inline-flex;
   align-items: center;
   gap: var(--s-3);
-  align-self: start;
   width: auto;
   min-width: 44px;
   min-height: 44px;
-  margin-top: var(--s-5);
+  margin-top: var(--s-4);
   padding: var(--s-3) var(--s-5);
   border: 1px solid var(--accent);
   border-radius: 5px;

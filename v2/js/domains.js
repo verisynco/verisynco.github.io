@@ -16,9 +16,15 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_DOMAINS_VERSION = '1.3';   /* W-090: CONTROLLED_DOMAINS -> CONTROLLED_UNITS,
-                                        lic/r2star/t2star each control their own
-                                        technique instead of sharing 'iron' */
+const V2_DOMAINS_VERSION = '1.5';   /* W-063b: GROUP_PARAMETERS / TIER1_GROUPS /
+                                        TIER2_GROUPS / purposeGroupOf — the entry-screen
+                                        purpose-group axis. 1.4 -> 1.5: the helper was
+                                        `groupOf`, which SILENTLY overwrote thresholds.js's
+                                        own top-level `groupOf(techniqueId)` in the browser's
+                                        one global <script> scope (Node's require() hid it) —
+                                        renamed, and a same-scope collision guard added.
+                                        (W-090's CONTROLLED_UNITS
+                                        line kept below for history) */
 
 /* Same `_D` loading pattern as thresholds.js:83 and scope.js — in the browser the
    data file has already run and left its consts as globals; under Node nothing is
@@ -47,6 +53,42 @@ const DOMAIN_OF = {
   ct1: 'ct1',
   adc: 'adc'
 };
+
+/* W-063b. Parameter -> ENTRY-SCREEN PURPOSE GROUP. A distinct axis from
+   DOMAIN_OF (card-section heading) and from CONTROLLED_UNITS (technique
+   control): this one answers "which entry checkbox reveals this card". The
+   iron trio agrees with DOMAIN_OF today by coincidence, not by rule — kept
+   separate for the reason W-090 kept CONTROLLED_UNITS separate. The union of
+   the six arrays is exactly report.js REPORT_PARAMETERS, each parameter once. */
+const GROUP_PARAMETERS = {
+  fat:      ['pdff'],
+  iron:     ['lic', 'r2star', 't2star'],
+  fibrosis: ['mre'],
+  t1:       ['t1'],
+  ct1:      ['ct1'],
+  adc:      ['adc']
+};
+
+/* Tier 1 = the staging purposes chosen at the outset. Tier 2 = readings that
+   do not stage a Tier-1 finding, offered separately (render.js tier2Block).
+   Tier-1 order is the entry-block and card-section order it implies; Tier-2
+   order matches REPORT_PARAMETERS. */
+const TIER1_GROUPS = ['fat', 'iron', 'fibrosis'];
+const TIER2_GROUPS = ['t1', 'ct1', 'adc'];
+
+/* NOT `groupOf` — `v2/js/thresholds.js` already declares a top-level
+   `function groupOf(techniqueId)`, and every V2 JS file loads as a plain
+   <script> into ONE global scope (see this file's header). A second top-level
+   `function groupOf` there does not throw the way a duplicate `const` would;
+   it silently overwrites, and whichever loads last wins — so `groupOf` here
+   broke thresholds.js's calibration/staging resolver in the browser while
+   Node's per-module require() kept the two apart and every suite green. */
+function purposeGroupOf(parameter) {
+  for (const g of Object.keys(GROUP_PARAMETERS)) {
+    if (GROUP_PARAMETERS[g].indexOf(parameter) !== -1) return g;
+  }
+  return null;
+}
 
 /* W-090. Was CONTROLLED_DOMAINS = ['pdff', 'iron', 'mre', 't1', 'ct1'] — one
    entry per DOMAIN_OF value. A site can run R2* on one console, T2* on
@@ -228,6 +270,7 @@ function displayExamples(techniqueId) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {DOMAIN_OF, CONTROLLED_UNITS, DOMAIN_VOCABULARY, GE_DEFAULTS,
                     GE_IRON_PRODUCTS,
+                    GROUP_PARAMETERS, TIER1_GROUPS, TIER2_GROUPS, purposeGroupOf,
                     WITHDRAWN_PRODUCTS, groupsOfDomain, optionsForDomain,
                     displayExamples, withoutWithdrawn,
                     V2_DOMAINS_VERSION};

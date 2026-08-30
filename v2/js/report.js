@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.5';   /* W-072: impression opens with entered history and states each banded finding's own fired-modifier meaning */
+const V2_REPORT_VERSION = '3.11';  /* W-081: `buildIvim()` — a standalone research-layer builder for IVIM D, D-star and f, NOT in REPORT_PARAMETERS; reads the transcribed RNG-006..011 ranges (REFERENCE_RANGES added to the `_R` bridge, first engine reader) and stages nothing (CLAUDE.md § 1.3). D is display-only (R-30 forbids a central±sd band); D-star and f carry a bare within/outside-interval membership. `buildImpression().clinical` gains `ivimCrossRead` — one factual sentence, ADC-abnormal-gated, no synthesis; `text`/`facts`/`keyFindings` untouched (logic.test.js P7/P9). New consts IVIM_PARAMS/LABELS/UNITS/TREND_NOTE + helper ivimCaveatOf(). No `v2/data/` file opened, no hash moved. W-122: new `PARAMETER_STEPS` catalog — the arrow-key step for each parameter's entry box, derived from the finest decimal place of that parameter's CUTOFFS values (render.js valueAreaHtml is the only reader; render.test.js N55 locks the derivation). No clinical value, band, threshold or hash moved. W-098: new `buildConsiderations()` + `CONSIDERATIONS` data type; `buildImpression().clinical` gains `summary` (published composite verdicts, fired diagnostic considerations quoted verbatim with the source's own strength label, coverage + evidence-floor verb). `buildImpression` now takes `composite`; app.js buildModel computes it first. `text` / `facts` unchanged (logic.test.js P7/P9). No hash moved — RESOLVED_HASH covers buildScales boundaries only, not the impression. W-112: `buildImpression().clinical` gains `history`, `keyFindings`, `otherFindings`, `normalSummary` — a priority split (the four `severityClass` ranks) the renderer composes into two labelled groups with the history sentence last. `text` and `facts` are unchanged (logic.test.js P7/P9 hold), no clinical value / band / hash moved. [W-063b: the `rendered` performed-gate is keyed by purpose GROUP (domains.js groupOf), not by parameter. W-063: rendered rule gains a performed/value gate, the notAssessed sentence changed, and a BMI derivation rule was added. W-072 also claimed 3.5 for the impression rewrite (opens with entered history, states each banded finding's own fired-modifier meaning) — two branches claiming one number; resolved at the merge to 3.6.] */
 
 const _R = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -33,13 +33,16 @@ const _R = (typeof module !== 'undefined' && module.exports)
               methodRankingReason: t.methodRankingReason,
               resolveScope: s.resolveScope, isRenderedAtScope: s.isRenderedAtScope,
               DOMAIN_OF: d.DOMAIN_OF, CONTROLLED_UNITS: d.CONTROLLED_UNITS,
+              purposeGroupOf: d.purposeGroupOf,
               GE_IRON_PRODUCTS: d.GE_IRON_PRODUCTS,
               PATHS: sel.PATHS, TECHNIQUES: tech.TECHNIQUES,
               CUTOFFS: require(path.join(__dirname, '..', 'data', 'cutoffs.data.js')).CUTOFFS,
+              REFERENCE_RANGES: require(path.join(__dirname, '..', 'data', 'ranges.data.js')).REFERENCE_RANGES,
               REFERENCES: require(path.join(__dirname, '..', 'data', 'references.data.js')).REFERENCES,
               CALIBRATIONS: require(path.join(__dirname, '..', 'data', 'calibrations.data.js')).CALIBRATIONS,
               INTERACTIONS: require(path.join(__dirname, '..', 'data', 'interactions.data.js')).INTERACTIONS,
               TRIGGERS: require(path.join(__dirname, '..', 'data', 'triggers.data.js')).TRIGGERS,
+              CONSIDERATIONS: require(path.join(__dirname, '..', 'data', 'considerations.data.js')).CONSIDERATIONS,
               applyReliability: require(path.join(__dirname, 'reliability.js')).applyReliability};
     })()
   : {buildZones: buildZones, zoneForIndex: zoneForIndex,
@@ -49,10 +52,13 @@ const _R = (typeof module !== 'undefined' && module.exports)
      methodRankingReason: methodRankingReason,
      resolveScope: resolveScope, isRenderedAtScope: isRenderedAtScope,
      DOMAIN_OF: DOMAIN_OF, CONTROLLED_UNITS: CONTROLLED_UNITS,
+     purposeGroupOf: purposeGroupOf,
      GE_IRON_PRODUCTS: GE_IRON_PRODUCTS,
      PATHS: PATHS, TECHNIQUES: TECHNIQUES,
-     CUTOFFS: CUTOFFS, REFERENCES: REFERENCES, CALIBRATIONS: CALIBRATIONS,
-     INTERACTIONS: INTERACTIONS, TRIGGERS: TRIGGERS, applyReliability: applyReliability};
+     CUTOFFS: CUTOFFS, REFERENCE_RANGES: REFERENCE_RANGES, REFERENCES: REFERENCES,
+     CALIBRATIONS: CALIBRATIONS,
+     INTERACTIONS: INTERACTIONS, TRIGGERS: TRIGGERS, CONSIDERATIONS: CONSIDERATIONS,
+     applyReliability: applyReliability};
 
 /* Presentation strings for the eight parameters. They live HERE rather than in
    app.js because they are content, not DOM: the coverage strip and the cards are
@@ -69,6 +75,110 @@ const PARAMETER_UNITS = {
   t2star: 'ms', t1: 'ms', ct1: 'ms', adc: '×10⁻³ mm²/s'
 };
 
+/* ─────────────────────────────────────────────────────────── IVIM (W-081)
+   IVIM D, D* and f are carried by buildIvim() below — a STANDALONE builder,
+   NOT REPORT_PARAMETERS. They have no LADDERS entry (see the REPORT_PARAMETERS
+   comment) and entry.test.js A3 locks the GROUP_PARAMETERS partition, so they
+   follow the buildComposite()/buildConsiderations() pattern: a pure function
+   assembled into the model by app.js buildModel. Nothing here stages: there is
+   no published liver-IVIM cut-off and none is manufactured (CLAUDE.md § 1.3). */
+const IVIM_PARAMS = ['ivim-d', 'ivim-dstar', 'ivim-f'];
+const IVIM_LABELS = {
+  'ivim-d': 'IVIM — true diffusion (D)',
+  'ivim-dstar': 'IVIM — pseudo-diffusion (D*)',
+  'ivim-f': 'IVIM — perfusion fraction (f)'
+};
+const IVIM_UNITS = {
+  'ivim-d': '×10⁻³ mm²/s', 'ivim-dstar': '×10⁻³ mm²/s', 'ivim-f': '%'
+};
+/* The one sentence this feature writes rather than transcribes. Diffusion!B16
+   (the "↓ f in F≥2" row) was deliberately left un-transcribed as a gap
+   (W-023 § 8): it states a direction and no number. This says exactly that and
+   no more. Source: Diffusion!B16, REF-028 (Luciani). */
+const IVIM_TREND_NOTE = 'A downward trend in the perfusion fraction has been ' +
+  'reported in significant fibrosis (Luciani); no diagnostic threshold exists.';
+
+/* Every RNG-006..011 note ends with:  The sheet's own caveat on this parameter: "…". */
+function ivimCaveatOf(note) {
+  const m = /The sheet's own caveat on this parameter: "([^"]+)"/.exec(note || '');
+  return m ? m[1] : null;
+}
+
+function ivimRange(parameter, fieldStrength) {
+  const list = _R.REFERENCE_RANGES || [];
+  for (const r of list) {
+    if (r.parameter === parameter && r.fieldStrength === fieldStrength) return r;
+  }
+  return null;
+}
+
+function ivimNumber(selection, parameter) {
+  const v = (selection && selection.values || {})[parameter];
+  if (typeof v === 'number' && isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim() !== '' && isFinite(Number(v))) return Number(v);
+  return null;
+}
+
+/* Pure. Reads the patient's typed IVIM values and the transcribed reference
+   ranges; produces the model the page-2 research section and the page-1
+   cross-read consume. Never stages, never derives a number, never materialises
+   central±sd as a band (R-30). Returned d/dstar/f are null unless that
+   parameter has a typed value. */
+function buildIvim(selection) {
+  const fs = (selection && selection.fieldStrength) || null;
+  const path = selection && _R.PATHS[selection.path];
+  const scope = path ? _R.resolveScope(path.vendor, 'ivim') : null;
+
+  const dVal = ivimNumber(selection, 'ivim-d');
+  const dsVal = ivimNumber(selection, 'ivim-dstar');
+  const fVal = ivimNumber(selection, 'ivim-f');
+
+  let d = null;
+  if (dVal !== null) {
+    const rng = ivimRange('ivim-d', fs);
+    d = {
+      parameter: 'ivim-d', label: IVIM_LABELS['ivim-d'], value: dVal,
+      unit: IVIM_UNITS['ivim-d'],
+      reference: rng ? rng.valueRaw : null,
+      grade: rng ? rng.evidenceGrade : null,
+      caveat: rng ? ivimCaveatOf(rng.note) : null,
+      band: null
+    };
+  }
+
+  const interval = (param, val) => {
+    if (val === null) return null;
+    const rng = ivimRange(param, fs);
+    const iv = rng ? [rng.low, rng.high] : null;
+    return {
+      parameter: param, label: IVIM_LABELS[param], value: val,
+      unit: IVIM_UNITS[param],
+      interval: iv, grade: rng ? rng.evidenceGrade : null,
+      caveat: rng ? ivimCaveatOf(rng.note) : null,
+      membership: iv ? (val >= iv[0] && val <= iv[1] ? 'within' : 'outside') : null
+    };
+  };
+
+  const dstar = interval('ivim-dstar', dsVal);
+  const f = interval('ivim-f', fVal);
+  if (f) f.trendNote = IVIM_TREND_NOTE;
+
+  const hasAny = !!(d || dstar || f);
+  const perf = (selection && selection.performed) || {};
+  return {
+    hasAny: hasAny,
+    /* Whether IVIM reaches the page. IVIM is not a report row, so it is not on
+       the scope-tier ladder (there is no UI path to `research` scope anyway);
+       it renders when its "Additional measurements" checkbox is on OR a value
+       was typed — the W-063 "a measured value always wins" rule. `scope` is
+       only kept for SCP-0006's provenance note. */
+    rendered: !!(scope && (perf.ivim === true || hasAny)),
+    fieldStrength: fs,
+    scopeNote: scope ? scope.note : null,
+    d: d, dstar: dstar, f: f
+  };
+}
+
 /* The eight quantification parameters the engine carries ladders for, in the order
    the report prints them. `ivim`, `mast` and `mefib` are not here: they are W-007's
    and W-015's, and neither has a LADDERS entry.
@@ -84,6 +194,31 @@ const PARAMETER_UNITS = {
    relaxometry and diffusion. `CARD_DOMAIN_ORDER` and `groupCardsByDomain` are
    unchanged, and now preserve this order rather than rearranging it. */
 const REPORT_PARAMETERS = ['pdff', 'r2star', 't2star', 'lic', 'mre', 't1', 'ct1', 'adc'];
+
+/* W-122. The arrow-key `step` for each parameter's entry box. It is NOT
+   hand-picked: it is the finest decimal place that parameter's own published
+   cut-off values are printed with, so the up/down arrows can land on every
+   threshold the report stages against. Derived from CUTOFFS at load — a cut-off
+   that later gains a decimal place tightens the step on its own, and
+   render.test.js N55 recomputes this table from the same data to lock it. A
+   parameter whose cut-offs are all integers (r2star, t1, ct1) steps by 1. The
+   laboratory grid and the clinical-context fields have no cut-off to derive
+   from and keep step="any" (render.js valueAreaHtml is the only reader). */
+const PARAMETER_STEPS = (function () {
+  const out = {};
+  for (const param of REPORT_PARAMETERS) {
+    let maxDec = 0;
+    for (const c of _R.CUTOFFS) {
+      if (c.parameter !== param) continue;
+      const s = String(c.value);
+      const dot = s.indexOf('.');
+      const dec = dot === -1 ? 0 : s.length - dot - 1;
+      if (dec > maxDec) maxDec = dec;
+    }
+    out[param] = maxDec === 0 ? '1' : (1 / Math.pow(10, maxDec)).toFixed(maxDec);
+  }
+  return out;
+})();
 
 /* buildScales throws for several different reasons and only two of them are the
    caller being asked to settle a technique. The rest — an unrecognised
@@ -125,6 +260,26 @@ function techniqueFor(selection, parameter) {
   return selection.techniques[key] || null;
 }
 
+/* W-063. `row.value` is not computed yet at the point `rendered` is decided
+   (both are set in the same object literal, and a literal cannot read its
+   own not-yet-assigned property) — so this reads `selection.values`
+   directly, the same expression `row.value` itself uses two lines below. */
+function hasTypedValue(selection, parameter) {
+  const v = selection.values[parameter];
+  return v !== null && v !== undefined;
+}
+/* W-063b. The toggle is per PURPOSE GROUP now (domains.js GROUP_PARAMETERS):
+   turning on "iron" renders lic + r2star + t2star together. purposeGroupOf maps
+   this row's parameter to its group; an unknown parameter (=== null) is never
+   toggled on by a group. The data-protection clause below is unchanged and
+   still per-parameter — a typed value keeps its own card regardless of the
+   group state (spec § 3). */
+function isGroupToggledOn(selection, parameter) {
+  if (!selection.performed) return false;
+  const g = _R.purposeGroupOf(parameter);
+  return g !== null && selection.performed[g] === true;
+}
+
 function buildRow(selection, vendor, calibrationMode, parameter) {
   const domain = _R.DOMAIN_OF[parameter];
   const technique = techniqueFor(selection, parameter);
@@ -143,7 +298,15 @@ function buildRow(selection, vendor, calibrationMode, parameter) {
        parameter (including lic) reads null here, unconditionally. */
     product: (selection.products && selection.products[parameter]) || null,
     scope: scope,
-    rendered: _R.isRenderedAtScope(scope, selection.scope),
+    /* W-063. Two independent gates, ANDed: scope says whether this platform
+       can produce the parameter at all (untouched); performed/value says
+       whether the reader has put it in play. A measured value ALWAYS wins
+       the second gate on its own, so turning the toggle back off after
+       typing a number never hides it (spec § 4 — the data-protection rule;
+       § 4.1 records that the FULL "untouched report looks like today's"
+       guarantee this replaced is deliberately not kept). */
+    rendered: _R.isRenderedAtScope(scope, selection.scope) &&
+      (isGroupToggledOn(selection, parameter) || hasTypedValue(selection, parameter)),
     mountPoint: scope.mountPoint,
     drawable: [],
     scales: null,
@@ -1082,6 +1245,12 @@ function buildCards(report, profile) {
          none (`v2/tests/render.test.js` section K). Null wherever the card
          stages. */
       gapCode: row.staging === null || row.gate ? gapCodeOf(row) : null,
+      /* W-063. True only for a row on the page SOLELY because it was
+         toggled on: no value, AND nothing else already explains the
+         absence (no technique gate, no unstageable ladder — both already
+         print their own message through `gap` above, and this must never
+         print alongside one, per W-051's one-sentence-per-card rule). */
+      noData: !hasValue && row.staging !== null && !row.gate,
       /* W-038 — the limit a drawn record's own publication states on it. NOT an
          abstention: the chip, the rulers and the staging above are untouched,
          and the reader is told how far the number its source says it carries. */
@@ -1355,8 +1524,8 @@ const LAB_INPUTS = [
    range, not on a fixed ALT value. Without it the multiple cannot be computed
    and the rule abstains rather than firing on an assumed laboratory range.
 
-   Height and weight are deliberately not collected: two fields to derive one
-   number the requesting clinician already has, and no rule triggers on either
+   Height and weight (heightCm, weightKg) are collected solely to derive bmi when
+   it is not typed directly (W-063); no rule reads either height or weight
    separately. */
 const CONTEXT_INPUTS = [
   {key: 'bmi',      label: 'Body-mass index',   unit: 'kg/m\u00b2', type: 'number'},
@@ -1374,6 +1543,22 @@ function buildContext(selection) {
     } else {
       out[f.key] = numberOr(v[f.key]);
     }
+  }
+  /* W-063. `bmi` from CONTEXT_INPUTS above already carries a TYPED value or
+     null. A typed value is never overwritten (the same rule LIC's
+     calibration lives by, buildRow above) — only an ABSENT bmi is derived,
+     and only when both height and weight are present to derive it from.
+     This is BMI's own definition, not a fitted clinical constant, so it
+     carries no CAL-#### record and no citation (spec § 7). */
+  const heightCm = numberOr(v.heightCm);
+  const weightKg = numberOr(v.weightKg);
+  out.heightCm = heightCm;
+  out.weightKg = weightKg;
+  if (out.bmi === null && heightCm !== null && weightKg !== null) {
+    out.bmi = Math.round((weightKg / Math.pow(heightCm / 100, 2)) * 10) / 10;
+    out.bmiDerived = true;
+  } else {
+    out.bmiDerived = false;
   }
   return out;
 }
@@ -1510,6 +1695,132 @@ function buildComposite(report, labs, reliability) {
        origin: 'from the laboratory block',
        test: 'FIB-4 >= ' + cal.coefficients.fib4, met: c2}
     ]
+  };
+}
+
+/* ───────────────────────────────────────────── CONSIDERATIONS — THE SUMMARY (W-098)
+   The impression states each finding. This gathers what the findings ADD UP TO
+   into one closing block — and every sentence in it is either a value the engine
+   computed or a published sentence quoted verbatim from `CONSIDERATIONS`. It
+   NEVER authors a synthesis (design spec §§ 1, 3, 6).
+
+   Three doors, all of which must open for a consideration to fire (spec § 6):
+     1. the study's cohort and indication are in the record's `pattern` — a
+        `non-specific` indication matches nothing, by construction;
+     2. every required parameter is measured AND interpretable — a withheld
+        reading cannot feed a consideration, mirroring buildComposite()'s MEFIB
+        abstention;
+     3. every required parameter's printed verdict band is one the pattern lists.
+
+   A consideration whose pattern applied but whose inputs were missing or
+   withheld is SILENT in the prose and NOT silent in the report: it returns a
+   `gap` the coverage clause prints (SCHEMA § 10.3). A consideration that just
+   did not match a band (the finding is normal, or a different grade) returns
+   nothing — silence is the correct answer there.
+
+   Returns STRUCTURED data, never prose: render.js composes the sentences, the
+   same split buildImpression already uses for `facts` / `keyFindings`. No
+   reference id, trigger id or grade letter is in anything returned here
+   (logic.test.js L9 / L10) — a source is named only by its `readerLabel`. */
+function buildConsiderations(args) {
+  const cards = args.cards || [];
+  const rel = args.reliability || {byParameter: {}};
+  const sel = args.selection || {};
+  const composite = args.composite || null;
+  const indication = sel.indication || 'non-specific';
+  const cohort = sel.cohort || null;
+
+  const byParam = {};
+  for (const c of cards) byParam[c.parameter] = c;
+
+  const fired = [];
+  const gaps = [];
+  const seenStatements = new Set();
+  for (const cns of (_R.CONSIDERATIONS || [])) {
+    const p = cns.pattern || {};
+    if ((p.indication || []).indexOf(indication) === -1) continue;
+    if (p.cohort && p.cohort !== cohort) continue;
+
+    let allMet = true;
+    let missingInput = null;   /* a required reading absent or withheld */
+    for (const req of (p.requires || [])) {
+      const card = byParam[req.parameter];
+      const r = rel.byParameter[req.parameter];
+      const hasValue = !!card && card.value !== null && card.value !== undefined;
+      const interpretable = !(r && r.interpretable === false);
+      const band = card && card.verdict && card.verdict.band;
+      if (!hasValue || !interpretable) {
+        allMet = false;
+        missingInput = {parameter: req.parameter, reason: hasValue ? 'withheld' : 'not-measured'};
+        break;
+      }
+      if (!band || (req.bands || []).indexOf(band) === -1) {
+        allMet = false;   /* band did not match — not a gap, just no fire */
+        break;
+      }
+    }
+
+    if (allMet) {
+      if (seenStatements.has(cns.statement)) continue;   /* W-051: one text, no repeat */
+      seenStatements.add(cns.statement);
+      fired.push({
+        statement: cns.statement,
+        sourceStrength: cns.sourceStrength,
+        readerLabel: cns.readerLabel,
+        refIds: (cns.sourceRefIds || []).slice()
+      });
+    } else if (missingInput) {
+      gaps.push({
+        parameter: missingInput.parameter,
+        reason: missingInput.reason,
+        readerLabel: cns.readerLabel
+      });
+    }
+  }
+
+  /* The published composite verdicts, restated as the block's lead (spec § 7.1).
+     The holistic synthesis here is a cited publication's, not the tool's. */
+  const composites = [];
+  if (composite && composite.verdict && composite.verdict.band) {
+    const cal = calibrationRecord(composite.id);
+    composites.push({
+      label: composite.name,
+      band: composite.verdict.band,
+      tag: composite.verdict.tag || null,
+      refIds: (cal && cal.sourceRefIds ? cal.sourceRefIds.slice() : [])
+    });
+  }
+
+  /* Coverage: what the summary rests on, as parameter keys — render.js turns
+     these into reader words with its existing helpers (readerWord / listWords). */
+  const assessed = [], notAssessed = [], withheld = [];
+  for (const c of cards) {
+    const r = rel.byParameter[c.parameter];
+    if (r && r.interpretable === false) { withheld.push(c.parameter); continue; }
+    if (c.value === null || c.value === undefined) { notAssessed.push(c.parameter); continue; }
+    assessed.push(c.parameter);
+  }
+
+  const panelRefIds = [];
+  const addRef = id => { if (panelRefIds.indexOf(id) === -1) panelRefIds.push(id); };
+  for (const f of fired) f.refIds.forEach(addRef);
+  for (const cp of composites) cp.refIds.forEach(addRef);
+
+  const sourceLabels = [];
+  for (const f of fired) if (sourceLabels.indexOf(f.readerLabel) === -1) sourceLabels.push(f.readerLabel);
+
+  return {
+    /* The block renders whenever there is a real report to close off; its weight
+       scales with content — composites and considerations when present, the
+       coverage clause always. */
+    present: cards.length > 0,
+    composites: composites,
+    considerations: fired,
+    gaps: gaps,
+    coverage: {assessed: assessed, notAssessed: notAssessed, withheld: withheld},
+    verb: args.verb || 'shows',
+    panelRefIds: panelRefIds,
+    sourceLabels: sourceLabels
   };
 }
 
@@ -1710,26 +2021,38 @@ function buildImpression(model) {
                   text: buildHistory(model.selection, buildContext(model.selection), model.labs)}];
   const usedStatements = new Set();
   const gapDetails = [];
+  /* W-112. Alongside `facts` (the flat, history-first union kept verbatim for
+     logic.test.js P7/P9 and any non-render consumer), every per-card fact is
+     also filed by what it is worth to a reader: `noninterp` and `abnormal` and
+     `gap` are the readings the page should lead with, `normal` folds into one
+     closing sentence, and `normal-qualified` is a normal reading that carried a
+     published qualifier which must not be lost to that fold. The classes are
+     the same four `severityClass` ranks; the renderer, not this function,
+     composes them into the two labelled groups. */
+  const classified = [];
   for (const c of cards) {
     const r = rel.byParameter[c.parameter];
     const hasValue = c.value !== null && c.value !== undefined;
     if (r && r.interpretable === false) {
-      facts.push({parameter: c.parameter,
-                  text: c.label + ' was measured but is not interpretable on this ' +
-                        'study. ' + r.clinicalReason});
+      const text = c.label + ' was measured but is not interpretable on this ' +
+                   'study. ' + r.clinicalReason;
+      facts.push({parameter: c.parameter, text: text});
+      classified.push({parameter: c.parameter, text: text, kind: 'noninterp'});
     } else if (hasValue && c.gap) {
       /* Measured, and no published boundary covers it. Plain language only —
          the gap's own citations and reasons are reported through
          buildReceipts() on page two; here only the FACT of the absence, and
          that it is an absence of evidence rather than a normal result. */
-      facts.push({parameter: c.parameter,
-                  text: c.label + ' was measured, and no published boundary ' +
-                        'covers this value. That is an absence of evidence, ' +
-                        'not a normal result.'});
+      const text = c.label + ' was measured, and no published boundary ' +
+                   'covers this value. That is an absence of evidence, ' +
+                   'not a normal result.';
+      facts.push({parameter: c.parameter, text: text});
+      classified.push({parameter: c.parameter, text: text, kind: 'gap'});
       gapDetails.push({parameter: c.parameter, reason: c.gap});
     } else if (c.verdict && c.verdict.band) {
       let text = c.label + ' ' + c.value + (c.unit ? ' ' + c.unit : '') +
                  ' — ' + c.verdict.band + '.';
+      let qualified = false;
       /* W-072. Every modifier that fired for this parameter and does NOT
          block interpretability (fails/uninterpretable already produced the
          OTHER branch above, via r.clinicalReason) is a published statement
@@ -1742,6 +2065,7 @@ function buildImpression(model) {
         if (!m.statement || usedStatements.has(m.statement)) continue;
         usedStatements.add(m.statement);
         text += ' ' + m.statement;
+        qualified = true;
       }
       /* W-072. The one existing useCaveat (CUT-0009, peds PDFF) is the
          source's OWN stated scope-of-use limit, quoted verbatim -- the same
@@ -1752,9 +2076,40 @@ function buildImpression(model) {
       if (caveat && !usedStatements.has(caveat.statement)) {
         usedStatements.add(caveat.statement);
         text += ' “' + caveat.statement + '”';
+        qualified = true;
       }
       facts.push({parameter: c.parameter, text: text});
+      const abnormal = c.verdict.sev && c.verdict.sev !== 'ok';
+      classified.push({parameter: c.parameter, text: text,
+                       kind: abnormal ? 'abnormal'
+                                      : (qualified ? 'normal-qualified' : 'normal')});
     }
+  }
+
+  /* W-112. The reading order inside "Key findings": a reading the report could
+     not interpret first, then an asserted abnormal band, then a value no
+     published boundary covers. Ties keep the order the cards came in. */
+  const KEY_RANK = {noninterp: 0, abnormal: 1, gap: 2};
+  const keyFindings = classified
+    .map((f, i) => ({f: f, i: i}))
+    .filter(x => x.f.kind in KEY_RANK)
+    .sort((a, b) => (KEY_RANK[a.f.kind] - KEY_RANK[b.f.kind]) || (a.i - b.i))
+    .map(x => ({parameter: x.f.parameter, text: x.f.text}));
+  /* A normal reading that carried a qualifier keeps its own sentence; a plain
+     normal reading is named only in the collapsed summary. */
+  const otherFindings = classified
+    .filter(f => f.kind === 'normal-qualified')
+    .map(f => ({parameter: f.parameter, text: f.text}));
+  const plainNormals = classified.filter(f => f.kind === 'normal');
+  let normalSummary = null;
+  if (plainNormals.length) {
+    const names = plainNormals.map(f =>
+      (PARAMETER_LABELS[f.parameter] || f.parameter).split(' — ')[0]);
+    const joined = names.length === 1
+      ? names[0]
+      : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    normalSummary = joined + (names.length === 1 ? ' was' : ' were') +
+                    ' within normal limits.';
   }
 
   /* An unmeasured parameter is a CONCLUSION, not a blank. This is the entry the
@@ -1764,9 +2119,13 @@ function buildImpression(model) {
   for (let i = 0; i < rows.length; i++) {
     if (!rows[i].rendered) continue;
     if (rows[i].value !== null && rows[i].value !== undefined) continue;
+    /* W-063. The only way a row reaches here now is "toggled on, still
+       empty" — a row nobody toggled on and nobody typed a value for no
+       longer renders at all, so this sentence is unambiguous in a way its
+       predecessor, "not assessed", was not (spec § 5). */
     notAssessed.push({parameter: rows[i].parameter,
                       text: PARAMETER_LABELS[rows[i].parameter] +
-                            ' not assessed — no value was entered.'});
+                            ' — No data available for this measurement.'});
   }
 
   /* No internal identifier of any kind reaches `clinical` — not a reference
@@ -1828,9 +2187,63 @@ function buildImpression(model) {
     verb: FLOOR_VERB[floor]
   };
 
+  /* W-098. The closing "Summary" block — published composite verdicts, then any
+     consideration whose pattern fired (a quoted sentence with the source's own
+     strength label), then coverage and the evidence-floor verb. Structured
+     data; render.js composes the bold paragraph at the end of the impression.
+     `text` / `facts` are untouched (logic.test.js P7 / P9). */
+  const summary = buildConsiderations({
+    cards: cards, reliability: rel, selection: model.selection,
+    composite: model.composite, verb: FLOOR_VERB[floor]
+  });
+
+  /* W-081. One factual cross-read on page 1, ONLY when the ADC card read
+     abnormal AND an IVIM value is present. It juxtaposes the ADC finding with
+     the IVIM numbers and their reference; it asserts NO cause (a diagnostic
+     synthesis ships only as a verbatim CONSIDERATIONS record — W-098). D never
+     gets a within/outside word (R-30). f's F>=2 trend stays off page 1
+     (Diffusion!B16 gap). Additive: `text` / `facts` / `keyFindings` are
+     untouched (logic.test.js P7 / P9). */
+  const ivimCrossRead = (function () {
+    const iv = model.ivim;
+    /* `iv.rendered` (its "Additional measurements" checkbox is on, or a value
+       was typed) AND `iv.hasAny` (a value is actually present) — so a page-1
+       line never cites a number the page-2 section does not itself carry. */
+    if (!iv || !iv.hasAny || !iv.rendered) return null;
+    const adc = cards.filter(c => c.parameter === 'adc')[0];
+    if (!adc || !adc.verdict || !adc.verdict.band || adc.verdict.sev === 'ok') return null;
+    const parts = ['Apparent diffusion coefficient ' + adc.value +
+      (adc.unit ? ' ' + adc.unit : '') + ' — ' + adc.verdict.band + '.'];
+    if (iv.d) {
+      parts.push('IVIM true diffusion D ' + iv.d.value + ' ' + iv.d.unit +
+        (iv.d.reference
+          ? ' (reference ' + iv.d.reference + ' at ' + iv.fieldStrength + ')'
+          : ' (no field-strength-matched reference)') + '.');
+    }
+    [iv.dstar, iv.f].forEach(function (b) {
+      if (!b) return;
+      const nm = b.parameter === 'ivim-dstar'
+        ? 'IVIM pseudo-diffusion D*' : 'IVIM perfusion fraction f';
+      parts.push(nm + ' ' + b.value + ' ' + b.unit +
+        (b.interval
+          ? ' (reference ' + b.interval[0] + '–' + b.interval[1] + ' at ' +
+            iv.fieldStrength + ' — ' + b.membership + ')'
+          : ' (no field-strength-matched reference)') + '.');
+    });
+    return parts.join(' ');
+  })();
+
   return {
     clinical: {text: facts.map(f => f.text).join(' '), facts: facts,
-               notAssessed: notAssessed, abstentions: abstentions},
+               /* W-112. The priority split the renderer composes into two
+                  labelled groups with the history sentence moved to the end.
+                  `text` and `facts` are untouched above — this is additive. */
+               history: facts[0].text,
+               keyFindings: keyFindings, otherFindings: otherFindings,
+               normalSummary: normalSummary,
+               notAssessed: notAssessed, abstentions: abstentions,
+               ivimCrossRead: ivimCrossRead,
+               summary: summary},
     evidence: evidence
   };
 }
@@ -1882,13 +2295,16 @@ function buildReceipts(report) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {REPORT_PARAMETERS, PARAMETER_LABELS, PARAMETER_UNITS,
+  module.exports = {REPORT_PARAMETERS, PARAMETER_LABELS, PARAMETER_UNITS, PARAMETER_STEPS,
                     INDICATION_COHORTS, matchedScale, CARD_DOMAIN_ORDER,
                     orderCards, groupCardsByDomain, severityClass, LAB_INPUTS,
                     CONTEXT_INPUTS, buildContext,
                     buildReport, buildRow, buildCoverage, buildCards, buildReceipts,
-                    buildLabs, buildComposite, buildHistory, buildImpression, readerReason,
+                    buildLabs, buildComposite, buildConsiderations, buildHistory,
+                    buildImpression, readerReason,
                     READER_REASONS, rankedReasons,
                     buildReliability, evidenceFloor, markInterpretability,
+                    IVIM_PARAMS, IVIM_LABELS, IVIM_UNITS, IVIM_TREND_NOTE,
+                    ivimCaveatOf, buildIvim, REFERENCE_RANGES: _R.REFERENCE_RANGES,
                     FLAG_SENTENCES, V2_REPORT_VERSION, TECHNIQUE_CONTROL_KEY};
 }

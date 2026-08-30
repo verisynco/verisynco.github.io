@@ -121,12 +121,23 @@ const CLINICAL_REASON = {
              'this study.'
 };
 
-function propagate(byParameter) {
+function propagate(byParameter, values) {
+  const measured = values || {};
   for (const source of Object.keys(PROPAGATES_INTO)) {
     const from = byParameter[source];
     if (!from || from.interpretable) continue;
     for (const target of PROPAGATES_INTO[source]) {
-      if (!byParameter[target]) continue;   /* nothing measured — 6.1 owns it */
+      /* The downgrade reaches a target that HAS A MEASURED VALUE, whether or not
+         a rule of its own already fired on it (W-103, spec § 4). A target with no
+         value is owned by § 6.1 — it never gains a bucket here. Before W-103 this
+         guard read `if (!byParameter[target])`, which silently skipped a measured
+         MRE that carried no modifier: PDFF is shielded by TRG-0012's always-on
+         attach, MRE is not. */
+      if (!byParameter[target]) {
+        if (!has(measured[target])) continue;   /* nothing measured — 6.1 owns it */
+        byParameter[target] = {modifiers: [], interpretable: true, inherited: [],
+                               clinicalReason: null};
+      }
       byParameter[target].interpretable = false;
       if (!byParameter[target].clinicalReason) {
         byParameter[target].clinicalReason = CLINICAL_REASON.inherited;
@@ -221,7 +232,7 @@ function applyReliability(input) {
     }
   }
 
-  return {byParameter: propagate(byParameter), abstentions: abstentions, fired: fired};
+  return {byParameter: propagate(byParameter, input.values), abstentions: abstentions, fired: fired};
 }
 
 if (typeof module !== 'undefined' && module.exports) {

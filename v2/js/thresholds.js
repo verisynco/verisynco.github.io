@@ -79,7 +79,7 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.6';
+const V2_THRESHOLDS_VERSION = '1.8';
 
 /* -------------------------------------------------------------- Data loading
    In the browser the data files have already run and left their consts as
