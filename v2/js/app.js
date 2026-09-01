@@ -10,7 +10,32 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_APP_VERSION = '0.13.0';  /* W-017 round 2 moves this 0.12.0 -> 0.13.0:
+const V2_APP_VERSION = '0.14.3';  /* W-134 moves this 0.14.2 -> 0.14.3: a
+   click handler for the Live Report "also open" line's Hide/Show button, which
+   flips a set of Tier-1 purpose groups on the same `performed` axis as the
+   per-group checkboxes. No new default, no network call, no clinical value.
+   W-132 moves this 0.14.1 -> 0.14.2: the
+   "Send e-mail" click handler now calls the existing gated `window.print()`
+   BEFORE building and dispatching the mailto: draft — no browser lets a page
+   attach a generated file to a mailto: draft (six avenues checked, developer
+   decision 2026-08-30, CHANGELOG.md), so this is the closest available
+   "PDF first, then attach it to the e-mail" order. No new dependency, no
+   network request, no https requirement — file:// is unaffected.
+   W-129 moves this 0.14.0 -> 0.14.1: the
+   requesting-clinician identity fields are gone (render.js IDENTITY_CELLS),
+   so the `toolbar()` call site below no longer computes an e-mail-present
+   flag — the call drops back to 4 arguments. No clinical value, no hash
+   lock; the mailto: handler itself is unchanged (see its own comment below).
+   W-131 moves this 0.13.0 -> 0.14.0: a
+   light/dark theme toggle. `readTheme`/`writeTheme`/`applyTheme` are a
+   localStorage-backed pair in the exact shape `readAck`/`writeAck` already
+   use for the disclaimer (try/catch, fail closed) — the difference is the
+   storage: `localStorage` persists across a reload on purpose (the developer's
+   choice), where the disclaimer's `sessionStorage` deliberately does not.
+   `applyTheme` runs at module top level, before `initDisclaimerGate()` --
+   both the gate and `#app` start `hidden` in the markup, so nothing has
+   painted yet and there is no flash to guard against. No clinical value
+   moved and no hash lock covers this file. W-017 round 2 moves this 0.12.0 -> 0.13.0:
    a "Send to requestor" button is wired to open the clinician's own mail client
    on a mailto: draft (window.location.href), and the toolbar call gains the
    requestor-e-mail-present flag. It opens no network request of any kind; no
@@ -37,6 +62,40 @@ const V2_APP_VERSION = '0.13.0';  /* W-017 round 2 moves this 0.12.0 -> 0.13.0:
    disclaimer version and storage key (see v1/js/app.js) are not touched by this file. */
 const V2_DISCLAIMER_VERSION = '1.0';
 const V2_DISCLAIMER_KEY = 'veriliv-v2-disclaimer';
+
+/* ═══════════════════════════════════════════════════════ W-131 — THE THEME
+   Screen-only: styles.css keeps every dark token inside `@media screen`, so
+   the printed page is unaffected by whatever this reads or writes. Manual
+   toggle only, by developer decision — no `prefers-color-scheme` auto-switch.
+   `localStorage`, not `sessionStorage`: the preference is meant to survive a
+   reload, unlike the disclaimer acknowledgement and the sample mode above,
+   which are deliberately NOT persisted. Same fail-closed shape as
+   `readAck`/`writeAck`: a blocked or unavailable store is not an error the
+   reader sees, it is a silent fall-back to the default (light). */
+const V2_THEME_KEY = 'veriliv-v2-theme';
+
+function readTheme() {
+  try {
+    const v = localStorage.getItem(V2_THEME_KEY);
+    return v === 'dark' ? 'dark' : 'light';
+  } catch (e) { return 'light'; }
+}
+function writeTheme(theme) {
+  try { localStorage.setItem(V2_THEME_KEY, theme); } catch (e) {}
+}
+function applyTheme(theme) {
+  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+}
+function toggleTheme() {
+  const next = readTheme() === 'dark' ? 'light' : 'dark';
+  writeTheme(next);
+  applyTheme(next);
+}
+/* Runs now, at module load — `#app` and `#gate` both start `hidden` in the
+   markup (v2/index.html), so nothing has painted yet and there is no flash
+   to guard against by reaching for an inline <head> script instead. */
+applyTheme(readTheme());
 
 /* ═══════════════════════════════════════════════════════ SAMPLE MODE (W-014)
    THE DEMONSTRATION CASES. Every number in every scenario is fabricated: it
@@ -81,10 +140,29 @@ function sampleScenarioList() {
 let viewMode = 'sample';
 let selection = applySelection(createSelection(), caseByKey(DEFAULT_SAMPLE_KEY));
 
+/* W-146. Whether the "Calculate BMI" popup is open — a screen-only concern,
+   never part of `selection` (the clinical model): the whole app re-renders
+   through one `innerHTML` write on every `change` (see the comment on that
+   write, below), so a UI toggle placed in `selection` would pollute the
+   clinical model and would be exercised by the hash-lock tests for no
+   reason. Threaded the same way `viewMode` already is — read here, passed
+   down as a plain argument. Reset on every render pass, never persisted:
+   a reload (or leaving the sample) closing it is the safe direction. */
+let bmiPopupOpen = false;
+function toggleBmiPopup() {
+  bmiPopupOpen = !bmiPopupOpen;
+  renderSelectionScreen();
+}
+function closeBmiPopup() {
+  bmiPopupOpen = false;
+  renderSelectionScreen();
+}
+
 function enterSample(key) {
   viewMode = 'sample';
   selection = applySelection(createSelection(), caseByKey(key));
   removed = {};
+  bmiPopupOpen = false;
   renderSelectionScreen();
 }
 
@@ -94,6 +172,7 @@ function exitSample() {
   viewMode = 'live';
   selection = createSelection();
   removed = {};
+  bmiPopupOpen = false;
   renderSelectionScreen();
 }
 
@@ -330,10 +409,11 @@ function renderSelectionScreen(ackTs) {
        acquisition is named, and the page says so rather than showing an empty
        report a reader might take for a finished one. */
     document.body.classList.remove('path-chosen');
-    currentRoute = entryRoute(null, selection);
+    const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen};
+    currentRoute = entryRoute(null, selection, view);
     app.innerHTML = toolbar({mode: viewMode}, false, sampleDevHost(), sampleScenarioList()) +
       '<div class="page" id="clinical">' +
-      masthead(profileForPath('other')) + patientMeta(selection) +
+      masthead(profileForPath('other')) + patientMeta(selection, view) +
       studyMeta(selection, profileForPath('other')) +
       '<p class="note">Choose the scanner above to build the report. Nothing is ' +
       'staged until an acquisition is named.</p></div>';
@@ -341,15 +421,14 @@ function renderSelectionScreen(ackTs) {
     document.body.classList.add('path-chosen');
     const profile = profileForPath(selection.path);
     const model = buildModel(report, profile, selection);
-    currentRoute = entryRoute(model, selection);
-    app.innerHTML = toolbar({mode: viewMode}, true, sampleDevHost(), sampleScenarioList(),
-                            !!(selection.requestorEmail &&
-                               String(selection.requestorEmail).trim())) +
+    const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen};
+    currentRoute = entryRoute(model, selection, view);
+    app.innerHTML = toolbar({mode: viewMode}, true, sampleDevHost(), sampleScenarioList()) +
       renderReport(model, profile, selection,
                    {app: V2_APP_VERSION,
                     disclaimer: V2_DISCLAIMER_VERSION,
                     ackTs: window.__ackTs},
-                   {mode: viewMode});
+                   view);
   }
   wireSelectionScreen();
   /* Last, because the elements it looks for are the ones just written. */
@@ -374,17 +453,40 @@ function wireSelectionScreen() {
      the button, the keyboard shortcut and the stylesheet all answer to. */
   app.querySelectorAll('button[data-action="print"]').forEach(el =>
     el.addEventListener('click', () => window.print()));
-  /* W-017 round 2. "Send to requestor" opens the clinician's OWN mail client on
-     a `mailto:` draft — it opens no network request of any kind, so the report
-     never leaves the browser (feedback.test.js E12 locks that half over this
-     file). The button is `disabled` in the markup unless the report is ready,
-     we are not in a sample, and a requestor e-mail is present (render.js
-     `toolbar`); the guard here is belt-and-braces. `buildRequestorEmail` is
-     render.js's pure builder — the model is rebuilt from the current selection,
-     the same recompute pattern the reference filter above uses. */
+  /* W-131. No re-render: the theme is a CSS custom-property switch, and
+     toggling it does not change anything the model or the route computed —
+     re-running renderSelectionScreen() here would rebuild the whole report
+     to flip one attribute. */
+  app.querySelectorAll('button[data-action="toggle-theme"]').forEach(el =>
+    el.addEventListener('click', toggleTheme));
+  app.querySelectorAll('button[data-action="toggle-bmi-calc"]').forEach(el =>
+    el.addEventListener('click', toggleBmiPopup));
+  app.querySelectorAll('button[data-action="close-bmi-calc"]').forEach(el =>
+    el.addEventListener('click', closeBmiPopup));
+  /* W-017 round 2, ungated in W-129. "Send e-mail" opens the clinician's OWN
+     mail client on a `mailto:` draft — it opens no network request of any
+     kind, so the report never leaves the browser (feedback.test.js E12 locks
+     that half over this file). The button is `disabled` in the markup unless
+     the report is ready and we are not in a sample (render.js `toolbar`); the
+     guard here is belt-and-braces. `buildRequestorEmail` is render.js's pure
+     builder — the model is rebuilt from the current selection, the same
+     recompute pattern the reference filter above uses. Its recipient is
+     always empty (no e-mail field exists to source one from); the clinician
+     types it in themselves.
+     W-132: `window.print()` (the SAME wrapped, gated function the Print/Save
+     PDF button calls — never a second gate) fires FIRST, before the mailto:
+     dispatch. No browser lets a page attach a generated file to an outgoing
+     mailto: draft (checked six ways — no mailto: attachment parameter, no
+     Clipboard/File-System/Web-Share route without a secure https context,
+     which file:// never has; CHANGELOG.md carries the reasoning), so this is
+     the closest the report can get to "PDF first, then attach it to the
+     e-mail": the dialog opens, and only once it is dismissed does the draft
+     open with a sentence telling the clinician to attach what they just
+     saved. */
   app.querySelectorAll('button[data-action="send-requestor"]').forEach(el =>
     el.addEventListener('click', () => {
       if (el.disabled) return;
+      window.print();
       const profile = profileForPath(selection.path);
       const mail = buildRequestorEmail(
         buildModel(buildReport(selection), profile, selection),
@@ -519,6 +621,21 @@ function wireSelectionScreen() {
         });
         patch.scope = SCOPE_CHOICES[tier];
       }
+      selection = applySelection(selection, patch);
+      reRender();
+    }));
+
+  /* W-134. The "also open" line's Hide/Show shortcut (render.js
+     performedAlsoOpen): flip a comma-separated set of Tier-1 purpose groups at
+     once, to the state named by data-perf-to. Same `performed` axis as the
+     per-group checkboxes above; Tier-1 only, so no selection.scope recompute
+     (that is the Tier-2 rule). */
+  app.querySelectorAll('button[data-perf-set]').forEach(el =>
+    el.addEventListener('click', () => {
+      const groups = el.dataset.perfSet.split(',').filter(Boolean);
+      const to = el.dataset.perfTo === 'true';
+      const patch = {performed: {}};
+      groups.forEach(g => { patch.performed[g] = to; });
       selection = applySelection(selection, patch);
       reRender();
     }));

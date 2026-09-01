@@ -243,8 +243,13 @@ function buildZones(scale, parameter) {
     /* The boundary values, ascending, so a renderer can tick them without
        re-reading the scale. `n`, `min` and `max` travel with them because the
        tick is also where a pooled spread is legible. */
+    /* W-133. `evidenceGrades` rides with every other edge field — it is the
+       engine's OWN already-computed field (thresholds.js's boundary merge),
+       never re-derived here. A renderer needs it to say how well-sourced a
+       boundary is without re-reading the raw scale. */
     edges: ascEdges.map(e => ({boundary: e.boundary, value: e.value, unit: e.unit,
-                               n: e.n || null, min: e.min, max: e.max})),
+                               n: e.n || null, min: e.min, max: e.max,
+                               evidenceGrades: e.evidenceGrades || null})),
     nameSource: split ? 'ladder' : (portApplies ? 'v1-ported' : 'unresolved'),
     /* The field a renderer reads to decide whether it may use colour at all. */
     severitySource: portApplies ? 'v1-ported'

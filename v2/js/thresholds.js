@@ -79,7 +79,14 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.8';
+const V2_THRESHOLDS_VERSION = '1.10';   /* W-136: RESOLVED_HASH moved — CUT-0083..0087 add
+   five records to the MRE "primary-studies" pool, shifting the pooled mean at all four MRE
+   boundaries (adult, both field strengths, via the field-independent-by-group flag). No
+   thresholds.js code changed; the resolver's existing unweighted-mean pooling is what moved
+   the number, exactly as CLAUDE.md § 1.4 describes. The 'guideline' policy (SAR/LI-RADS
+   consensus, CUT-0054/0001/0057/0061) is untouched, so MRE's staging policy stays
+   'guideline' for every existing patient — nothing that decides a stage moved, only the
+   SECOND ('primary-studies') ladder's own numbers. */
 
 /* -------------------------------------------------------------- Data loading
    In the browser the data files have already run and left their consts as
@@ -434,6 +441,22 @@ function resolveBoundary(opts) {
     return absent(
       `records exist but none at ${fieldStrength}, and technique group ` +
       `"${group}" is not declared field-independent`, pool, 'no-record-at-field');
+  }
+
+  /* W-135 — records explicitly withdrawn from the staging path (spec
+     2026-08-31; LITERATURE.md § 12.18 for raw ADC, § 12.15 / § 9.12 for native
+     T1). Unlike techniqueAmbiguous there is no opt-in: a withdrawn boundary is
+     a gap the report must state, never a number a caller can ask back. */
+  {
+    const withdrawn = pool.filter(c => c.stagingWithdrawn === true);
+    if (withdrawn.length) flags.push('staging-withdrawn-records-excluded');
+    pool = pool.filter(c => c.stagingWithdrawn !== true);
+    if (!pool.length) {
+      return absent(
+        `${withdrawn.length} record(s) exist but are withdrawn from staging ` +
+        `(stagingWithdrawn); the report states this as a gap`,
+        withdrawn, 'staging-withdrawn');
+    }
   }
 
   if (!allowAmbiguousTechnique) {

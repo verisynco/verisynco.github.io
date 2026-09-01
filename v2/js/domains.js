@@ -16,7 +16,13 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_DOMAINS_VERSION = '1.5';   /* W-063b: GROUP_PARAMETERS / TIER1_GROUPS /
+const V2_DOMAINS_VERSION = '1.6';   /* 1.5 -> 1.6 (W-142): TIER1_GROUPS re-ordered
+                                        fat/iron/fibrosis -> fibrosis/fat/iron so the
+                                        entry form, the "Which measurements were performed"
+                                        summary and the printed cards all lead with MRE
+                                        (developer decision 2026-08-31). Record shape moved,
+                                        no value; SCHEMA.md § 5.1.1.
+                                        W-063b: GROUP_PARAMETERS / TIER1_GROUPS /
                                         TIER2_GROUPS / purposeGroupOf — the entry-screen
                                         purpose-group axis. 1.4 -> 1.5: the helper was
                                         `groupOf`, which SILENTLY overwrote thresholds.js's
@@ -71,9 +77,12 @@ const GROUP_PARAMETERS = {
 
 /* Tier 1 = the staging purposes chosen at the outset. Tier 2 = readings that
    do not stage a Tier-1 finding, offered separately (render.js tier2Block).
-   Tier-1 order is the entry-block and card-section order it implies; Tier-2
-   order matches REPORT_PARAMETERS. */
-const TIER1_GROUPS = ['fat', 'iron', 'fibrosis'];
+   Tier-1 order is the "Which measurements were performed" checkbox order and the
+   data-entry block order it implies; Tier-2 order matches REPORT_PARAMETERS.
+   W-142 re-set Tier-1 to lead with fibrosis (developer decision 2026-08-31), so
+   every ordered surface — entry form, checkbox summary, printed cards, Tab route
+   — reads MRE, then fat, then the iron block. */
+const TIER1_GROUPS = ['fibrosis', 'fat', 'iron'];
 const TIER2_GROUPS = ['t1', 'ct1', 'adc'];
 
 /* NOT `groupOf` — `v2/js/thresholds.js` already declares a top-level

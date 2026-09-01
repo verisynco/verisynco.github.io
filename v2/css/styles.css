@@ -46,6 +46,15 @@
      measured value. */
   --uncertain-edge:#7E868D;
 
+  /* W-134 — the Live Report "still expected" wash (screen only, live mode only).
+     A control affordance, NOT a report-content colour and NOT part of the
+     severity ramp (DESIGN-DIRECTION.md §2.2). Two very low-chroma warm greys:
+     --fill-needed for the indication's primary group, --fill-needed-quiet for
+     the other switched-on groups. MEASURED (render.test.js N62 recomputes it):
+     --ink 14.94:1 / 16.10:1, --ink-2 5.04:1 / 5.43:1 — every value input's own
+     text clears WCAG AA on both washes. */
+  --fill-needed:#F7EBD3; --fill-needed-quiet:#FBF4E4;
+
   /* ── Legacy aliases ── */
   --muted:var(--ink-2); --faint:#8A939C; --hair:var(--rule); --hair2:#ECEEF0;
   --accent:#2b4a6f; --accent-tint:#eaf0f6; --marker:#0f1b26; --flag:#b23b3b;
@@ -78,6 +87,148 @@
   --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,Menlo,monospace;
   --serif:Georgia,"Times New Roman","Nimbus Roman",serif;
 }
+
+/* ═══════════════════════════════════════════════════ W-131 — DARK THEME
+   A manual toggle only (no `prefers-color-scheme` — developer decision,
+   2026-08-30): `document.documentElement.dataset.theme` is set by js/app.js
+   from a `localStorage` preference, so this whole block is keyed off
+   `:root[data-theme="dark"]`. Wrapped in `@media screen` — not a guard added
+   defensively, but the actual mechanism that keeps print always light: the
+   printed sheet is portrait A4 read in greyscale as often as colour
+   (DESIGN-DIRECTION § 0), and § 0's own worked example rejects a dark ground
+   on A4 outright ("a toner problem"). Because these custom properties are
+   declared inside `@media screen`, `@media print` structurally never sees
+   them, so the toggle's state cannot reach the printed page — no separate
+   "reset to light for print" rule is needed.
+
+   Every value below is MEASURED against the same pairs v2/tests/render.test.js
+   N17 locks for the light palette (WCAG AA 4.5:1 text, 1.4.11 3:1/2.5:1 for a
+   graphical object that carries meaning), by the parallel N59 section — a
+   palette edit that breaks a pair fails the same way N17 already does.
+
+   The severity ramp keeps its hue (the warm, red-adjacent family DESIGN-
+   DIRECTION § 2.2 chose so severity reads in greyscale and for a red-green
+   deficient reader) but ASCENDS in lightness sev-0 -> sev-4, the opposite
+   direction from the light ramp's descent. This is a deliberate, named
+   deviation, not a silent contradiction: each ramp end is the step that
+   stands furthest from its OWN sheet — darkest-of-the-ramp on white paper,
+   brightest-of-the-ramp on a near-black sheet — so "most severe" keeps
+   reading as the step that departs furthest from a normal page, on either
+   theme. `--accent` is lightened for its majority use (11 sites set it as
+   TEXT on the sheet) rather than kept navy-dark; the 3 sites that instead
+   use it as a solid fill under white text (`.badge`, `.acqsum .badge`,
+   `.toolbar button`) get a matching `color: var(--paper)` override below,
+   because a light accent under white text fails AA the moment the sheet
+   itself goes dark. `--marker` moves from near-black to a saturated blue
+   for the same reason: unchanged, it would sit at nearly the same lightness
+   as the new dark `--paper` and the "patient's own value" pin would stop
+   standing apart from the sheet, which is the one thing DESIGN-DIRECTION § 1
+   says it may never do.
+
+   REVISED same day, developer feedback: the first cut read as too close to
+   pure black. `--paper` and the page's own outer backdrop are the only two
+   values this revision moves — a medium dark grey (`#26282C`, roughly the
+   surface tone GitHub/VS Code's own dark themes use, not an OLED near-black)
+   over the original `#17191B`/`#0C0D0E`. Nothing else changes: the severity
+   ramp, `--frame`, `--uncertain`/`--uncertain-edge` and every chip tint were
+   ALREADY passing their own N59 floor with room to spare against the darker
+   paper, so lightening only `--paper` and re-measuring every pair that reads
+   it (all 13 N59 pairs re-verified; the tightest are the axis frame at
+   3.12:1 against a 3.0 floor and the not-interpretable chip border at
+   3.99:1 against 3.0 — both still hold) preserves the ramp's own legibility
+   exactly as the developer asked, rather than retuning a system that was not
+   the reported problem.
+
+   REVISED AGAIN same day, developer feedback: the page still read as one
+   flat grey plane — correct in the light theme, where `--paper` and
+   `--hair2` are both near-white and the difference is a deliberate near-
+   invisible nudge, but wrong once the sheet itself went dark, because two
+   near-identical dark tones read as no difference at all rather than as a
+   quiet one. Three tokens now form a real elevation ladder, darkest to
+   lightest — the page's own backdrop (`body`, below), `--paper` (the sheet
+   itself: `.page`, `#app`, `.shell`), `--hair2` (a layer raised OFF the
+   sheet: `.domaingroup`/`.mgroup`/`.evidence`'s boxed panels, which already
+   used this exact token for the same job in the light theme, and now also
+   `.toolbar` — screen furniture that floats beside the page, not part of
+   it, given a dark-only override below since the light theme correctly
+   keeps it flush with `--paper`). `--hair2` moved `#2E3136` -> `#34373D`,
+   sized to the SAME 4.5:1 floor as every other text-bearing surface: the
+   ceiling on how far it can lighten is set by `--ink-2` (`.domainhead`,
+   `.evidence h4`, `.tb-note`/`.tb-reason`, all already `var(--muted)` =
+   `var(--ink-2)`), which clears it at 4.72:1 — the next step up drops that
+   pair under 4.5. One casualty of the wider gap: `--accent` on the new
+   `--hair2` falls under 4.5 (was the only text colour on this token that
+   was never `--ink`/`--ink-2`), so `.labs-head .t`'s accent label gets a
+   dark-only override to `var(--ink)` rather than capping the whole ladder's
+   contrast to protect one label — `--accent`'s other 13 call sites are all
+   text on `--paper`, unaffected. */
+@media screen{
+  :root[data-theme="dark"]{
+    --paper:#26282C; --ink:#ECEDEC; --ink-2:#9BA4AC; --rule:#2B2F33;
+    --frame:#6E747A;
+    --sev-0:#40332A; --sev-1:#5E4633; --sev-2:#7F5A3C;
+    --sev-3:#C08A56; --sev-4:#EAB27A;
+    --uncertain:#5C636B;
+    --uncertain-edge:#7E868D;
+    --faint:#7E8790; --hair2:#34373D;
+    --accent:#6FA0D0; --accent-tint:#1C2733; --marker:#2A5A82; --flag:#E2726B;
+    /* W-134, dark. Same discipline as the light values above: a warm wash a
+       step off --paper (#26282C). MEASURED (render.test.js N62): --ink 10.50:1 /
+       11.53:1, --ink-2 4.87:1 / 5.35:1 — clears AA on both washes. */
+    --fill-needed:#3A342A; --fill-needed-quiet:#312E28;
+  }
+  /* The elevation ladder's raised step. `.toolbar` is screen furniture
+     beside the page, not part of it, so it gets the SAME "boxed panel" tone
+     `.domaingroup`/`.mgroup`/`.evidence` already carry via `--hair2` in
+     their own light-theme-authored rule — one token, reused, not a parallel
+     system. The light theme is untouched: it keeps the toolbar flush with
+     `--paper` on purpose (its `--hair2` nudge is meant to be barely visible). */
+  :root[data-theme="dark"] .toolbar{ background: var(--hair2); }
+  /* The one label that was the sole reason `--hair2` could not lighten
+     further (see the block comment above): moved off `--accent` (fails 4.5:1
+     on the new tone) onto `--ink` (10.17:1, no ceiling problem at all). */
+  :root[data-theme="dark"] .labs-head .t{ color: var(--ink); }
+  /* Everything else in the palette is an alias (--muted/--hair/--ok.../--sev)
+     onto the tokens above and re-themes for free — restating an alias here
+     would turn it back into an independent literal, which is the one thing
+     the alias exists to prevent (see the light :root block's own comment). */
+
+  /* The handful of rules that hold a LITERAL colour rather than a token
+     (verdict-chip tints; the page's own outer backdrop; two warning boxes)
+     get their dark counterpart here, at the same measured discipline. The
+     backdrop stays darker than `--paper` (unchanged relationship, both moved
+     up together) so the sheet still reads as a lighter card floating above
+     its own surround, exactly as the light theme's paper/body pairing does. */
+  :root[data-theme="dark"] body{ background:#1A1B1E; }
+  :root[data-theme="dark"] .warn{ background:#2E2712; }
+  :root[data-theme="dark"] .withheld,
+  :root[data-theme="dark"] .disagree{ background:#2E2712; }
+  /* MEASURED text-on-tint, dark: 10.04 / 10.10 / 9.46 / 9.38 / 9.43 — same
+     discipline as the light chip's own comment two blocks below. */
+  :root[data-theme="dark"] .v-ok  { color:#D9D6D2; background:#2A2926; }
+  :root[data-theme="dark"] .v-low { color:#DCD8CE; background:#2C2A22; }
+  :root[data-theme="dark"] .v-mid { color:#E4CDB9; background:#332720; }
+  :root[data-theme="dark"] .v-high{ color:#F0C9AE; background:#3C2417; }
+  :root[data-theme="dark"] .v-sev { color:#F5B9A8; background:#3C160E; }
+  /* The 3 solid-accent-fill sites, `:not([disabled])` so a disabled toolbar
+     button keeps its own `.toolbar button[disabled]` colour (var(--muted),
+     already dark-theme-aware) rather than losing it to this rule's higher
+     specificity. */
+  :root[data-theme="dark"] .acqsum .badge,
+  :root[data-theme="dark"] .badge,
+  :root[data-theme="dark"] .toolbar button:not([disabled]) { color: var(--paper); }
+}
+
+/* The theme toggle's own label (W-131): toolbar() always renders both spans
+   — a pure string builder has no DOM to read a theme back from — and CSS
+   alone decides which one shows, the same way it decides everything else
+   about the theme. Outside the dark-token block on purpose: `.toolbar` is
+   already `.screen-only` and vanishes under `@media print` by that existing
+   rule, so nothing here needs its own print guard. */
+.tb-theme-to-light{ display:none; }
+:root[data-theme="dark"] .tb-theme-to-dark{ display:none; }
+:root[data-theme="dark"] .tb-theme-to-light{ display:inline; }
+
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body { background:#e9edf1; color:var(--ink); font-family:var(--sans);
@@ -286,9 +437,35 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
 #app { max-width: none; background: transparent; box-shadow: none;
        border-radius: 0; padding: 0; }
 
+/* W-128 — PAPER PREVIEW. An honest, approximate page-break line. Screen has
+   no equivalent of @page — Blink only paginates during an actual print
+   (W-096: @page :nth() is not even selectable) — so this cannot be exact.
+   What CAN be shown honestly is an estimate: a sheet's own content height is
+   297mm minus @page's 8mm top+bottom margin = 281mm (the same 281mm the
+   W-009 page-budget comments already use), so a line every 281mm
+   approximates where a break tends to land; a real break still moves
+   against it wherever a break-inside/break-after:avoid rule (below) pushes a
+   card to the next sheet — the toolbar's own note (render.js toolbar())
+   says so in words. It is a background-image, not an overlay element, so it
+   paints behind every real card by the ordinary CSS box model — no z-index
+   needed, nothing to fight with real content for. */
 .page { width: 210mm; min-height: 297mm; margin: var(--s-6) auto; background: var(--paper);
         padding: 11mm 12mm 9mm; box-shadow: 0 3px 20px rgba(15,27,38,.14);
-        position: relative; }
+        position: relative;
+        background-image: repeating-linear-gradient(to bottom,
+          transparent 0, transparent calc(281mm - 1px),
+          var(--hair) calc(281mm - 1px), var(--hair) 281mm); }
+/* W-128 — the density scale. @media print (below) redefines this same
+   seven-step --s-* scale at :root; scoping the identical values to .page's
+   CHILDREN (never .page itself — .page's own `margin` above still reads
+   --s-6, and redefining --s-6 on .page too would shrink that margin along
+   with it, a side effect with nothing to do with matching print, since that
+   gap does not print at all) means every var(--s-N) reference INSIDE a
+   sheet reads the print density on screen too, without shrinking the
+   toolbar or the gate screen, which sit outside .page and keep the normal
+   scale. */
+.page > * { --s-1:1px; --s-2:2px; --s-3:3px; --s-4:5px;
+            --s-5:8px; --s-6:11px; --s-7:15px; }
 .pagebreak { page-break-before: always; }
 .sheet-title { font-size: 13px; font-weight: 700; text-transform: uppercase;
                letter-spacing: .13em; margin: 0 0 var(--s-4); color: var(--ink); }
@@ -383,6 +560,24 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
    the gap between a consensus ruler and the slim matched strip below it can
    close up without the strip riding into the numbers. */
 .rul + .rul { margin-top: var(--s-2); }
+/* W-145. A dashed hairline between the two bars, so a reader can tell the
+   consensus ladder apart from the indication-specific/conflicting one below
+   it without relying on the header text alone. Round 1 (28px, `--hair` at
+   .6 opacity) read as too faint to notice on a real print (developer
+   feedback, 2026-09-01) — round 2 runs the full width of the bar it sits
+   above (`width: 100%`, matching `svg.ruler`'s own `width: 100%` in the
+   same `.rul` container, so the two line up without a shared constant) and
+   swaps to `--faint`, the darker of the two muted tokens the report already
+   uses (`.rul-role` sets it below), at full opacity. Draws automatically
+   only when a second `.rul` sibling exists — no flag needed, the adjacent-
+   sibling selector already does that for free. */
+.rul + .rul::before {
+  content: '';
+  display: block;
+  width: 100%;
+  margin: 0 0 var(--s-1);
+  border-top: 1px dashed var(--faint);
+}
 .rul-head { display: flex; align-items: baseline; gap: var(--s-4);
             font-family: var(--mono); font-size: 8.5px; letter-spacing: .06em;
             text-transform: uppercase; }
@@ -617,7 +812,8 @@ svg.ruler.slim { opacity: .8; }
   .domainhead { break-after: avoid; page-break-after: avoid; }
 
   /* Entry controls carry no chrome on paper; the values still print. */
-  .pval input, .method select { border-color: transparent !important;
+  .pval input, .method select,
+  .pcard .pident .cell select { border-color: transparent !important;
                                 background: transparent !important; }
 
   .section { margin-bottom: var(--s-3); }
@@ -647,13 +843,20 @@ svg.ruler.slim { opacity: .8; }
    system fallbacks so an offline print is unchanged. */
 
 .masthead { display: flex; justify-content: space-between; align-items: flex-start;
+  position: relative;
   border-bottom: 2px solid var(--accent); padding-bottom: var(--s-4); margin-bottom: var(--s-4); }
-/* W-130. The brand mark sits on the existing spacing scale (--s-7, 26px) — no
-   new size token for one image. border-radius:50% clips the source PNG's
-   square canvas to its own circular mark (see masthead()'s comment); flex:none
-   so a narrow-screen wrap (the 700px breakpoint below) never shrinks it. */
-.brand-mark { width: var(--s-7); height: var(--s-7); border-radius: 50%; flex: none;
-  margin-right: var(--s-3); }
+/* W-130/W-139. Was sized on the existing spacing scale (--s-7); W-139 moved
+   the mark out of the text row into the masthead's own top-right corner — the
+   empty space beside the <h1> title — and off that scale onto an explicit
+   36px (developer-picked, screen and print alike; the `.page > *` override at
+   :467-468 would otherwise force it back to 15px like every --s-7 consumer).
+   `position:absolute` against `.masthead`'s new `position:relative` takes it
+   out of flow, so it adds no masthead height and cannot push later content
+   down — confirmed against a printed `fully-worked` sample, still 5 pages.
+   border-radius:50% still clips the source PNG's square canvas to its own
+   circular mark (see masthead()'s comment). */
+.brand-mark { width: 36px; height: 36px; border-radius: 50%;
+  position: absolute; top: 0; right: 0; }
 .masthead h1 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
 .masthead .detail { max-width: 62ch; font-size: 10.5px; color: var(--muted);
   margin: var(--s-3) 0 0; line-height: 1.45; }
@@ -663,7 +866,10 @@ svg.ruler.slim { opacity: .8; }
 
 .meta { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
   border: 1px solid var(--hair); border-radius: 6px; overflow: hidden; margin: 0 0 var(--s-3); }
-.meta.study { grid-template-columns: repeat(2, 1fr); }
+/* W-146: row 2 gained cohort/indication (moved out of row 1 to make room for
+   bmi) — 2 columns becomes 4. Row 1 keeps its 5-column rule unchanged
+   (accession/studyDate/age/bmi/Calculate-BMI). */
+.meta.study { grid-template-columns: repeat(4, 1fr); }
 .meta .cell { padding: var(--s-3) var(--s-4); border-right: 1px solid var(--hair2); }
 .meta .cell:last-child { border-right: none; }
 .meta label { display: block; font-family: var(--mono); font-size: 8px;
@@ -672,6 +878,41 @@ svg.ruler.slim { opacity: .8; }
   color: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 600;
   padding: var(--s-1) 0; outline: none; }
 .pathnote { font-size: 10px; color: var(--muted); margin: var(--s-2) 0 var(--s-4); }
+
+/* W-146. The "Calculate BMI" trigger + popup. Screen-only (the whole cell
+   carries `.screen-only`, hidden in print by the existing rule at line
+   ~1100); the printed page shows the four real header cells only. A native
+   `<dialog>`, shown purely by the `open` attribute the renderer writes (no
+   `showModal()` call, no JS-owned visibility) — the same "pure function of
+   its arguments" rule every other screen state in this file already keeps. */
+.meta .calc-bmi-cell { display: flex; align-items: center; }
+.bmi-calc-btn { border: 1px solid var(--hair2); background: transparent; color: var(--ink);
+  font-family: var(--sans); font-size: 10.5px; border-radius: 4px; padding: var(--s-2) var(--s-3);
+  cursor: pointer; }
+/* `position: fixed`, not anchored to the trigger cell: `.meta` carries
+   `overflow: hidden` (its rounded-corner frame), which would clip an
+   absolutely-positioned popup the moment it grew taller than the header row.
+   `position: fixed` escapes that — `.meta` sets no `transform`/`filter`/
+   `will-change`, so it never becomes a containing block for a fixed
+   descendant — and centres the dialog in the viewport instead, the
+   conventional placement for a small calculator popup anyway. */
+.bmi-calc-dialog { position: fixed; top: 18%; left: 50%; transform: translateX(-50%);
+  border: 1px solid var(--hair); border-radius: 8px; padding: var(--s-4);
+  background: var(--paper); color: var(--ink); box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  min-width: 220px; z-index: 5; }
+.bmi-calc-head { display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; font-weight: 600; margin-bottom: var(--s-3); }
+.bmi-calc-head button { border: none; background: transparent; color: var(--muted);
+  font-size: 14px; line-height: 1; cursor: pointer; }
+.bmi-calc-dialog .lc + .lc { margin-top: var(--s-3); }
+
+/* The BMI hint reuses the existing native-title idiom (.pbars[title] etc.,
+   below) rather than a second tooltip mechanism: no script, works under
+   file://, prints nothing (a `title` attribute is never rendered on paper). */
+.hint { font-family: var(--sans); font-weight: 400; color: var(--muted);
+  border: 1px solid var(--hair2); border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; width: 13px; height: 13px;
+  font-size: 9px; text-transform: none; letter-spacing: normal; }
 
 /* THE SIGNATURE ELEMENT is the shared axis: one vertical marker crosses both bars
    at the same x, so a disagreement between two published ladders is a picture
@@ -696,8 +937,12 @@ svg.ruler.slim { opacity: .8; }
    three lines deep) -- it prints whole, or the whole thing wraps to its own
    line beneath the input, never split at each internal space. */
 .pcard .pval { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; }
+/* W-128 — an underline, not a box: quiet enough to read as paper at rest,
+   still visibly a control (native :focus is untouched). Print (unchanged,
+   see the .pval input rule in @media print below) removes even this. */
 .pcard .pval input { width: 74px; font-family: var(--mono); font-size: 14px;
-  font-weight: 600; border: 1px solid var(--hair); border-radius: 4px; padding: var(--s-1) var(--s-3); }
+  font-weight: 600; border: none; border-bottom: 1px solid var(--hair); border-radius: 0;
+  background: transparent; padding: var(--s-1) var(--s-3); }
 .pcard .pval .unit { font-family: var(--mono); font-size: 9px; color: var(--muted);
   white-space: nowrap; }
 /* W-033 -- A DERIVED LIC IS A READOUT, NOT A FIELD. The readout carries the
@@ -760,17 +1005,45 @@ svg.ruler.slim { opacity: .8; }
 .method .mlabel { display: block; font-family: var(--mono); font-size: 8px;
   letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
 .method .mgroup, .method .mex { display: block; font-size: 9px; color: var(--faint); }
+/* W-128 — the acquisition-method dropdown had no rule of its own, so it took
+   the browser's native boxed <select> chrome, the one clearly form-like
+   control left on the sheet. Same underline treatment as every other field
+   on this page, same reason; print (unchanged, see @media print below)
+   already zeroes it via the existing `.pval input, .method select` rule. */
+.method select { font: inherit; font-size: 10px; border: none;
+  border-bottom: 1px solid var(--hair); border-radius: 0; background: transparent;
+  color: var(--ink); padding: var(--s-1) 0; }
+
+/* W-141. `etiologyCohortHtml` draws the moved 'Closest evidence cohort' cell
+   through the shared selectCell()/`.cell` markup (same as the identity row it
+   used to sit in), so it is styled here rather than given a second wrapper —
+   same underline treatment as `.method select` above (W-128), in FLOW under
+   the value block, no fixed offset (W-141 brief: the second ruler row this
+   sits near is conditional, so a fixed pixel target would misalign when that
+   row is absent). Unlike `.method`/`.method select`, this is NOT screen-only:
+   the identity row printed the chosen cohort on paper and this move keeps
+   that, it only relocates where. */
+.pcard .pident .cell { margin-top: var(--s-3); font-size: 10px; }
+.pcard .pident .cell label { display: block; font-family: var(--mono); font-size: 8px;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--faint); margin-bottom: var(--s-1); }
+.pcard .pident .cell select { width: 100%; font: inherit; font-size: 10px; border: none;
+  border-bottom: 1px solid var(--hair); border-radius: 0; background: transparent;
+  color: var(--ink); padding: var(--s-1) 0; }
 
 .labs-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s-3); }
-/* W-106 — the clinical-context block reuses `.labs-grid` (one rule, two rows,
-   N25) but carries 3 fields with Fibrosis off and 6 with it on, so the shared
-   5-column track wrapped the 6th field onto a second line. This override — the
-   context grid only, via the `.ctx-head` sibling — puts every field on ONE row
-   whatever the count: N children become N equal columns. The Laboratory grid
-   keeps repeat(5, 1fr). Cells still shrink (`.lc { min-width: 0 }`) and long
-   labels wrap (`.lc label { overflow-wrap: anywhere }`). */
-.ctx-head + .labs-grid { grid-auto-flow: column; grid-auto-columns: 1fr;
-  grid-template-columns: none; }
+/* W-144: altUln/ggt now splice into the Laboratory grid itself (between ALT
+   and Platelets, report.js buildLabs()) rather than a separate block, so
+   `labs.hasFibrosisLabs` widens it to 4 columns instead — AST/ALT/ALT upper
+   limit/GGT fill row 1, Platelets/Ferritin/Transferrin sat. fill row 2.
+   Without it (Fibrosis off and neither field typed) the grid is unchanged:
+   5 columns, one row, exactly as before this task. */
+.labs-grid.labs-fib { grid-template-columns: repeat(4, 1fr); }
+/* W-106's single-row override (`.ctx-head + .labs-grid`) existed only for
+   contextBlock()'s bmi/height/weight panel. W-146 deleted contextBlock() —
+   bmi moved to the patient/accession header, height/weight moved behind the
+   Calculate BMI popup — so the override is gone with it. The Laboratory
+   grid it never touched keeps its own repeat(5, 1fr) / repeat(4, 1fr) rule,
+   unchanged, below. */
 /* W-040 — THE CELL THAT HAD NO RULE. `.lc` carried no declaration anywhere in
    this file, so every laboratory and clinical-context field took the browser's
    default number input, roughly 173 px wide. A `1fr` track cannot shrink below
@@ -785,8 +1058,9 @@ svg.ruler.slim { opacity: .8; }
   letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
   margin-bottom: var(--s-1); overflow-wrap: anywhere; }
 .lc .r2 { display: flex; align-items: baseline; gap: var(--s-2); min-width: 0; }
-.lc input, .lc select { width: 100%; min-width: 0; border: 1px solid var(--hair);
-  border-radius: 4px; background: transparent; color: var(--ink);
+/* W-128 — same underline treatment as .pcard .pval input, same reason. */
+.lc input, .lc select { width: 100%; min-width: 0; border: none;
+  border-bottom: 1px solid var(--hair); border-radius: 0; background: transparent; color: var(--ink);
   font-family: var(--mono); font-size: var(--t-body); padding: var(--s-1) var(--s-2); }
 .lc .u { font-family: var(--mono); font-size: var(--t-micro); color: var(--muted);
   flex: none; }
@@ -809,7 +1083,11 @@ svg.ruler.slim { opacity: .8; }
 .composite .chip.met { border-color: var(--accent); background: var(--accent-tint); }
 .composite .chip .from, .composite .chip .test { display: block; font-family: var(--mono);
   font-size: 8px; color: var(--faint); }
+/* W-113. The plain-language sentence explaining what the rule does, printed
+   before the verdict — normal ink, not muted, since it is read first. */
+.composite .cintro { font-size: 11px; color: var(--ink-2); margin: 0 0 var(--s-3); }
 .composite .cnote, .impression .flags { font-size: 10px; color: var(--muted); }
+.composite .cnote b { color: var(--ink-2); }
 .impression h3 { margin: var(--s-5) 0 var(--s-2); font-size: 12px;
                  padding-top: var(--s-3); border-top: 2px solid var(--accent); }
 /* W-112. Sub-heads splitting the impression into the readings that carry weight
@@ -1049,7 +1327,7 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
 /* Screen-only affordance: the reasons that left the card are on the element they
    belong to, as a native tooltip. No script, works under file://, and — the whole
    point — it adds NOTHING to the printed page. */
-.pbars[title],.rul[title],.pverdict [title]{ cursor:help; }
+.pbars[title],.rul[title],.pverdict [title],.hint[title]{ cursor:help; }
 
 
 /* ── 4. THE PAGE BUDGET ──────────────────────────────────────────────────────
@@ -1139,13 +1417,22 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
   .masthead .detail{ margin:var(--s-1) 0 0; }
   .badge{ margin-top:var(--s-1); }
   .meta .cell{ padding:var(--s-1) var(--s-4); }
+  /* W-146: the Calculate BMI trigger + popup are `.screen-only` (hidden by
+     the rule above), leaving row 1 with 4 real cells instead of 5 —
+     accession/studyDate/age/bmi. Without this the row's 5th grid track
+     would print as an empty box (the W-104 defect this file already fixed
+     once for empty optional cells). Row 2 already carries exactly 4 real
+     cells (cohort/indication/fieldStrength/path), so this is a no-op there. */
+  .meta{ grid-template-columns:repeat(4, 1fr); }
   .labs-head{ padding:var(--s-1) var(--s-4); }
   .labs-pending,.labs-prov{ margin:var(--s-1) 0 0; }
   .composite .section-head{ margin-bottom:var(--s-1); }
   .composite .chip{ padding:var(--s-1) var(--s-3); }
   .impression .flags li{ line-height:1.25; }
   .impression h3{ margin:var(--s-3) 0 var(--s-1); }
+  .composite .cintro{ margin:0 0 var(--s-1); }
   .composite .cnote{ margin:var(--s-1) 0 0; }
+  .composite .cnote + .cnote{ margin-top:0; }
   .psection > h2{ margin:0 0 var(--s-1); }
   .domainhead{ margin:var(--s-4) 0 var(--s-2); padding-bottom:0; }
   .pfacts p{ margin:var(--s-1) 0 0; }
@@ -1186,9 +1473,21 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
    A background on the container is painted across every fragment the container
    breaks into, and `print-color-adjust: exact` is what stops the browser
    dropping it as decoration. Both halves are measured, not assumed. */
+/* W-128. A second layer, not a replacement: `.page`'s own base rule (above)
+   now also paints the approximate 281mm page-break line via
+   `background-image`, and this override used to REPLACE that property
+   wholesale (only one `background-image` applies unless the values are
+   layered), which would have silently dropped the line in sample mode — the
+   one mode most screenshots of this report are actually taken in. Backgrounds
+   layer in the order listed, first on top: the watermark stays visually in
+   front, the line stays visible in every gap behind it, same as it already
+   was in the real report. */
 body[data-mode="sample"] .page {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='250'%3E%3Ctext x='6' y='170' transform='rotate(-30 215 125)' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='27' font-weight='600' letter-spacing='2' fill='%23c2571c' fill-opacity='0.13'%3ESAMPLE - NOT A PATIENT REPORT%3C/text%3E%3C/svg%3E");
-  background-repeat: repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='430' height='250'%3E%3Ctext x='6' y='170' transform='rotate(-30 215 125)' font-family='Segoe UI,Helvetica,Arial,sans-serif' font-size='27' font-weight='600' letter-spacing='2' fill='%23c2571c' fill-opacity='0.13'%3ESAMPLE - NOT A PATIENT REPORT%3C/text%3E%3C/svg%3E"),
+    repeating-linear-gradient(to bottom,
+      transparent 0, transparent calc(281mm - 1px),
+      var(--hair) calc(281mm - 1px), var(--hair) 281mm);
+  background-repeat: repeat, no-repeat;
 }
 /* W-091 boxed the domain / methodology / evidence groups with an opaque
    `--hair2` fill, which paints over the watermark above — inside every box it
@@ -1252,6 +1551,32 @@ body[data-mode="sample"] .evidence { background: transparent; }
    in. On screen the input's own placeholder still does the job; on paper the
    input steps aside and the sentence takes its place. */
 .meta .cell .unset { display: none; }
+
+/* ═══════════════════════════════════════ W-134 — LIVE REPORT FILL-STATE AFFORDANCE
+   Screen only, and only in live mode: sample fields are `inert`, and print never
+   sets `data-mode="live"`, so this `@media screen` wrapper is the whole print
+   guard. An unentered value field whose measurement group is switched on carries
+   `data-fill="needed"` (render.js); the selected indication's primary group gets
+   the fuller `--fill-needed`, the other switched-on groups the quieter
+   `--fill-needed-quiet`. It is a control affordance, never a report-content
+   colour and never part of the severity ramp — DESIGN-DIRECTION.md §2.2. */
+@media screen {
+  body[data-mode="live"] .pcard .pval input[data-fill="needed"] {
+    background: var(--fill-needed-quiet);
+  }
+  body[data-mode="live"] .pcard .pval input[data-fill="needed"][data-fill-emph="primary"] {
+    background: var(--fill-needed);
+  }
+  /* The "also open" line under the Tier-1 checkboxes (render.js
+     performedAlsoOpen). Quiet by design — it states which groups the indication
+     did not put first, and offers a one-click Hide. */
+  .perf-also { margin: var(--s-3) 0 0; font-size: var(--t-meta);
+    color: var(--muted); letter-spacing: .03em; }
+  .perf-also button { font: inherit; font-size: var(--t-micro);
+    margin-left: var(--s-2); padding: var(--s-1) var(--s-3);
+    border: 1px solid var(--hair2); border-radius: 4px;
+    background: var(--paper); color: var(--accent); cursor: pointer; }
+}
 
 @media print {
   body[data-mode="sample"] .page {
@@ -1404,15 +1729,21 @@ body[data-mode="sample"] .evidence { background: transparent; }
   /* The masthead lockup stacks instead of being squeezed side to side. */
   .masthead { flex-wrap: wrap; gap: var(--s-3); }
 
-  /* Fixed multi-column grids fold to two columns. The clinical-context grid
-     keeps its W-106 single-row rule at desktop width (N25 reads that exact
-     `.ctx-head + .labs-grid` selector); this id-qualified override wins only
-     inside `#clinical` at phone width, where six fields on one row is ~56 px
-     a column. */
+  /* Fixed multi-column grids fold to two columns. */
   .meta { grid-template-columns: repeat(2, 1fr); }
+  /* W-146: `.meta.study` (two classes) outranks the bare `.meta` rule above
+     by specificity regardless of source order — the same W-144 trap as
+     `.labs-grid.labs-fib` below — so without this line row 2's 4 columns
+     (cohort/indication/fieldStrength/path) would wrongly stay 4-wide at
+     phone width instead of folding to 2 like every other grid here. */
+  .meta.study { grid-template-columns: repeat(2, 1fr); }
   .labs-grid { grid-template-columns: repeat(2, 1fr); }
-  #clinical .ctx-head + .labs-grid { grid-template-columns: repeat(2, 1fr);
-    grid-auto-flow: row; }
+  /* `.labs-grid.labs-fib` (two classes) outranks the bare `.labs-grid` rule
+     above by specificity regardless of source order, so without this line
+     a phone-width Laboratory grid with altUln/ggt shown would wrongly stay
+     at 4 columns instead of folding to 2 like every other grid on this
+     breakpoint (W-144). */
+  .labs-grid.labs-fib { grid-template-columns: repeat(2, 1fr); }
 
   /* Each parameter card stacks: identity / value, then the ruler, then the
      verdict chip and the facts — one column, in source order. */
@@ -1444,5 +1775,6 @@ body[data-mode="sample"] .evidence { background: transparent; }
   .meta input, .meta select,
   .labs-grid input, .labs-grid select,
   .pcard .pval input,
+  .pcard .pident .cell select,
   .toolbar button, .toolbar select { min-height: 44px; }
 }

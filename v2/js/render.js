@@ -26,7 +26,154 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.38';  /* W-130: six presentation changes, render/CSS
+const V2_RENDER_VERSION = '3.55';  /* W-146: bmi moves out of the laboratory-
+   adjacent "Clinical context (optional)" block (contextBlock(), deleted) and
+   into the patient/accession header (patientMeta) — IDENTITY_CELLS keeps
+   accession/studyDate/age, STUDY_CELLS gains cohort/indication ahead of
+   fieldStrength/path (same axis route order as before, only the visual row
+   moved). Height/weight move behind a new "Calculate BMI" popup, open state
+   threaded through app.js the same way `viewMode` is (not part of
+   `selection`); when closed, height/weight are not rendered at all, so
+   entryRoute only routes them while the popup is open (same "no route stop
+   without a field" rule as etiologyCohort's). A "?" affordance on the BMI
+   label carries a native `title` tooltip (existing screen-only idiom,
+   .pbars[title] etc.) summarising which parameters BMI affects. The bmi-echo
+   wording on the mre/pdff cards changes from "(Clinical context)" to
+   "(patient header)" to match. Presentation-only: no clinical value,
+   threshold, calibration or hash moved; CONTEXT_INPUTS/buildContext() are
+   untouched, only WHERE bmi/height/weight are drawn and routed changed.
+   Developer-approved design, 2026-09-01 (journal W-146).
+
+   W-144: three entry-form reorganisations.
+   (1) Ascites moves out of the standalone "Fibrosis — reliability context"
+   block (fibrosisContextHtml(), now deleted) and into the MRE card's own
+   .pident, directly under the 'Closest evidence cohort' selector
+   (ascitesCellHtml(), called right after etiologyCohortHtml() in
+   parameterCard()) — same visibility rule as that selector: gone when the
+   MRE card is not rendered. (2) ALT upper limit and GGT move out of the same
+   deleted block and into the Laboratory grid itself, spliced between ALT and
+   Platelets by report.js buildLabs() when Fibrosis is performed or either
+   already carries a value; `.labs-grid` gains a `labs-fib` modifier class
+   (styles.css) that widens it from 5 to 4 columns in that state only — row 1
+   becomes AST/ALT/ALT upper limit/GGT, row 2 becomes Platelets/Ferritin/
+   Transferrin sat. — and is byte-identical to the original 5-column single
+   row otherwise. (3) entryRoute() follows both moves: altUln/ggt's Tab stops
+   now come from the existing `model.labs.inputs` loop for free (they are
+   IN that list when shown, per (2)), and ascites gets one new stop in the
+   MRE row's own block, gated by `row.parameter === 'mre'` the same as
+   etiologyCohort's stop right above it. Grounds for moving ascites/altUln/
+   ggt off the always-reachable W-063 block: reliability.js:216 shows every
+   trigger built from these three (TRG-0002/TRG-0004/TRG-0005) only ever
+   attaches to `mre` once `mre` already carries a value, so none of the
+   three can affect a printed page the MRE card itself is not on — the same
+   finding W-141 already used for etiologyCohort, checked directly against
+   this task rather than assumed from the shape of the old W-063 comment
+   (that lesson's own warning: a queued worry does not automatically
+   transfer to a new control that only looks like the same shape of
+   problem). Developer-approved design, 2026-09-01 (journal W-144).
+   Presentation-only: no clinical value, threshold, calibration or hash
+   moved; CONTEXT_INPUTS/buildContext()/reliability.js are untouched, only
+   WHERE the fields are drawn changed.
+   W-141: the 'Closest evidence cohort
+   (if known)' cell moved out of the always-drawn identity row (IDENTITY_CELLS)
+   and into the MRE card's own .pident, right after the value block — its only
+   live effect today is steering report.js matchedScale for the 'mre' row
+   (report.js:834-847,955-967,1252), so it now disappears along with the MRE
+   card exactly when the card itself is not rendered (the existing
+   hasTypedValue/isGroupToggledOn data-protection rule, unchanged), costing
+   nothing since the axis would do nothing there either — developer decision
+   2026-09-01, journal W-141. entryRoute's stop for it moved with it, into the
+   per-row loop right after the mre row's own data-value stop; it no longer
+   resolves from a null model (W-046: the route now genuinely needs the row it
+   is a stop for). No clinical value, threshold or hash moved.
+   Was 3.52 for W-142: DOMAIN_ORDER re-sequenced to match
+   report.js CARD_DOMAIN_ORDER (MRE first, iron block whole on sheet 2 — developer
+   decision 2026-08-31). Reference-group order on the methodology sheet follows.
+   Presentation order only; no clinical value or hash moved.
+   Was 3.50 for W-136 review: the 'Closest evidence cohort'
+   cell is CONSTRAINED — it offers only the stated indication's own cohort family
+   (report.js INDICATION_COHORTS ∩ selection.js ETIOLOGY_COHORTS), is drawn
+   nowhere at all under an indication with no cohort-specific evidence, and the
+   Tab route (entryRoute) follows the same condition; selectCell gains a
+   `nullable` flag so a chosen cohort can be cleared back to "not stated".
+   Was 3.49 for W-136: a new entry-form cell, 'Closest evidence
+   cohort (if known)' (IDENTITY_CELLS, render.js), wired automatically through the
+   existing generic data-axis change handler and Tab route (W-017's "nearly free"
+   pattern) — no app.js change. Left unset, the printed report is byte-identical to
+   before this task.
+   W-138 — masthead <h1> renamed to
+                                      "Quantitative Imaging Biomarkers" (QIBA term);
+                                      naming only, no clinical value, no hash moved.
+                                      W-134 — Live Report fill-state affordance on
+                                      unentered value fields + indication-driven
+                                      emphasis; screen-only, no clinical value.
+                                      W-133 — matched-ladder citation fix,
+   two-case header sentence, evidence-grade badge. Was 3.45 for W-113 — MEFIB/MAST
+   composite section
+   rewritten for a non-code reader: compositeSection() prints a new .cintro
+   plain-language sentence before the verdict, and the .cnote footnote splits
+   into two labelled paragraphs (MAST / rule strength) instead of one run-on
+   paragraph. No new colour, no new selector reused elsewhere. Presentation-
+   only, no clinical value/threshold/hash moved (report.js carries the
+   matching W-113 comment on buildComposite()).
+   W-128 — paper preview: screen density
+   now matches print's (styles.css scopes the same seven-step --s-* scale
+   print already used to .page), an approximate ≈281mm page-break line
+   (background-image, layered behind the sample watermark rather than
+   replacing it), and every editable field on the sheet (.pcard .pval input,
+   .lc input/select, and a new .method select rule) reads as a quiet
+   underline instead of a boxed form control — print's own chrome-removal
+   rules are unchanged throughout. Presentation-only: no v2/data/ file
+   opened, no hash lock moved.
+   W-131 second revision (same day,
+   developer feedback: the dark theme read as one flat grey plane, not
+   layered). `--hair2` widens `#2E3136` -> `#34373D` — a real, visible step
+   off `--paper` rather than the light theme's deliberate near-invisible
+   nudge — and `.toolbar` moves onto it in dark mode (screen furniture beside
+   the page, not part of it), reusing the exact token
+   `.domaingroup`/`.mgroup`/`.evidence` already carry for the same "raised
+   panel" job. `.labs-head .t`'s label moves off `--accent` (fails 4.5:1 on
+   the wider `--hair2`) onto `--ink`. Three-step elevation now measurably
+   distinct: backdrop < paper < hair2 (styles.css and N59 carry the numbers).
+   No clinical value, no hash lock.
+   W-131 first revision (same day, developer
+   feedback: the dark theme read as too near-black). CSS-only: `--paper` and
+   the page's outer backdrop lighten to a medium dark grey (`#26282C`/
+   `#1A1B1E`, over `#17191B`/`#0C0D0E`); the severity ramp, `--frame` and
+   every chip tint are UNCHANGED — they already cleared their N59 floor with
+   room against the darker paper, so only the two values actually reported as
+   the problem move, and every pair that reads `--paper` was re-measured
+   (styles.css carries the full numbers). No clinical value, no hash lock.
+   W-132: a browser page cannot attach a
+   generated file to a `mailto:` draft — no attachment parameter any mail
+   client honours, and every real cross-app file handoff (Web Share, the
+   Clipboard API's file support, File System Access) needs a secure (https)
+   context that `file://` never satisfies; six avenues checked, developer
+   decision 2026-08-30, CHANGELOG.md carries the full reasoning. So
+   `buildRequestorEmail()`'s closing sentence is retensed ("produce it with
+   Print / Save PDF" -> "you were just asked to save"), and `toolbar()` gains
+   a caption next to the send button ("Opens the print dialog first, then
+   your mail app.") — app.js opens the same gated print dialog immediately
+   before the mail draft, so the sentence describes what already happened.
+   Screen-only; no clinical value, no v2/data/ file opened, no hash lock
+   moved.
+   W-129: the requesting-clinician identity
+   fields are removed — IDENTITY_CELLS loses `requestorName`/`requestorEmail`
+   (the strip goes from 7 cells to 5), and `buildRequestorEmail()`'s `to` is
+   always empty now (there is no field left to source a recipient from — the
+   clinician types it in their own mail client). `toolbar()` drops its 5th
+   `canSend` argument: the send button is enabled whenever the report is
+   `ready` and not `sample`, no e-mail-present gate, and its label changes
+   "Send to requestor" -> "Send e-mail". Sample mode still never renders the
+   button at all (W-126, unchanged). Screen-only; no clinical value, no
+   v2/data/ file opened, no hash lock moved.
+   W-131: a light/dark theme toggle. toolbar()
+   gains a "Dark mode"/"Light mode" button (both label spans always render;
+   CSS alone picks the visible one off `:root[data-theme]`, the same way the
+   dark token block itself is keyed) — screen-only, no print form. No
+   clinical value, no hash lock; see v2/css/styles.css's own W-131 comment for
+   the dark palette's measured contrast pairs and v2/js/app.js for the
+   localStorage-backed toggle. W-130: six presentation changes, render/CSS
    only — (1) IVIM's three research cards now reuse `.pcard`'s own grid, `.pident
    h4`, `.pval` and `.pverdict`, wholesale, instead of bare text; D's chip is the
    ordinary "not staged" v-na chip (verdictChip(null,true), never a new string),
@@ -149,7 +296,7 @@ margin-box counters in `v2/css/styles.css` -- no markup or JS change, no v2/data
 hash lock moved. A matching mark at the bottom was considered and dropped: `@page :nth()` is
 unsupported in Blink (measured), so the true last physical page cannot be selected, and a
 mark that would also print on the last sheet is a false statement rather than a true one.
-W-097: six measured findings on how little of their allotted space several text fields used -- `.pcard .pval` gains `flex-wrap:wrap` and `.pval .unit` gains `white-space:nowrap` so a multi-word unit (LIC's "mg Fe/g dw") wraps as a whole rather than breaking word by word; a ruler-less card's value column shrinks to `min-content` (`.pcard:has(.pbars:empty)`) so the freed width goes to the gap sentence beside it; the verdict chip is vertically centred (`.pverdict{align-self:center}`) against the ruler instead of pinned to the row's top; `.gap`/`.withheld`/`.scopegap` and `.acqsum` shrink to their content (`display:table` / `width:fit-content`, both capped at `max-width:100%` so a long one still falls back to full width). Presentation-only, `v2/css/styles.css` only -- no v2/data/ record, band, sev or hash lock moved, no clinical value changed. The 66ch impression measure (correct by design) and the 90px laboratory input width (W-040's overflow-risk rejection) are unchanged and now asserted as such. W-095: the .domaingroup .pcard + .pcard divider (styles.css) changes its token from --hair2 to --rule so the separator between the three Iron rows (R2* / T2* / LIC) is visible against the --hair2 group-box fill; markup and DOM unchanged, no v2/data/ record or hash moved. W-063b: Tier-1 block rewritten to purpose groups (Fat/Iron/Fibrosis) with method subtitles, Tier-2 "Additional measurements" block added, tierOffer removed, ascites/altUln/ggt made Fibrosis-conditional, entryRoute gated to match. W-094 and W-063 each advanced this to 3.12 independently — W-094 on the w-101 branch, W-063 on `main` — and the collision is resolved here, at the merge, to 3.13, the same pattern the rest of this comment already documents. W-101: a sample-mode rule drops the W-091 box fill to transparent so the W-014 watermark shows through, warmed to a developer-approved orange, no new colour token. W-094: rulerSvg()/bandLegend()/tickLine() mirror their draw direction for a `dir: 'down'` ruler (today t2star and adc only) so the bar and its text read left-to-right normal-to-severe like every `up` card; the marker moves with it since it goes through the same xOf. W-063: the always-visible per-parameter performed toggle, the moved-then-reversed MRE-reliability caption, the BMI height/weight cells, and (Task 9) the BMI echo line on pdff (3.0T)/mre cards. No v2/data/ record, band, order, sev or hash lock moved. W-100: masthead brand mark ("Veri.Liv") and a page-1 footer colophon (copyright, site, email), both developer-specified verbatim. W-091: card/domain-group separation and methodology-sheet hierarchy. W-072: the impression paragraph this renders grew a new clause shape. Both branches bumped 3.8 to 3.9 independently; the collision is resolved here, at the merge, rather than by rewriting either branch's history. */
+W-097: six measured findings on how little of their allotted space several text fields used -- `.pcard .pval` gains `flex-wrap:wrap` and `.pval .unit` gains `white-space:nowrap` so a multi-word unit (LIC's "mg Fe/g dw") wraps as a whole rather than breaking word by word; a ruler-less card's value column shrinks to `min-content` (`.pcard:has(.pbars:empty)`) so the freed width goes to the gap sentence beside it; the verdict chip is vertically centred (`.pverdict{align-self:center}`) against the ruler instead of pinned to the row's top; `.gap`/`.withheld`/`.scopegap` and `.acqsum` shrink to their content (`display:table` / `width:fit-content`, both capped at `max-width:100%` so a long one still falls back to full width). Presentation-only, `v2/css/styles.css` only -- no v2/data/ record, band, sev or hash lock moved, no clinical value changed. The 66ch impression measure (correct by design) and the 90px laboratory input width (W-040's overflow-risk rejection) are unchanged and now asserted as such. W-095: the .domaingroup .pcard + .pcard divider (styles.css) changes its token from --hair2 to --rule so the separator between the three Iron rows (R2* / T2* / LIC) is visible against the --hair2 group-box fill; markup and DOM unchanged, no v2/data/ record or hash moved. W-063b: Tier-1 block rewritten to purpose groups (Fat/Iron/Fibrosis) with method subtitles, Tier-2 "Additional measurements" block added, tierOffer removed, ascites/altUln/ggt made Fibrosis-conditional, entryRoute gated to match. W-094 and W-063 each advanced this to 3.12 independently — W-094 on the w-101 branch, W-063 on `main` — and the collision is resolved here, at the merge, to 3.13, the same pattern the rest of this comment already documents. W-101: a sample-mode rule drops the W-091 box fill to transparent so the W-014 watermark shows through, warmed to a developer-approved orange, no new colour token. W-094: rulerSvg()/bandLegend()/tickLine() mirror their draw direction for a `dir: 'down'` ruler (today t2star and adc only) so the bar and its text read left-to-right normal-to-severe like every `up` card; the marker moves with it since it goes through the same xOf. W-063: the always-visible per-parameter performed toggle, the moved-then-reversed MRE-reliability caption, the BMI height/weight cells, and (Task 9) the BMI echo line on pdff (3.0T)/mre cards. No v2/data/ record, band, order, sev or hash lock moved. W-100: masthead brand mark ("Veri.Liv") and a page-1 footer colophon (copyright, site, email), both developer-specified verbatim. W-091: card/domain-group separation and methodology-sheet hierarchy. W-072: the impression paragraph this renders grew a new clause shape. Both branches bumped 3.8 to 3.9 independently; the collision is resolved here, at the merge, rather than by rewriting either branch's history. W-139: masthead lockup and the page-1 colophon renamed ("VERISYNCO" → "VERISYN.CO", domain-aligned; "Veri.Liv" → "veri.liver") — developer-specified verbatim strings, same as W-100. `brand-mark` comes out of the lockup row and is repositioned into the empty space beside the masthead `<h1>`, `position:absolute` inside a now-`position:relative` `.masthead` so it adds no flow height; resized 15px → 36px, an explicit off-scale value the same way W-122's per-parameter `step` is (comment states why, not on the `--s-7` scale). Text lockup position and size unchanged — the developer's own instruction was to move the mark, not the text. Presentation-only: no v2/data/ record, band, sev or hash lock moved, `stampText()`'s separate undotted "VeriLiv V2" stamp line left untouched (not requested). */
 
 const _RN = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -168,7 +315,8 @@ const _RN = (typeof module !== 'undefined' && module.exports)
               optionsForDomain: d.optionsForDomain, displayExamples: d.displayExamples,
               PATHS: sel.PATHS, FIELD_STRENGTHS: sel.FIELD_STRENGTHS,
               AGE_GROUPS: sel.AGE_GROUPS, SCOPE_CHOICES: sel.SCOPE_CHOICES,
-              INDICATIONS: sel.INDICATIONS,
+              INDICATIONS: sel.INDICATIONS, ETIOLOGY_COHORTS: sel.ETIOLOGY_COHORTS,
+              INDICATION_COHORTS: rep.INDICATION_COHORTS,
               defaultTechniques: sel.defaultTechniques,
               PARAMETER_LABELS: rep.PARAMETER_LABELS, PARAMETER_UNITS: rep.PARAMETER_UNITS,
               PARAMETER_STEPS: rep.PARAMETER_STEPS,
@@ -199,6 +347,8 @@ const _RN = (typeof module !== 'undefined' && module.exports)
      optionsForDomain: optionsForDomain, displayExamples: displayExamples,
      PATHS: PATHS, FIELD_STRENGTHS: FIELD_STRENGTHS, AGE_GROUPS: AGE_GROUPS,
      SCOPE_CHOICES: SCOPE_CHOICES, INDICATIONS: INDICATIONS,
+     ETIOLOGY_COHORTS: ETIOLOGY_COHORTS,
+     INDICATION_COHORTS: INDICATION_COHORTS,
      defaultTechniques: defaultTechniques,
      PARAMETER_LABELS: PARAMETER_LABELS, PARAMETER_UNITS: PARAMETER_UNITS,
      PARAMETER_STEPS: PARAMETER_STEPS,
@@ -232,8 +382,11 @@ const SCOPE_LABELS = {
 
 /* The blocks V1 prints, by measurement domain rather than by parameter — which
    is why LIC, R2* and T2* share one block, exactly as they share one method
-   control. The order is V1's; the numbering is counted, not written. */
-const DOMAIN_ORDER = ['pdff', 'iron', 'mre', 't1', 'ct1', 'adc'];
+   control. The numbering is counted, not written. The order was V1's until W-142
+   re-set it (developer decision 2026-08-31) to match report.js CARD_DOMAIN_ORDER
+   — fibrosis first, iron whole on sheet 2; render.test.js N33 binds the two
+   element for element. */
+const DOMAIN_ORDER = ['mre', 'pdff', 'iron', 't1', 'ct1', 'adc'];
 const DOMAIN_TITLES = {
   pdff: 'Fat — steatosis',
   iron: 'Iron — R2* / T2* / LIC',
@@ -374,23 +527,34 @@ function productControl(selection, parameter, technique) {
    controls live in the report's own rows and are hidden under @media print. */
 
 function masthead(profile) {
-  /* W-130. A real mark beside the text lockup, in place of a placeholder \u2014
-     v2/assets/brand-mark.png, the developer's own verisyn.co logo, resized to
-     200x200 and clipped to its circle (border-radius:50% in CSS; the source
-     PNG has a near-paper background inside the ring, so a raw square would
-     read as a faint box on paper \u2014 the clip removes that with no image edit).
-     DESIGN-DIRECTION.md keeps the masthead the quietest thing on the page by
-     SIZE and by having no second display FACE; this mark is small and carries
-     no type, so it holds that. What it does knowingly relax is COLOUR \u2014 the
-     mark is full navy/blue, not ink-only \u2014 a deliberate developer choice
-     2026-08-30 (CLAUDE.md \u00a7 2.4), recorded here and in CHANGELOG.md rather
-     than silently contradicting the design doc's "no colour risk" language. */
-  return '<div class="masthead"><img class="brand-mark" src="assets/brand-mark.png" ' +
-    'alt="verisyn.co">' +
-    /* W-100: this lockup is V2's own \u2014 no longer verbatim V1's (v1/index.html:133,
-       frozen, unchanged). Developer-specified brand mark, scoped to this one string. */
-    '<div><div class="lockup">VERISYNCO . <b>Veri.Liv</b></div>' +
-    '<h1>Liver MRI \u2014 Quantitative Mapping Report</h1>' +
+  /* W-130. A real mark, not a placeholder \u2014 v2/assets/brand-mark.png, the
+     developer's own verisyn.co logo, resized to 200x200 and clipped to its
+     circle (border-radius:50% in CSS; the source PNG has a near-paper
+     background inside the ring, so a raw square would read as a faint box on
+     paper \u2014 the clip removes that with no image edit). DESIGN-DIRECTION.md
+     keeps the masthead the quietest thing on the page by SIZE and by having no
+     second display FACE; this mark carries no type, so it holds that. What it
+     does knowingly relax is COLOUR \u2014 the mark is full navy/blue, not ink-only
+     \u2014 a deliberate developer choice 2026-08-30 (CLAUDE.md \u00a7 2.4), recorded
+     here and in CHANGELOG.md rather than silently contradicting the design
+     doc's "no colour risk" language.
+
+     W-139. The mark moved OUT of this text row and into the masthead's own
+     top-right corner (`.masthead{position:relative}`, `.brand-mark{position:
+     absolute}` in styles.css) \u2014 the empty space beside the <h1> title \u2014
+     and grew 15px \u2192 36px, both screen and print. `position:absolute` resolves
+     against the nearest positioned ancestor regardless of DOM depth, so its
+     placement in markup below is cosmetic; it stays after the lockup div in
+     source order only because that reads more naturally next to the text it
+     used to sit beside. */
+    /* W-100/W-139: this lockup is V2's own \u2014 no longer verbatim V1's
+       (v1/index.html:133, frozen, unchanged). Developer-specified brand +
+       product strings, scoped to this one string: "VERISYN.CO" (renamed from
+       "VERISYNCO" to read as the domain, verisyn.co) and "veri.liver"
+       (renamed from "Veri.Liv"). */
+  return '<div class="masthead"><div><div class="lockup">VERISYN.CO - <b>veri.liver</b></div>' +
+    '<img class="brand-mark" src="assets/brand-mark.png" alt="verisyn.co">' +
+    '<h1>Liver MRI \u2014 Quantitative Imaging Biomarkers</h1>' +
     '<div class="sub">Measurements in, published staging out, every cut-off shown ' +
     'with its source.</div>' +
     '<p class="detail">This report converts quantitative liver MRI measurements into ' +
@@ -414,12 +578,19 @@ function masthead(profile) {
    checked" is representable; a select needs the placeholder to say it.
 
    Written for every axis rather than for `path`, because the next nullable axis
-   would arrive with the same defect and no test would notice. */
-function selectCell(label, axis, options, chosen, screenOnly) {
+   would arrive with the same defect and no test would notice.
+
+   W-136 review — `nullable: true` keeps the "Not selected" option in the list
+   even after a value is chosen, so an optional axis (etiologyCohort) can be
+   cleared back to not-stated from the form. Without it the empty option
+   appeared only while the value was still null. Non-nullable cells are
+   unchanged: they show the empty option only when unset. */
+function selectCell(label, axis, options, chosen, screenOnly, nullable) {
   const unset = chosen === null || chosen === undefined;
   return '<div class="cell' + (screenOnly ? ' screen-only' : '') + '"><label>' +
     esc(label) + '</label><select data-axis="' + esc(axis) + '">' +
-    (unset ? '<option value="" selected>Not selected</option>' : '') +
+    ((unset || nullable)
+      ? '<option value=""' + (unset ? ' selected' : '') + '>Not selected</option>' : '') +
     options.map(o => '<option value="' + esc(o.value) + '"' +
       (o.value === chosen ? ' selected' : '') + '>' + esc(o.label) + '</option>').join('') +
     '</select></div>';
@@ -448,6 +619,83 @@ const INDICATION_LABELS = {
   'non-specific': 'Not specified'
 };
 
+/* W-136. Sentence-case labels for the <select>, same split as INDICATION_LABELS
+   vs report.js's own lower-case INDICATION_READER_LABEL (report.js:749) — this
+   map has no lower-case sentence twin because the etiology axis never
+   appears in a printed sentence; it only steers which publication matches
+   (report.js matchedScale). W-136 review dropped 'adult-multi-etiology'
+   (withdrawn from ETIOLOGY_COHORTS — its records can never pin). */
+const ETIOLOGY_COHORT_LABELS = {
+  'adult-hbv': 'Hepatitis B',
+  'adult-hcv': 'Hepatitis C',
+  'adult-nafld': 'NAFLD / MASLD'
+};
+
+/* W-136 review — the etiology-cohort cell is offered only for the cohorts that
+   (a) can pin a publication at all (selection.js ETIOLOGY_COHORTS) AND (b)
+   belong to the stated indication's own family (report.js INDICATION_COHORTS).
+   Under an indication with no such cohort the intersection is empty and the
+   cell is drawn nowhere — a control offering only "Not selected" would be a
+   choice the reader could make and have silently ignored (finding #1). One
+   predicate, read by both metaCell (the cell) and entryRoute (the Tab stop),
+   so the page and the keyboard route can never disagree about whether it
+   exists (W-046). */
+function etiologyCohortsFor(selection) {
+  const family = _RN.INDICATION_COHORTS[selection && selection.indication] || [];
+  return _RN.ETIOLOGY_COHORTS.filter(c => family.indexOf(c) !== -1);
+}
+
+/* W-141. The same cell IDENTITY_CELLS used to carry for `etiologyCohort`
+   (label, nullable, options), now drawn inside the MRE card's own .pident
+   instead of the always-drawn identity row — see the note left at
+   IDENTITY_CELLS' old 'indication' entry. metaCell already returns '' when
+   options(selection) is empty, so an indication with no cohort family still
+   draws nothing here, same as before. */
+const ETIOLOGY_COHORT_CELL = {axis: 'etiologyCohort',
+  label: 'Closest evidence cohort (if known)', nullable: true,
+  options: (selection) => etiologyCohortsFor(selection).map(
+    c => ({value: c, label: ETIOLOGY_COHORT_LABELS[c]}))};
+
+function etiologyCohortHtml(row, selection) {
+  if (row.parameter !== 'mre') return '';
+  return metaCell(ETIOLOGY_COHORT_CELL, selection);
+}
+
+/* W-144. Was fibrosisContextHtml()'s ascites field, drawn far below in a
+   separate "Fibrosis — reliability context" block. Moved into the MRE
+   card's own .pident, right under the cohort selector above, on the same
+   reasoning: TRG-0002 only ever attaches to `mre` once `mre` has a value
+   (reliability.js:216), so the control doing nothing when the card is not
+   rendered costs nothing (the same finding W-141 used for etiologyCohort).
+   Reuses the `.cell` wrapper (and its existing `.pcard .pident .cell select`
+   styling) rather than the `.lc` shape the old block used — `data-value`,
+   not `data-axis`, because ascites lives in selection.values, not on the
+   selection object directly. */
+function ascitesCellHtml(row, selection) {
+  if (row.parameter !== 'mre') return '';
+  const v = (selection && selection.values && selection.values.ascites);
+  const chosen = (v === true || v === false) ? v : null;
+  return '<div class="cell"><label>Ascites</label><select data-value="ascites">' +
+    '<option value=""' + (chosen === null ? ' selected' : '') + '>not provided</option>' +
+    '<option value="true"' + (chosen === true ? ' selected' : '') + '>present</option>' +
+    '<option value="false"' + (chosen === false ? ' selected' : '') + '>absent</option>' +
+    '</select></div>';
+}
+
+/* W-134. Presentation-only: the purpose group the selected indication puts the
+   strongest fill-state emphasis on (valueAreaHtml). It GATES NOTHING and STAGES
+   NOTHING — every group stays in the same unfiltered pool, every card renders on
+   the same rule as before; this map only chooses which unentered field gets the
+   fuller wash and which the quieter one. A null primary (non-specific) means
+   every needed field is emphasised equally — there is no quieter tier to drop
+   the rest to. */
+const PRIMARY_GROUP_BY_INDICATION = {
+  'iron-overload': 'iron',
+  'steatotic-liver-disease': 'fat',
+  'chronic-liver-disease': 'fibrosis',
+  'non-specific': null
+};
+
 /* THE IDENTITY AND STUDY CELLS, DECLARED ONCE (W-046). They used to be a
    literal argument list inside each of the two builders below, which was fine
    while the markup was their only consumer. `entryRoute` is a second consumer,
@@ -465,22 +713,35 @@ const IDENTITY_CELLS = [
   /* Age does NOT derive the cohort: checked, not recalled — no adult/paediatric
      age boundary exists anywhere in v2/data/ or v2/js/, and writing one would
      put an unsourced boundary into a file that stages patients (§ 11.1). */
+  /* W-146: cohort/indication moved OUT of this array and into STUDY_CELLS,
+     below, so the header's first row can carry bmi instead — the axes
+     themselves, and their route order, are unchanged; only which visual row
+     they print in moved. */
+  /* W-136 added `etiologyCohort` here as its own cell. W-141 moved it out: the
+     axis only ever steers report.js matchedScale for the MRE row (its only
+     live effect today), so it now lives inside the MRE card itself
+     (etiologyCohortCell, parameterCard's .pident) rather than in the
+     always-drawn identity row — it disappears along with the card when
+     Fibrosis is off, which costs nothing because the axis would do nothing
+     there either. See etiologyCohortCell below for the cell definition. */
+  /* W-017 round 2 added a `requestorName`/`requestorEmail` pair here so the
+     finished report could be e-mailed straight to the requesting clinician.
+     W-129 removes both: the send button no longer needs an e-mail on file to
+     open a mailto: draft (buildRequestorEmail's `to` is simply empty, and the
+     clinician types the recipient themselves), so there was nothing left for
+     the fields to gate. */
+];
+
+const STUDY_CELLS = [
+  /* W-146: cohort/indication, formerly IDENTITY_CELLS' last two entries —
+     their route position (right after age, right before fieldStrength) is
+     unchanged, only the visual row they print in moved. */
   {axis: 'cohort', label: 'Cohort',
    options: () => _RN.AGE_GROUPS.map(
      a => ({value: a, label: a === 'adult' ? 'Adult' : 'Paediatric'}))},
   {axis: 'indication', label: 'Indication',
    options: () => _RN.INDICATIONS.map(
      i => ({value: i, label: INDICATION_LABELS[i]}))},
-  /* W-017 round 2. The clinician who requested the study — so the finished
-     report can be e-mailed to them. Text like accession, blank-safe by the
-     same rule; the address cell is typed `email` so a phone shows the right
-     keyboard and an obviously malformed value is refused by the browser. */
-  {axis: 'requestorName', label: 'Requesting clinician', placeholder: 'name'},
-  {axis: 'requestorEmail', label: 'Requestor e-mail', placeholder: 'name@example.org',
-   type: 'email'}
-];
-
-const STUDY_CELLS = [
   {axis: 'fieldStrength', label: 'Field strength',
    options: () => _RN.FIELD_STRENGTHS.map(f => ({value: f, label: f}))},
   {axis: 'path', label: 'Scanner',
@@ -492,14 +753,24 @@ const STUDY_CELLS = [
    box. The distinction is the descriptor's own shape, so a new cell declares
    what it is by what it carries. */
 function metaCell(cell, selection) {
-  return cell.options
-    ? selectCell(cell.label, cell.axis, cell.options(), selection[cell.axis])
-    : textCell(cell.label, cell.axis, selection[cell.axis], cell.placeholder, cell.type);
+  if (!cell.options) {
+    return textCell(cell.label, cell.axis, selection[cell.axis], cell.placeholder, cell.type);
+  }
+  const opts = cell.options(selection);
+  /* W-136 review — a <select> with no options for the current selection (the
+     etiology-cohort cell under an indication with no cohort-specific evidence)
+     is drawn nowhere rather than as an inert control offering only "Not
+     selected". entryRoute applies the same test so the Tab route matches. */
+  if (!opts.length) return '';
+  return selectCell(cell.label, cell.axis, opts, selection[cell.axis], false, cell.nullable);
 }
 
-function patientMeta(selection) {
+function patientMeta(selection, uiState) {
+  const context = _RN.buildContext(selection);
   return '<div class="meta">' +
     IDENTITY_CELLS.map(c => metaCell(c, selection)).join('') +
+    bmiHeaderCellHtml(context) +
+    bmiCalcCellHtml(context, uiState) +
     '</div>';
 }
 
@@ -535,7 +806,33 @@ function performedBlock(selection) {
   }).join('');
   return '<div class="labs-head ctx-head screen-only"><span class="t">' +
     'Which measurements were performed</span></div>' +
-    '<div class="perf-grid screen-only">' + rows + '</div>';
+    '<div class="perf-grid screen-only">' + rows + '</div>' +
+    performedAlsoOpen(selection, performed);
+}
+
+/* W-134. One screen-only line under the Tier-1 checkboxes, shown only when the
+   indication has a primary group (§ PRIMARY_GROUP_BY_INDICATION) AND the other
+   Tier-1 groups are switched on: it names them and offers a one-click Hide.
+   Hide/Show is a shortcut to the checkboxes above — it writes the same
+   `performed` axis, it does not change any default. Tier-1 only, so app.js needs
+   no scope recompute. */
+function performedAlsoOpen(selection, performed) {
+  const prim = PRIMARY_GROUP_BY_INDICATION[selection.indication];
+  if (!prim) return '';
+  const others = _RN.TIER1_GROUPS.filter(g => g !== prim);
+  const names = others.map(g => GROUP_LABELS[g] ? GROUP_LABELS[g].label : g).join(' and ');
+  const indLabel = INDICATION_LABELS[selection.indication] || selection.indication;
+  const onOthers = others.filter(g => performed[g] === true);
+  if (onOthers.length) {
+    return '<p class="perf-also screen-only">This report is set for ' + esc(indLabel) +
+      '. ' + esc(names) + ' are also open. ' +
+      '<button type="button" data-perf-set="' + esc(onOthers.join(',')) +
+      '" data-perf-to="false">Hide</button></p>';
+  }
+  return '<p class="perf-also screen-only">This report is set for ' + esc(indLabel) +
+    '. ' + esc(names) + ' are hidden. ' +
+    '<button type="button" data-perf-set="' + esc(others.join(',')) +
+    '" data-perf-to="true">Show</button></p>';
 }
 
 /* W-063b. The Tier-2 decision, made explicit and always-visible — it replaces
@@ -581,16 +878,46 @@ function tier2Block(model, selection) {
    alone (report re-renders on every committed change), never from the DOM. */
 function lcClass(isEmpty) { return isEmpty ? 'lc lc-empty' : 'lc'; }
 
-function bmiFieldHtml(context) {
-  const bmiEmpty = context.bmi === null && !context.bmiDerived;
+/* W-146. BMI moved out of the laboratory-adjacent "Clinical context
+   (optional)" block (contextBlock(), W-015/W-063, removed below) and into
+   the patient/accession header (patientMeta) — it is patient identity
+   metadata, read once per study, not a lab value. Height/weight — collected
+   solely to derive bmi when it is not typed directly (report.js
+   buildContext) — moved with it, but behind a "Calculate BMI" popup rather
+   than sitting on the header row directly: two more always-visible number
+   boxes would not fit the same five-cell row accession/studyDate/age/bmi
+   already share with the popup trigger.
+
+   The popup's open/closed state is NOT part of `selection` (the clinical
+   model): it is a screen-only concern, and the whole app re-renders through
+   one DOM write on every `change` (app.js), so a UI toggle placed in
+   `selection` would pollute the clinical model and would be exercised by
+   the hash-lock tests for no reason. It is threaded the same way `viewMode`
+   already is — an ephemeral flag owned by app.js, passed down as a plain
+   argument (`uiState`). Closed by default: when closed, height/weight are
+   not rendered at all (not just visually hidden), matching the same
+   "no route stop without a field, no field without a route stop" rule
+   (W-046) etiologyCohort already uses for its own conditional cell. */
+const BMI_HINT = 'Above 35, BMI can affect MRE reliability (up to 20% of ' +
+  'scans fail) and, at 3.0T, can bias PDFF over the anterior right lobe.';
+
+function bmiHeaderCellHtml(context) {
   const bmiValue = (context.bmi === null || context.bmiDerived)
     ? '' : esc(String(context.bmi));
   const computed = context.bmiDerived
     ? '<span class="bmi-computed">' + esc(String(context.bmi)) +
       ' kg/m² (computed)</span>' : '';
-  return '<div class="' + lcClass(bmiEmpty) + '"><label>Body-mass index</label><div class="r2">' +
-      '<input type="number" inputmode="decimal" step="any" data-value="bmi" value="' + bmiValue +
-      '"><span class="u">kg/m²</span></div>' + computed + '</div>' +
+  return '<div class="cell"><label>Body-mass index <span class="hint" title="' +
+    esc(BMI_HINT) + '">?</span></label>' +
+    '<input type="number" inputmode="decimal" step="any" data-value="bmi" value="' +
+    bmiValue + '">' + computed + '</div>';
+}
+
+function bmiCalcCellHtml(context, uiState) {
+  const open = !!(uiState && uiState.bmiPopupOpen);
+  const dialog = !open ? '' : '<dialog class="bmi-calc-dialog screen-only" open>' +
+    '<div class="bmi-calc-head"><span>Calculate BMI</span>' +
+    '<button type="button" data-action="close-bmi-calc" aria-label="Close">×</button></div>' +
     '<div class="' + lcClass(context.heightCm === null) + '"><label>Height</label><div class="r2">' +
       '<input type="number" inputmode="decimal" step="any" data-value="heightCm" value="' +
       (context.heightCm === null ? '' : esc(String(context.heightCm))) +
@@ -598,80 +925,24 @@ function bmiFieldHtml(context) {
     '<div class="' + lcClass(context.weightKg === null) + '"><label>Weight</label><div class="r2">' +
       '<input type="number" inputmode="decimal" step="any" data-value="weightKg" value="' +
       (context.weightKg === null ? '' : esc(String(context.weightKg))) +
-      '"><span class="u">kg</span></div></div>';
+      '"><span class="u">kg</span></div></div>' +
+    '</dialog>';
+  return '<div class="cell calc-bmi-cell screen-only">' +
+    '<button type="button" class="bmi-calc-btn" data-action="toggle-bmi-calc">Calculate BMI</button>' +
+    dialog + '</div>';
 }
 
-/* THE CLINICAL-CONTEXT BLOCK (W-015, revised W-063). Four fields beside the
-   laboratory grid — same `.lc`/`data-value` shape for the numeric ones, so
-   the existing generic change handler in app.js picks them up with no new
-   wiring. `ascites` is tri-state and cannot reuse a number input: "not
-   provided" and "absent" are different facts (buildContext, report.js), so
-   it renders as a three-option control whose default is unselected.
-
-   W-063: `ascites`/`altUln`/`ggt` exist only to feed the MRE-reliability
-   rules (TRG-0002/TRG-0004/TRG-0005) and now say so, in place, with a
-   printed caption — they were NOT moved into the mre card itself, because a
-   field printed inside a parameter card's markup only exists on the page
-   when that card renders (spec § 6), and these three must stay reachable
-   even when mre's card does not (the ferritin rule is the existing proof
-   this pattern already has to hold). `bmi` feeds two different cards
-   (pdff at 3.0T, mre always) and carries no caption for that reason.
-
-   W-130: the three MRE-linked fields (ascites/altUln/ggt) moved OUT of this
-   function into `fibrosisContextHtml()` below, printed beside "Which
-   measurements were performed" instead of down here — see that function's
-   comment. This one now carries `bmi`/height/weight only, which were never
-   gated and stay that way. */
-function contextBlock(context) {
-  if (!context) return '';
-  return '<div class="labs-head ctx-head"><span class="t">Clinical context (optional)</span></div>' +
-    '<div class="labs-grid">' + bmiFieldHtml(context) + '</div>';
-}
-
-/* W-130. Was inside contextBlock, printed with the generic "Clinical context"
-   grid far below the entry checkboxes — under the same roof as Fibrosis was
-   the developer's own phrase for where these belong (2026-08-30). These three
-   exist only to feed the MRE-reliability rules (TRG-0002/TRG-0004/TRG-0005,
-   W-063) and now print right after the Fibrosis toggle instead. Position
-   carries the connection the old "→ affects MRE stiffness reliability"
-   caption used to spell out in words, so the caption is dropped (the W-125
-   lesson: a fact already stated by placement does not also need a sentence).
-
-   GATING IS UNCHANGED from W-063b and re-implemented here verbatim: shown
-   when Fibrosis is performed, or when a field already holds a value (typed
-   then un-toggled stays editable and printed). This block is NOT screen-only
-   and is NOT nested inside performedBlock's `.perf-grid.screen-only` wrapper
-   or its Fibrosis `<label>` — either would stop these values printing at all
-   (screen-only drops them on paper; W-063's whole point is that they must
-   stay reachable even when the mre card itself does not render) or put
-   number inputs inside a `<label>` whose click toggles an unrelated
-   checkbox. It is a sibling block, positioned right after performedBlock in
-   labsBlock's own call order. */
-function fibrosisContextHtml(context, fibrosisOn) {
-  const keys = _RN.CONTEXT_INPUTS.filter(f => f.key !== 'bmi');
-  const shown = keys.some(f => fibrosisOn || context[f.key] !== null);
-  if (!shown) return '';
-  const fields = keys.map(f => {
-    if (context[f.key] === null && !fibrosisOn) return '';
-    if (f.type === 'boolean') {
-      const v = context[f.key];
-      return '<div class="' + lcClass(v === null) + '"><label>' + esc(f.label) + '</label>' +
-        '<select data-value="' + esc(f.key) + '">' +
-        '<option value=""' + (v === null ? ' selected' : '') + '>not provided</option>' +
-        '<option value="true"' + (v === true ? ' selected' : '') + '>present</option>' +
-        '<option value="false"' + (v === false ? ' selected' : '') + '>absent</option>' +
-        '</select></div>';
-    }
-    const value = context[f.key];
-    return '<div class="' + lcClass(value === null) + '"><label>' + esc(f.label) + '</label><div class="r2">' +
-      '<input type="number" inputmode="decimal" step="any" data-value="' + esc(f.key) + '" value="' +
-      (value === null ? '' : esc(String(value))) + '"><span class="u">' +
-      esc(f.unit || '') + '</span></div></div>';
-  }).join('');
-  return '<div class="labs-head ctx-head"><span class="t">Fibrosis — reliability context</span></div>' +
-    '<div class="labs-grid">' + fields + '</div>';
-}
-
+/* W-144. Was fibrosisContextHtml() (W-130): ascites/altUln/ggt printed as
+   their own "Fibrosis — reliability context" block here. All three now have
+   a new home — ascites inside the MRE card's own .pident (ascitesCellHtml,
+   below), altUln/ggt spliced into labs.inputs itself (report.js buildLabs())
+   — so this function has nothing left to draw and is removed rather than
+   kept as a dead shell. reliability.js:216 is the reason this is safe: a
+   trigger built from any of these three only ever attaches to `mre` once
+   `mre` already carries a value, so none of them can affect a printed page
+   the MRE card itself is not on — the same finding W-141 already used for
+   the etiologyCohort selector. See render.js's ascitesCellHtml() and
+   report.js buildLabs() for where the fields live now. */
 function labsBlock(labs, selection, model) {
   if (!labs) return '';
   const grid = labs.inputs.map(f =>
@@ -680,9 +951,6 @@ function labsBlock(labs, selection, model) {
     (f.value === null ? '' : esc(String(f.value))) + '"><span class="u">' +
     esc(f.unit) + '</span></div></div>').join('');
 
-  const context = _RN.buildContext(selection);
-  const fibrosisOn = !!(selection && selection.performed && selection.performed.fibrosis === true);
-
   return '<section class="labs" id="labs">' +
     '<div class="labs-head"><span class="t">Laboratory (supporting)</span>' +
     '<span class="derived">FIB-4 <b>' +
@@ -690,7 +958,11 @@ function labsBlock(labs, selection, model) {
     '</b> \u00b7 AST/ALT <b>' +
       (labs.aar.value === null ? '\u2014' : esc(String(labs.aar.value))) +
     '</b></span></div>' +
-    '<div class="labs-grid">' + grid + '</div>' +
+    /* W-144. `labs-fib` widens the grid from 5 columns to 4 only when
+       altUln/ggt are actually spliced into labs.inputs (report.js
+       buildLabs()) \u2014 without it, this grid is byte-identical to the
+       original 5-field/5-column layout. */
+    '<div class="labs-grid' + (labs.hasFibrosisLabs ? ' labs-fib' : '') + '">' + grid + '</div>' +
     /* W-130. The full expression + provenance sentence moved to the
        methodology sheet (tableB, "How these numbers were formed") -- this
        is now a one-line pointer, not the formula itself. The number stays
@@ -703,9 +975,7 @@ function labsBlock(labs, selection, model) {
         'Methodology, “How these numbers were formed”.</p>' : '') +
     (labs.pending ? '<p class="labs-pending">' + esc(labs.pending) + '</p>' : '') +
     performedBlock(selection) +
-    fibrosisContextHtml(context, fibrosisOn) +
     tier2Block(model, selection) +
-    contextBlock(context) +
     '</section>';
 }
 
@@ -1080,6 +1350,25 @@ function sharedAxis(rulers) {
   return [lo, hi];
 }
 
+/* W-133. A small, familiar signal — GRADE A/B/C, the vocabulary this report's
+   own methodology table already prints per source (render.js's REFERENCES
+   table) — reusing the `.dbadge` component wholesale (styles.css, currently
+   the derived-LIC badge) rather than inventing new iconography (CLAUDE.md § 6:
+   no new icon asset, no build step). The value is the SET UNION of every
+   boundary's OWN `evidenceGrades` on this ladder (zones.js, W-133 — an
+   already-computed field, nothing new is derived): a uniform ladder reads
+   "Evidence A", a ladder whose boundaries mix grades reads "Evidence A/B" —
+   a mechanical set operation, never an editorial judgement about which grade
+   the ladder "really" is. Absent where no boundary carries a grade at all. */
+function evidenceGradeBadge(ruler) {
+  const grades = new Set();
+  for (const e of (ruler.edges || [])) {
+    for (const g of (e.evidenceGrades || [])) grades.add(g);
+  }
+  if (!grades.size) return '';
+  return ' <span class="dbadge">Evidence ' + esc([...grades].sort().join('/')) + '</span>';
+}
+
 function rulerBlock(ruler, axis) {
   const drawnSvg = rulerSvg(ruler, axis, ruler.role === 'matched');
   /* THE CARD CARRIES FACTS; THE REASONS MOVED. What used to print here as four
@@ -1101,21 +1390,38 @@ function rulerBlock(ruler, axis) {
   if (ruler.note) why.push(ruler.note);
 
   /* The SHORT form stays visible: a reader must be able to see WHICH publication
-     the strip is, without a hover and without the methodology sheet in hand. */
-  const shortCite = ruler.matchLabel
-    ? ruler.matchLabel.split('—')[0].trim() +
-      (ruler.scanner ? ' · ' + ruler.scanner.split(',')[0] : '')
+     the strip is, without a hover and without the methodology sheet in hand.
+     W-133 FIX: `ruler.matchLabel` is "<refId> — <citation>" (report.js), built
+     for the LONG tooltip form above. This used to take `.split('—')[0]` — the
+     bare id, BEFORE the em-dash — and print that as if it were the short cite,
+     discarding the author/year the reader actually needs. The id is still the
+     first half; what changed is that it is now looked up through the SAME
+     `shortCite(refId)` this file already uses correctly on the "not
+     interpretable" line (below), instead of a second, wrong, inline format. */
+  const matchRefId = ruler.matchLabel ? ruler.matchLabel.split('—')[0].trim() : null;
+  const shortCiteText = matchRefId
+    ? shortCite(matchRefId) + (ruler.scanner ? ' · ' + ruler.scanner.split(',')[0] : '')
     : null;
   const rung = (ruler.missingRungs && ruler.missingRungs.length)
     ? '<span class="norung">no ' + esc(ruler.missingRungs.join(', ')) + '</span>' : '';
 
+  /* W-133. A "matched" second bar is drawn for two different reasons, and both
+     used to print the identical "named for this indication" sentence: (a) the
+     guideline ladder and the pooled primary-studies ladder for this SAME
+     parameter simply differ (no single publication is named, matchLabel is
+     null) — an evidence-conflict signal (SCHEMA § 10.5); vs (b) one
+     publication's own ladder was matched to this specific indication
+     (matchLabel is set). The reader could not tell which was true; now the
+     header says so. */
+  const roleText = ruler.role === 'consensus' ? 'stages this value'
+    : (ruler.matchLabel ? 'a publication specific to this indication'
+                        : 'guideline and published studies disagree here');
+
   return '<div class="rul rul-' + esc(ruler.role) + '" data-role="' + esc(ruler.role) + '"' +
     (why.length ? ' title="' + esc(why.join('\n')) + '"' : '') + '>' +
     '<div class="rul-head"><span class="rul-scale">' + esc(ruler.scaleLabel) +
-      (ruler.unit ? ' · ' + esc(ruler.unit) : '') + '</span>' +
-    '<span class="rul-role">' +
-      esc(ruler.role === 'consensus' ? 'stages this value' : 'named for this indication') +
-    '</span></div>' +
+      (ruler.unit ? ' · ' + esc(ruler.unit) : '') + evidenceGradeBadge(ruler) + '</span>' +
+    '<span class="rul-role">' + esc(roleText) + '</span></div>' +
     /* W-125 / W-124. Above the bar, top to bottom: the patient's value chip on
        its own row (consensus rulers with a value only), then the tick-aligned
        boundary values flush to the bar (every ruler). Below the bar: the band
@@ -1127,7 +1433,7 @@ function rulerBlock(ruler, axis) {
     /* Unconditional. The names left the drawing at W-040, so this is not a
        fallback for a narrow bar any more — it is where the bands are named. */
     bandLegend(ruler, axis) +
-    tickNamesLine(ruler, shortCite, rung) +
+    tickNamesLine(ruler, shortCiteText, rung) +
     '</div>';
 }
 
@@ -1265,9 +1571,17 @@ function sourceCaveatHtml(card) {
    same key W-033 chose, and deliberately not `card.derived`. A slot that appeared
    the moment somebody typed an override would make the override look like a
    different reading. The class reserves height on screen and is removed in print. */
-function valueAreaHtml(row, card, canDerive) {
+function valueAreaHtml(row, card, canDerive, fill) {
   const unit = '<span class="unit">' + esc(_RN.PARAMETER_UNITS[row.parameter]) +
                '</span>';
+  /* W-134. Screen-only, Live-Report-only affordance: an unentered value field
+     whose measurement group is switched on carries data-fill="needed" so the
+     reader can see what is still expected; data-fill-emph is the indication's
+     tint strength. Inert without the body[data-mode="live"] CSS, so it is safe
+     to emit unconditionally. Never on the derived branch — a derived card
+     already shows a number. */
+  const fillAttr = fill
+    ? ' data-fill="needed" data-fill-emph="' + fill + '"' : '';
   /* W-122: the arrow-key step matches this parameter's cut-off precision, so
      the up/down arrows land on every published threshold rather than stepping
      by 1. Falls back to "any" for a parameter with no PARAMETER_STEPS entry. */
@@ -1283,7 +1597,7 @@ function valueAreaHtml(row, card, canDerive) {
   }
   return '<label class="pval' + (canDerive ? ' can-derive' : '') +
     '"><input type="number" inputmode="decimal" step="' + step + '" data-value="' +
-    esc(row.parameter) + '" value="' +
+    esc(row.parameter) + '"' + fillAttr + ' value="' +
     (row.value === null || row.value === undefined ? '' : esc(String(row.value))) +
     '">' + unit +
     (card.valueProvenance === 'measured'
@@ -1322,7 +1636,9 @@ function calibrationLineHtml(card, canDerive) {
    `contextBlock` already calls it at line 465, rather than threaded through
    `model` — `selection` is already this function's own argument and the call
    is pure and cheap; a second, model-shaped context object would be a second
-   copy of a value this file already knows how to ask for. */
+   copy of a value this file already knows how to ask for.
+   W-146: the wording says "patient header" now, not "Clinical context" —
+   bmi lives in patientMeta, not in the (now-deleted) contextBlock(). */
 function bmiEchoHtml(row, selection) {
   const showsBmi = row.parameter === 'mre' ||
     (row.parameter === 'pdff' && selection.fieldStrength === '3.0T');
@@ -1330,7 +1646,7 @@ function bmiEchoHtml(row, selection) {
   const context = _RN.buildContext(selection);
   if (context.bmi === null || context.bmi === undefined) return '';
   return '<p class="bmi-echo">Body-mass index — ' + esc(String(context.bmi)) +
-    ' kg/m² (' + (context.bmiDerived ? 'computed, Clinical context' : 'Clinical context') +
+    ' kg/m² (' + (context.bmiDerived ? 'computed, patient header' : 'patient header') +
     ')</p>';
 }
 
@@ -1353,6 +1669,22 @@ function parameterCard(row, card, selection, tag) {
     ? ' data-band="' + esc(vd.band) + '" data-sev="' + esc(vd.sev) + '"'
     : (card.gapCode ? ' data-reason="' + esc(card.gapCode) + '"' : '');
 
+  /* W-134. The unentered-field affordance: this row needs a value when its
+     purpose group is switched on and it holds no number (the same condition the
+     screen-only pval-warn below already uses). The indication's primary group
+     gets 'primary' emphasis, every other switched-on group 'secondary'; a null
+     primary (non-specific) makes every needed field 'primary'. */
+  const fillGroup = _RN.purposeGroupOf(row.parameter);
+  const fillNeeded = !!(selection.performed && fillGroup !== null &&
+    selection.performed[fillGroup] === true &&
+    (row.value === null || row.value === undefined));
+  let fill = null;
+  if (fillNeeded) {
+    const primGroup = PRIMARY_GROUP_BY_INDICATION[selection.indication];
+    fill = (primGroup === null || primGroup === undefined || fillGroup === primGroup)
+      ? 'primary' : 'secondary';
+  }
+
   return '<section class="pcard" data-param="' + esc(row.parameter) + '"' + attrs + '>' +
     '<div class="pident">' +
       (tag ? '<span class="ptag">' + esc(tag) + '</span>' : '') +
@@ -1367,7 +1699,7 @@ function parameterCard(row, card, selection, tag) {
         esc(card.acquisitionLine) +
         (card.derived ? ' \u00b7 value computed through a published calibration' : '') +
       '</p>' +
-      valueAreaHtml(row, card, row.calibration !== null) +
+      valueAreaHtml(row, card, row.calibration !== null, fill) +
       /* W-063. Screen only: the printed page either carries a value or
          carries card.noData's own sentence below — a live authoring hint
          has no reason to survive onto paper. W-063b: `performed` is
@@ -1380,6 +1712,8 @@ function parameterCard(row, card, selection, tag) {
         (row.value === null || row.value === undefined))
         ? '<p class="pval-warn screen-only">Turned on, no value entered yet.</p>' : '') +
       calibrationLineHtml(card, row.calibration !== null) +
+      etiologyCohortHtml(row, selection) +
+      ascitesCellHtml(row, selection) +
       (showControl ? methodControl(selection, row.controlKey) : '') +
       productControl(selection, row.parameter, row.technique) +
     '</div>' +
@@ -1664,6 +1998,10 @@ function stampText(model, selection, versions) {
     'Techniques: ' + techs;
 }
 
+/* W-113. Two additions for a reader who has not read the papers this section
+   comes from: a one-sentence plain-language intro before the verdict, and the
+   footnote split into two LABELLED parts (MAST / rule strength) instead of one
+   run-on paragraph — each still just prose, no new fact. */
 function compositeSection(composite) {
   if (!composite) return '';
   const lines = composite.lines.map(l =>
@@ -1673,10 +2011,13 @@ function compositeSection(composite) {
     '<span class="test">' + esc(l.test) + '</span></span>').join('');
   return '<section class="composite"><div class="section-head"><h3>' +
     esc(composite.name) + '</h3><span class="rule"></span></div>' +
+    '<p class="cintro">' + esc(composite.intro) + '</p>' +
     (composite.pending
       ? '<p class="gap">' + esc(composite.pending) + '</p>'
       : '<div class="chips">' + lines + '</div>' + verdictChip(composite.verdict)) +
-    '<p class="cnote">' + esc(composite.note) + '</p></section>';
+    '<p class="cnote"><b>MAST</b> ' + esc(composite.note.mast) + '</p>' +
+    '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) +
+    '</p></section>';
 }
 
 /* W-098. The closing "Summary" block: the published composite verdicts, then
@@ -1842,9 +2183,11 @@ function reportFooter(model, selection, versions) {
     '<pre id="ver-line">' + esc(stampText(model, selection, versions)) + '</pre>' +
     '<div id="ack-line">Disclaimer v' + esc(versions.disclaimer) + ' acknowledged ' +
     esc(new Date(versions.ackTs).toLocaleString('en-GB')) + '</div>' +
-    /* W-100: developer-specified colophon, page-1 footer only (not the methodology
-       sheet's own footer below). Not a clinical field — no hash lock reads it. */
-    '<div class="colophon">© 2026 VERISYNCO · verisyn.co · ' +
+    /* W-100/W-139: developer-specified colophon, page-1 footer only (not the
+       methodology sheet's own footer below). Not a clinical field — no hash
+       lock reads it. "VERISYNCO" renamed to "VERISYN.CO" to read as the
+       domain (verisyn.co); domain and email strings unchanged. */
+    '<div class="colophon">© 2026 VERISYN.CO · verisyn.co · ' +
     'verisyn.co@gmail.com</div></footer>';
 }
 
@@ -1857,7 +2200,11 @@ function reportFooter(model, selection, versions) {
    content is option A (developer decision 2026-08-29): a head line, one line
    per MEASURED
    parameter with the band it fell in, the impression prose, the same version
-   stamp the footer prints, and a pointer to the full PDF. */
+   stamp the footer prints, and a pointer to the full PDF.
+   W-129: the recipient is always empty — there is no requesting-clinician
+   identity field left to read it from (removed, together with the name
+   field it was paired with). The clinician fills in the recipient themselves
+   in their own mail client; every other part of the body is unchanged. */
 function requestorMeasureLines(cards) {
   return (cards || [])
     .filter(c => c.value !== null && c.value !== undefined)
@@ -1873,7 +2220,7 @@ function buildRequestorEmail(model, selection, versions) {
   const sel = selection || {};
   const accession = sel.accession || 'no accession';
   const studyDate = sel.studyDate || 'undated';
-  const to = sel.requestorEmail || '';
+  const to = '';
   const subject = 'VeriLiv quantitative liver MRI report — ' + accession + ' — ' + studyDate;
 
   const head = 'Quantitative liver MRI — ' + (sel.cohort || 'adult') +
@@ -1897,8 +2244,8 @@ function buildRequestorEmail(model, selection, versions) {
     stampText(model, sel, versions),
     '',
     'This is a summary. The full report — every cut-off with its published ' +
-      'source, and the methodology sheet — is the PDF: produce it with ' +
-      'Print / Save PDF, then attach it to this message.'
+      'source, and the methodology sheet — is the PDF you were just asked ' +
+      'to save: attach it to this message before sending.'
   ].join('\n');
 
   return {to: to, subject: subject, body: body};
@@ -1977,16 +2324,20 @@ function sampleLine() {
    byte-identical to what it printed before this task: the published page's
    single "Load example" / "Clear values" pair is never replaced, only, on a
    dev host, joined by a way to pick which case that button loads. */
-/* `canSend` (W-017 round 2). The "Send to requestor" control opens the
-   clinician's own mail client on a `mailto:` draft (app.js). In a SAMPLE report
-   it is not rendered at all (W-126) — a demonstration must never carry a send
-   affordance, real-looking or greyed. In a LIVE report it renders but is
-   disabled unless the report is `ready` AND a requestor e-mail has been
-   entered — the caller computes that last condition, the same way `ready` is
-   handed in rather than re-derived here. */
-function toolbar(view, ready, dev, scenarios, canSend) {
+/* "Send e-mail" (W-017 round 2, renamed and ungated in W-129). The control
+   opens the clinician's own mail client on a `mailto:` draft (app.js). In a
+   SAMPLE report it is not rendered at all (W-126) — a demonstration must
+   never carry a send affordance, real-looking or greyed. In a LIVE report it
+   is enabled whenever the report is `ready` — no e-mail-present gate, since
+   W-129 removed the identity field that gate would have read.
+   W-132: no browser can attach a generated file to a `mailto:` draft (no
+   attachment parameter any client honours, and every real file-handoff API
+   needs a secure — https — context that `file://` never has; CHANGELOG.md
+   records the six avenues checked). So app.js opens the print dialog FIRST,
+   then the draft — the caption below says so up front. */
+function toolbar(view, ready, dev, scenarios) {
   const sample = !!(view && view.mode === 'sample');
-  const sendOK = !!(ready && !sample && canSend);
+  const sendOK = !!(ready && !sample);
   /* SAMPLE mode only — there is nothing to switch between until a scenario is
      already loaded, so "Clear values" (which leaves sample mode) makes the
      menu disappear with it in the same render, with no separate state to
@@ -1999,15 +2350,31 @@ function toolbar(view, ready, dev, scenarios, canSend) {
       '</select></label>'
     : '';
   return '<div class="toolbar screen-only">' +
+    /* W-131. Screen-only, like every other toolbar control: the theme has no
+       print form (styles.css keeps every dark token inside `@media screen`),
+       so there is nothing here for the print stylesheet to hide separately.
+       Both label spans always render — this is a pure string builder with no
+       DOM to read the current theme back from — and CSS alone decides which
+       one shows, keyed off the same `data-theme` attribute the tokens are. */
+    '<button type="button" class="tb-theme" data-action="toggle-theme" ' +
+      'aria-label="Toggle light/dark theme">' +
+      '<span class="tb-theme-to-dark">Dark mode</span>' +
+      '<span class="tb-theme-to-light">Light mode</span>' +
+    '</button>' +
     '<button type="button" class="tb-print" data-action="print"' +
       (ready ? '' : ' disabled') + '>Print / Save PDF</button>' +
+    /* W-128. The screen view now carries an approximate page-break line
+       (styles.css .page background-image) so the sheet reads closer to what
+       actually prints — but it IS an approximation (screen has no @page),
+       and a line with no label reads as exact. One sentence, said once. */
+    '<span class="tb-note">Dashed lines mark ≈ where each printed page ' +
+    'ends.</span>' +
     (sample
       ? ''
       : '<button type="button" class="tb-send" data-action="send-requestor"' +
-          (sendOK ? '' : ' disabled') + '>Send to requestor</button>') +
-    (ready && !sample && !canSend
-      ? '<span class="tb-reason">Enter a requestor e-mail to send the report.</span>'
-      : '') +
+          (sendOK ? '' : ' disabled') + '>Send e-mail</button>' +
+        '<span class="tb-note">Opens the print dialog first, then your mail ' +
+        'app.</span>') +
     (ready
       ? ''
       : '<span class="tb-reason">Not ready to print: no acquisition has been ' +
@@ -2023,7 +2390,7 @@ function renderClinicalSheets(model, profile, selection, versions, view) {
   const sample = !!(view && view.mode === 'sample');
   return '<div class="page" id="clinical"' + (sample ? ' inert' : '') + '>' +
     masthead(profile) +
-    patientMeta(selection) +
+    patientMeta(selection, view) +
     studyMeta(selection, profile) +
     labsBlock(model.labs, selection, model) +
     sectionsHtml(model, selection) +
@@ -2058,46 +2425,62 @@ function renderClinicalSheets(model, profile, selection, versions, view) {
    domain alone would name three elements.
 
    `model` may be absent: before a scanner is chosen there is no report, only
-   the identity and study cells, and the route says so rather than pretending
-   the rest of the sheet exists. */
-function entryRoute(model, selection) {
+   the identity and study cells (plus bmi, which draws in the header
+   regardless of report state, W-146), and the route says so rather than
+   pretending the rest of the sheet exists. */
+function entryRoute(model, selection, uiState) {
   const route = [];
-  for (const c of IDENTITY_CELLS) route.push({attr: 'data-axis', key: c.axis});
+  /* W-136 review — a select cell whose option list is empty for the current
+     selection (etiologyCohort under an indication with no cohort-specific
+     evidence) is not drawn by metaCell, so it must not be a Tab stop either:
+     a route entry with no field behind it is the dead stop W-046 fixed. */
+  for (const c of IDENTITY_CELLS) {
+    if (c.options && !c.options(selection).length) continue;
+    route.push({attr: 'data-axis', key: c.axis});
+  }
   for (const c of STUDY_CELLS) route.push({attr: 'data-axis', key: c.axis});
+  /* W-146: bmi's header cell (patientMeta) draws unconditionally — same as
+     the axes above, not gated behind `model.report` the way the labs/
+     parameter stretch below is. Height/weight only exist on the page (and
+     only get a route stop) while the Calculate BMI popup is open — same
+     "no route stop without a field" rule as etiologyCohort's, above. */
+  route.push({attr: 'data-value', key: 'bmi'});
+  if (uiState && uiState.bmiPopupOpen) {
+    route.push({attr: 'data-value', key: 'heightCm'});
+    route.push({attr: 'data-value', key: 'weightKg'});
+  }
   if (!model || !model.report) return route;
 
-  /* The laboratory grid and the clinical-context block, each in the order its
-     own record list declares — the same lists labsBlock and contextBlock draw
-     from, so the route cannot name a field the sheet does not render. */
+  /* The laboratory grid, in the order its own record list declares — the
+     same list labsBlock draws from, so the route cannot name a field the
+     sheet does not render.
+     W-144: altUln/ggt no longer have a route entry of their own here — they
+     are spliced into `model.labs.inputs` itself (report.js buildLabs()) when
+     shown, so the loop right below already stops for them in the right
+     place, in the right order, for free. ascites moved into the MRE row's
+     own route entry, below. */
   if (model.labs && model.labs.inputs) {
     for (const f of model.labs.inputs) route.push({attr: 'data-value', key: f.key});
-    /* W-063: `bmi` draws as three cells on screen — bmi, then height, then
-       weight, in that DOM order (bmiFieldHtml) — so the route names all
-       three right where bmi would have sat, or Tab would skip straight past
-       height/weight (unrouted) into ascites.
-       W-063b: `ascites`/`altUln`/`ggt` are gated the same way contextBlock
-       gates them — drawn only when Fibrosis is performed, or when the field
-       already holds a value — so the route still cannot name a field the
-       sheet does not render. `bmi`/height/weight are never gated. */
-    const ctx = _RN.buildContext(selection);
-    const fibrosisOn = !!(selection && selection.performed && selection.performed.fibrosis === true);
-    for (const f of _RN.CONTEXT_INPUTS) {
-      if (f.key === 'bmi') {
-        route.push({attr: 'data-value', key: 'bmi'});
-        route.push({attr: 'data-value', key: 'heightCm'});
-        route.push({attr: 'data-value', key: 'weightKg'});
-        continue;
-      }
-      if (fibrosisOn || ctx[f.key] != null) {
-        route.push({attr: 'data-value', key: f.key});
-      }
-    }
   }
 
   const preset = _RN.defaultTechniques(selection.path);
   for (const row of model.report.rows) {
     if (!row.rendered) continue;
     route.push({attr: 'data-value', key: row.parameter});
+    /* W-141. Same gate etiologyCohortHtml/metaCell use — a cell with no options
+       for the current indication is drawn nowhere, so it is not a Tab stop
+       either (W-046). Placed right after the row's own value, before its
+       method/product control, matching the .pident stacking order. */
+    if (row.parameter === 'mre' && etiologyCohortsFor(selection).length) {
+      route.push({attr: 'data-axis', key: 'etiologyCohort'});
+    }
+    /* W-144. Ascites moved into the same .pident block, right after the cell
+       above — no options-length gate needed (it always offers the same
+       three choices; row.rendered, already checked at the top of this
+       loop, is the only thing that decides whether it exists on the page). */
+    if (row.parameter === 'mre') {
+      route.push({attr: 'data-value', key: 'ascites'});
+    }
     /* The same condition parameterCard uses to decide whether it draws one. A
        second rule here would let the route point at a control that is not on
        the page, which is a dead stop the reader falls out of. W-090: keyed by

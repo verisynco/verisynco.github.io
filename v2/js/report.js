@@ -15,7 +15,42 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.11';  /* W-081: `buildIvim()` — a standalone research-layer builder for IVIM D, D-star and f, NOT in REPORT_PARAMETERS; reads the transcribed RNG-006..011 ranges (REFERENCE_RANGES added to the `_R` bridge, first engine reader) and stages nothing (CLAUDE.md § 1.3). D is display-only (R-30 forbids a central±sd band); D-star and f carry a bare within/outside-interval membership. `buildImpression().clinical` gains `ivimCrossRead` — one factual sentence, ADC-abnormal-gated, no synthesis; `text`/`facts`/`keyFindings` untouched (logic.test.js P7/P9). New consts IVIM_PARAMS/LABELS/UNITS/TREND_NOTE + helper ivimCaveatOf(). No `v2/data/` file opened, no hash moved. W-122: new `PARAMETER_STEPS` catalog — the arrow-key step for each parameter's entry box, derived from the finest decimal place of that parameter's CUTOFFS values (render.js valueAreaHtml is the only reader; render.test.js N55 locks the derivation). No clinical value, band, threshold or hash moved. W-098: new `buildConsiderations()` + `CONSIDERATIONS` data type; `buildImpression().clinical` gains `summary` (published composite verdicts, fired diagnostic considerations quoted verbatim with the source's own strength label, coverage + evidence-floor verb). `buildImpression` now takes `composite`; app.js buildModel computes it first. `text` / `facts` unchanged (logic.test.js P7/P9). No hash moved — RESOLVED_HASH covers buildScales boundaries only, not the impression. W-112: `buildImpression().clinical` gains `history`, `keyFindings`, `otherFindings`, `normalSummary` — a priority split (the four `severityClass` ranks) the renderer composes into two labelled groups with the history sentence last. `text` and `facts` are unchanged (logic.test.js P7/P9 hold), no clinical value / band / hash moved. [W-063b: the `rendered` performed-gate is keyed by purpose GROUP (domains.js groupOf), not by parameter. W-063: rendered rule gains a performed/value gate, the notAssessed sentence changed, and a BMI derivation rule was added. W-072 also claimed 3.5 for the impression rewrite (opens with entered history, states each banded finding's own fired-modifier meaning) — two branches claiming one number; resolved at the merge to 3.6.] */
+const V2_REPORT_VERSION = '3.16';  /* W-144: buildLabs()'s `inputs` list is now
+   conditional — 'altUln'/'ggt' splice in between 'alt' and 'plt' only when
+   Fibrosis is performed or either already carries a value (the same
+   fibrosisOn-or-has-value gate the old fibrosisContextHtml() used), otherwise
+   `inputs` is byte-identical to the 5-field list it always was. A new
+   `hasFibrosisLabs` flag on the return value lets render.js pick the
+   Laboratory grid's column count without re-deriving the condition — one
+   list drives both the printed grid and entryRoute's Tab order (the same
+   "one list, two readers" rule IDENTITY_CELLS already uses, W-046). altUln's
+   and ggt's labels/units are read from CONTEXT_INPUTS, not restated, so there
+   is still exactly one place that spells them. CONTEXT_INPUTS itself and
+   buildContext() are untouched — they still feed reliability.js exactly as
+   before; only WHERE these two fields are drawn moved. No clinical value,
+   threshold, calibration or hash moved.
+   W-142: REPORT_PARAMETERS and
+   CARD_DOMAIN_ORDER re-sequenced so MRE leads and the iron block prints whole on
+   sheet 2 (developer decision 2026-08-31). Presentation order only — no clinical
+   value, threshold, calibration or hash moved; RESOLVED_HASH is order-independent
+   and unchanged.
+   Was 3.14 for W-136 review: INDICATION_COHORTS
+   ['chronic-liver-disease'] drops 'adult-multi-etiology' (techniqueAmbiguous
+   records, can never be named as a match). Was 3.13 for W-136: matchedScale/
+   rulersFor/buildCards gain an optional etiologyCohort parameter that PINS the
+   matched-publication mechanism to one named cohort instead of ranking across
+   the whole indication family — additive, every existing call site keeps
+   working with the parameter absent. INDICATION_COHORTS['chronic-liver-disease']
+   gained 'adult-hbv'.
+   Was 3.12 for W-113: `buildComposite()` gains `intro`
+   (one plain-language sentence saying what MEFIB does) and `note` changes
+   shape from one string to `{mast, strength}` — two labelled fields instead
+   of a run-on paragraph; `strength` spells PPV/NPV out in words on first use.
+   `verdict.tag` glosses the bare `F>=2` boundary vocabulary as "significant
+   fibrosis (F>=2)" in all three bands, `F>=2` itself unchanged (a locked
+   string other checks depend on). No clinical value, threshold or hash
+   moved; render.js carries the matching W-113 comment on `compositeSection`.
+   W-081: `buildIvim()` — a standalone research-layer builder for IVIM D, D-star and f, NOT in REPORT_PARAMETERS; reads the transcribed RNG-006..011 ranges (REFERENCE_RANGES added to the `_R` bridge, first engine reader) and stages nothing (CLAUDE.md § 1.3). D is display-only (R-30 forbids a central±sd band); D-star and f carry a bare within/outside-interval membership. `buildImpression().clinical` gains `ivimCrossRead` — one factual sentence, ADC-abnormal-gated, no synthesis; `text`/`facts`/`keyFindings` untouched (logic.test.js P7/P9). New consts IVIM_PARAMS/LABELS/UNITS/TREND_NOTE + helper ivimCaveatOf(). No `v2/data/` file opened, no hash moved. W-122: new `PARAMETER_STEPS` catalog — the arrow-key step for each parameter's entry box, derived from the finest decimal place of that parameter's CUTOFFS values (render.js valueAreaHtml is the only reader; render.test.js N55 locks the derivation). No clinical value, band, threshold or hash moved. W-098: new `buildConsiderations()` + `CONSIDERATIONS` data type; `buildImpression().clinical` gains `summary` (published composite verdicts, fired diagnostic considerations quoted verbatim with the source's own strength label, coverage + evidence-floor verb). `buildImpression` now takes `composite`; app.js buildModel computes it first. `text` / `facts` unchanged (logic.test.js P7/P9). No hash moved — RESOLVED_HASH covers buildScales boundaries only, not the impression. W-112: `buildImpression().clinical` gains `history`, `keyFindings`, `otherFindings`, `normalSummary` — a priority split (the four `severityClass` ranks) the renderer composes into two labelled groups with the history sentence last. `text` and `facts` are unchanged (logic.test.js P7/P9 hold), no clinical value / band / hash moved. [W-063b: the `rendered` performed-gate is keyed by purpose GROUP (domains.js groupOf), not by parameter. W-063: rendered rule gains a performed/value gate, the notAssessed sentence changed, and a BMI derivation rule was added. W-072 also claimed 3.5 for the impression rewrite (opens with entered history, states each banded finding's own fired-modifier meaning) — two branches claiming one number; resolved at the merge to 3.6.] */
 
 const _R = (typeof module !== 'undefined' && module.exports)
   ? (function () {
@@ -189,11 +224,15 @@ function buildIvim(selection) {
    order and the page printed a different one, so the keyboard and the paper
    disagreed by construction.
 
-   The order itself is the one the page has always printed: fat, then the two iron
-   measurements, then the reading derived from them (W-033), then stiffness,
-   relaxometry and diffusion. `CARD_DOMAIN_ORDER` and `groupCardsByDomain` are
-   unchanged, and now preserve this order rather than rearranging it. */
-const REPORT_PARAMETERS = ['pdff', 'r2star', 't2star', 'lic', 'mre', 't1', 'ct1', 'adc'];
+   The order is FIXED — not computed from the reading — and W-142 re-set it
+   (developer decision, 2026-08-31): fibrosis (MRE) leads, fat (PDFF) second, then
+   the two iron measurements and the reading derived from them (W-033), then
+   relaxometry, iron-corrected T1 and diffusion. The point of the move is the
+   printed page — MRE and PDFF fill sheet 1, and the whole iron block (R2* / T2* /
+   LIC) reads as one unit on sheet 2 instead of straddling the page break. The
+   iron triple keeps its own internal order. `CARD_DOMAIN_ORDER` and
+   `groupCardsByDomain` follow the same sequence, never rearrange it. */
+const REPORT_PARAMETERS = ['mre', 'pdff', 'r2star', 't2star', 'lic', 't1', 'ct1', 'adc'];
 
 /* W-122. The arrow-key `step` for each parameter's entry box. It is NOT
    hand-picked: it is the finest decimal place that parameter's own published
@@ -727,7 +766,13 @@ function bandNote(zoneModel) {
 const INDICATION_COHORTS = {
   'iron-overload':           ['adult-iron-overload', 'pediatric-iron-overload'],
   'steatotic-liver-disease': ['adult-nafld', 'pediatric-nafld'],
-  'chronic-liver-disease':   ['adult-hcv', 'adult-multi-etiology'],
+  /* W-136 review — `adult-multi-etiology` withdrawn from the family. Its four
+     MRE records (CUT-0056/0004/0060/0064, Singh 2015) carry `techniqueAmbiguous`
+     and are excluded by default, so they can never be named as the matched
+     publication; naming the cohort here implied a match it can never make. They
+     still contribute to the pooled ladder. selection.js dropped it from
+     ETIOLOGY_COHORTS in the same review. */
+  'chronic-liver-disease':   ['adult-hcv', 'adult-hbv'],
   'non-specific':            []
 };
 
@@ -794,8 +839,26 @@ function refScanner(refId) {
    year, most recent first. If a tie survives every key, NOTHING is drawn and
    every match is named: an arbitrary pick between two equally-ranked
    publications would be an editorial choice with nothing behind it. */
-function matchedScale(row, indication, profile) {
-  const family = INDICATION_COHORTS[indication] || [];
+/* W-136 — etiologyCohort, when the caller states one, PINS the match to that
+   single cohort's own evidence instead of ranking across every cohort the
+   indication's family names. Today's ranking-across-a-family behaviour
+   (unchanged when etiologyCohort is absent) cannot tell an actual HCV patient
+   from an actual multi-etiology one; this narrows to exactly what was stated,
+   using the SAME downstream matching/ranking code either way. */
+function matchedScale(row, indication, profile, etiologyCohort) {
+  const indicationFamily = INDICATION_COHORTS[indication] || [];
+  /* W-136 fix round 1 — etiologyCohort only PINS the match when it actually
+     belongs to the stated indication's own cohort family; an inconsistent
+     pair (e.g. indication 'iron-overload' + etiologyCohort 'adult-hbv',
+     which has real MRE data for a wholly different indication) falls back
+     to the indication's own ranking instead of fabricating a mismatched-
+     indication citation. selection.js only validates etiologyCohort against
+     its closed cohort list, never against the currently-selected indication,
+     and the W-136-review entry-form selector (render.js) only OFFERS
+     consistent pairs — this guard is the model-layer backstop for an
+     inconsistent pair reaching the engine by any other route. */
+  const family = (etiologyCohort && indicationFamily.indexOf(etiologyCohort) !== -1)
+    ? [etiologyCohort] : indicationFamily;
   if (!family.length) return null;
   const pooled = row.scales && row.scales['primary-studies'];
   if (!pooled || !pooled.boundaries || !pooled.boundaries.length) return null;
@@ -843,7 +906,12 @@ function matchedScale(row, indication, profile) {
     boundaries.push({
       boundary: b.boundary, value: src.value, unit: b.unit,
       direction: b.direction, n: 1, min: null, max: null,
-      meanLabel: 'single published cut-off', sources: [src]
+      meanLabel: 'single published cut-off', sources: [src],
+      /* W-133. `src.evidenceGrade` already decided which publication wins the
+         tie-break above (line ~818); carrying it here is exposing that same
+         already-read field, not computing a new one, so buildZones()'s edge
+         mapping (zones.js) can pass it through to the evidence-grade badge. */
+      evidenceGrades: src.evidenceGrade ? [src.evidenceGrade] : null
     });
   }
   if (!boundaries.length) return {scale: null, refs: names, missingRungs: missing, winner: null};
@@ -898,7 +966,7 @@ function sameLadder(a, b) {
   return true;
 }
 
-function rulersFor(row, indication, profile) {
+function rulersFor(row, indication, profile, etiologyCohort) {
   const hasValue = row.value !== null && row.value !== undefined;
   const out = [];
   for (const policy of (row.drawable || [])) {
@@ -910,7 +978,7 @@ function rulersFor(row, indication, profile) {
   const consensus = out.filter(r => r.role === 'consensus');
   const second = out.filter(r => r.role !== 'consensus');
 
-  const m = matchedScale(row, indication, profile);
+  const m = matchedScale(row, indication, profile, etiologyCohort);
   if (m && m.refs.length) {
     if (m.scale) {
       const strip = rulerFromScale(m.scale, row.parameter, row, hasValue,
@@ -1049,6 +1117,16 @@ const READER_REASONS = {
     'published says this sequence carries its values from one field strength ' +
     'to another',
 
+  /* W-135 — raw ADC (CUT-0079..0082) and native T1 (CUT-0071..0074) are
+     withdrawn from the staging path: no published boundary transfers reliably
+     (no guideline stages these; for raw ADC, healthy values overlap the old
+     cut-offs). The number, where one exists, is not called wrong — only its
+     use to place this patient on a scale. */
+  'staging-withdrawn': () =>
+    'published values exist for this parameter, but none of them transfers ' +
+    'reliably enough to place this patient on a scale, so this report states ' +
+    'the reading without staging it',
+
   /* Neither of the two below is reachable from the shipped records — no pool
      spans units and no non-poolable group reaches a ladder. They are written
      anyway because the alternative is a page that starts printing code names
@@ -1163,6 +1241,7 @@ function buildCards(report, profile) {
                     'publication is ranked by the profile referenceOrder');
   }
   const indication = (report.selection && report.selection.indication) || 'non-specific';
+  const etiologyCohort = (report.selection && report.selection.etiologyCohort) || null;
   return report.rows.map(function (row) {
     const unit = PARAMETER_UNITS[row.parameter];
     const hasValue = row.value !== null && row.value !== undefined;
@@ -1184,7 +1263,7 @@ function buildCards(report, profile) {
     const indices = verdicts.map(v => v.index);
     const disagree = indices.length > 1 && indices.some(i => i !== indices[0]);
 
-    const rulers = rulersFor(row, indication, profile);
+    const rulers = rulersFor(row, indication, profile, etiologyCohort);
     const stagingRuler = rulers.filter(r => r.staging)[0] || null;
 
     return {
@@ -1365,9 +1444,11 @@ function gapOf(row) {
 }
 
 /* ────────────────────────────────────────────────── THE ORDER OF THE CARDS
-   THE ORDER IS FIXED (W-061, developer decision 2026-08-25). It is not computed
-   from the reading, from the indication or from anything the patient's values can
-   change; `orderCards` below lists, and the list is `REPORT_PARAMETERS`.
+   THE ORDER IS FIXED (W-061, developer decision 2026-08-25; re-set W-142,
+   developer decision 2026-08-31 — see REPORT_PARAMETERS above). It is not
+   computed from the reading, from the indication or from anything the patient's
+   values can change; `orderCards` below lists, and the list is
+   `REPORT_PARAMETERS`.
 
    What stands here instead is the severity RANK, which is still computed and is
    read by `buildImpression` as the definition of "abnormal". Four classes, most
@@ -1393,8 +1474,11 @@ function gapOf(row) {
    to the question this section settles. */
 
 /* The domain vocabulary is domains.js's, read back in the order the report
-   prints: fat, iron, fibrosis, relaxometry, third-party, diffusion. */
-const CARD_DOMAIN_ORDER = ['pdff', 'iron', 'mre', 't1', 'ct1', 'adc'];
+   prints: fibrosis, fat, iron, relaxometry, iron-corrected T1, diffusion
+   (W-142 re-set — fibrosis leads so the iron block stays whole on sheet 2).
+   render.js DOMAIN_ORDER holds the same sequence; render.test.js N33 binds the
+   two element for element. */
+const CARD_DOMAIN_ORDER = ['mre', 'pdff', 'iron', 't1', 'ct1', 'adc'];
 
 function severityClass(card) {
   /* W-015 Task 6. A card whose reading is WITHHELD is ranked by the fact that it
@@ -1571,13 +1655,28 @@ function numberOr(v) {
   return (typeof v === 'number' && !isNaN(v)) ? v : null;
 }
 
+/* W-144. altUln/ggt splice into buildLabs()'s `inputs` between 'alt' and
+   'plt' — shown under the SAME gate fibrosisContextHtml() used to use
+   (Fibrosis performed, or the field already holds a value, so typed-then-
+   toggled-off stays visible). Labels/units come from CONTEXT_INPUTS so they
+   are spelled once. Filtered by key, not index, so LAB_INPUTS/CONTEXT_INPUTS
+   can be reordered later without silently breaking this splice. */
 function buildLabs(selection) {
   const v = (selection && selection.values) || {};
-  const inputs = LAB_INPUTS.map(f => ({
-    key: f.key, label: f.label, unit: f.unit, value: numberOr(v[f.key])
-  }));
   const age = numberOr(selection && selection.age);
   const ast = numberOr(v.ast), alt = numberOr(v.alt), plt = numberOr(v.plt);
+  const altUln = numberOr(v.altUln), ggt = numberOr(v.ggt);
+  const fibrosisOn = !!(selection && selection.performed && selection.performed.fibrosis === true);
+  const hasFibrosisLabs = fibrosisOn || altUln !== null || ggt !== null;
+
+  const cellOf = f => ({key: f.key, label: f.label, unit: f.unit, value: numberOr(v[f.key])});
+  const byKey = k => LAB_INPUTS.filter(f => f.key === k)[0];
+  const ctxByKey = k => CONTEXT_INPUTS.filter(f => f.key === k)[0];
+  const fibrosisCells = hasFibrosisLabs
+    ? [cellOf(ctxByKey('altUln')), cellOf(ctxByKey('ggt'))] : [];
+  const inputs = [cellOf(byKey('ast')), cellOf(byKey('alt'))]
+    .concat(fibrosisCells)
+    .concat(['plt', 'ferritin', 'tsat'].map(k => cellOf(byKey(k))));
 
   const cal = calibrationRecord('CAL-0005');
   const canFib4 = age !== null && ast !== null && alt !== null && alt > 0 &&
@@ -1603,7 +1702,7 @@ function buildLabs(selection) {
   if (plt === null) missing.push('platelets');
 
   return {
-    inputs: inputs, fib4: fib4, aar: aar,
+    inputs: inputs, fib4: fib4, aar: aar, hasFibrosisLabs: hasFibrosisLabs,
     /* Named, not blank: an empty grid reads as "nothing abnormal". */
     pending: missing.length
       ? 'FIB-4 is not computed: ' + missing.join(', ') + ' ' +
@@ -1629,6 +1728,13 @@ function buildComposite(report, labs, reliability) {
   const mreRow = report.rows.filter(r => r.parameter === 'mre')[0] || null;
   const mre = mreRow ? numberOr(mreRow.value) : null;
   const fib4 = labs.fib4.value;
+  /* W-113. One plain-language sentence saying what the rule does, printed
+     before the verdict itself, for a reader who has not read the papers this
+     rule comes from. No new clinical claim \u2014 it restates what CAL-0006 already
+     states in code form. */
+  const intro = 'MEFIB combines an MRE stiffness measurement with the FIB-4 ' +
+    'blood-test score to rule significant fibrosis (F>=2) in or out \u2014 a ' +
+    'published two-test rule, not a new measurement of its own.';
   /* W-065 item 1. The rule-out strength is stated HERE, and no longer on the
      chip. `NPV 93%` stood on that chip until W-018 read both cited papers in
      full: 92.8 occurs zero times in Jung 2021 and zero times in EASL 2024,
@@ -1637,14 +1743,20 @@ function buildComposite(report, labs, reliability) {
      averaging them would be an unsourced clinical number (CLAUDE.md 1.4) and
      quoting one would name a cohort the record does not. The chip carries the
      verdict; both measured figures print here with the cohort each belongs to.
-     The rule-in PPV is untouched: 97.1% occurs six times in the same paper. */
-  const note = 'MAST is not computed here: CAL-0007 records that the workbook ' +
-    'publishes MAST\u2019s two thresholds and never its coefficients, so the ' +
-    'expression is null and stays null. Use a validated calculator. ' +
-    'MEFIB\u2019s published strength (Jung 2021, PMID 33214165): rule-in ' +
-    'PPV 97.1%; rule-out NPV 83.2% in the derivation cohort and 59.4% in the ' +
-    'validation cohort \u2014 two cohort figures, so no single rule-out ratio ' +
-    'is stated beside the verdict.';
+     The rule-in PPV is untouched: 97.1% occurs six times in the same paper.
+     W-113 splits this into two labelled fields (`mast` / `strength`) instead
+     of one run-on paragraph, and spells PPV/NPV out in words on first use, for
+     a reader who does not already know the abbreviation. */
+  const note = {
+    mast: 'MAST is not computed here: CAL-0007 records that the workbook ' +
+      'publishes MAST\u2019s two thresholds and never its coefficients, so the ' +
+      'expression is null and stays null. Use a validated calculator.',
+    strength: 'MEFIB\u2019s published strength (Jung 2021, PMID 33214165): ' +
+      'rule-in PPV (positive predictive value) 97.1%; rule-out NPV (negative ' +
+      'predictive value) 83.2% in the derivation cohort and 59.4% in the ' +
+      'validation cohort \u2014 two cohort figures, so no single rule-out ratio ' +
+      'is stated beside the verdict.'
+  };
 
   /* W-015 Task 6. MEFIB rules F>=2 IN at 97% PPV, and it rules it in from the
      MRE stiffness. Where a reliability rule has withheld that stiffness, the
@@ -1657,7 +1769,7 @@ function buildComposite(report, labs, reliability) {
                          reliability.byParameter.mre.interpretable === false);
   if (cal && mreWithheld) {
     return {
-      id: cal.id, name: cal.name, verdict: null, lines: [], note: note,
+      id: cal.id, name: cal.name, verdict: null, lines: [], note: note, intro: intro,
       pending: 'MEFIB is not computed: the MRE stiffness is not interpretable on ' +
                'this study, and the rule reads that stiffness directly. Nothing is ' +
                'ruled in or out from a measurement this report has withheld.'
@@ -1667,7 +1779,7 @@ function buildComposite(report, labs, reliability) {
   if (!cal || mre === null || fib4 === null) {
     return {
       id: cal ? cal.id : 'CAL-0006', name: cal ? cal.name : 'MEFIB rule',
-      verdict: null, lines: [], note: note,
+      verdict: null, lines: [], note: note, intro: intro,
       pending: 'MEFIB needs an MRE stiffness and a computed FIB-4. ' +
                (mre === null ? 'MRE has not been entered. ' : '') +
                (fib4 === null ? 'FIB-4 could not be computed. ' : '') +
@@ -1677,14 +1789,19 @@ function buildComposite(report, labs, reliability) {
 
   const c1 = mre >= cal.coefficients.mreKPa;
   const c2 = fib4 >= cal.coefficients.fib4;
+  /* W-113: each tag glosses the bare boundary vocabulary `F>=2` with its
+     plain-English meaning, "significant fibrosis", printed alongside it —
+     never replacing it, since `F>=2` is a locked string other checks depend
+     on (P5/P5c above, N56 elsewhere). */
   const verdict = (c1 && c2)
-    ? {band: 'POSITIVE', tag: 'Rule-in F>=2 (PPV 97%)', sev: 'high'}
+    ? {band: 'POSITIVE', tag: 'Rule-in significant fibrosis (F>=2) — PPV 97%', sev: 'high'}
     : (!c1 && !c2)
-      ? {band: 'NEGATIVE', tag: 'Rule-out F>=2', sev: 'ok'}
-      : {band: 'INDETERMINATE', tag: 'Neither rules in nor rules out', sev: 'mid'};
+      ? {band: 'NEGATIVE', tag: 'Rule-out significant fibrosis (F>=2)', sev: 'ok'}
+      : {band: 'INDETERMINATE',
+         tag: 'Neither rules in nor rules out significant fibrosis (F>=2)', sev: 'mid'};
 
   return {
-    id: cal.id, name: cal.name, verdict: verdict, note: note, pending: null,
+    id: cal.id, name: cal.name, verdict: verdict, note: note, intro: intro, pending: null,
     /* The two contributing values as labelled facts that say WHERE each came
        from — the MRE card above, and FIB-4 from the laboratory block. */
     lines: [

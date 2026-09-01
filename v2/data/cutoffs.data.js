@@ -31,12 +31,19 @@
  */
 
 const CUTOFFS_REV = 'xlsx-v1';
-const CUTOFFS_VERSION = '1.11';   /* W-054: the fifteen pediatric-iron cut-offs (CUT-0039..CUT-0053) recited from REF-003+REF-032 (neither supports a grading ladder, LITERATURE.md § 9.31) to REF-038 (+REF-001 on two boundaries), the same guideline the adult ladder already cites — its own categories carry no age restriction. Nine of the fifteen values moved to match the adult ladder they are now shown to share an origin with; r2star/t2star provenance corrected transcribed -> derived; vendorClass follows the § 5.5 reduction to guideline (R-13). */
+const CUTOFFS_VERSION = '1.13';   /* W-136: five new records — MRE NAFLD F>=1 (CUT-0083,
+   REF-014's own published rung, absent because the workbook's own MRE!D11 cell reads "n/a",
+   not a missed transcription) and the HBV MRE cohort ladder (CUT-0084..0087, REF-023, a
+   cohort the workbook never had a column for at all). Both use the new citationProvenance
+   'literature-only' (SCHEMA.md § 5.1.1, R-38). No existing value moved; five records added
+   to the pool, which shifts the POOLED 'primary-studies' MRE means at every boundary (see
+   RESOLVED_HASH below) — an expected consequence of adding real published evidence to an
+   unweighted mean (CLAUDE.md § 1.4), not a re-measurement of anything that shipped before. */
 
 /* SHA-256 over the canonical serialisation of every record. See v2/tests/schema.test.js.
    W-050 added the 15th canonical element — whether a record's own citation is accepted
    or rejected. The record SHAPE moved and no value did (SCHEMA § 5.1.1). */
-const CUTOFFS_HASH = '894867e61a4baf3da9bafc9c430f9d4ba55a3cb4dfd22b3cf1a370789ef072c9';
+const CUTOFFS_HASH = '28489ac799a123fa2a8af22f223861e2fff70d5493b2672d2202c4d0409db7a5';
 
 const CUTOFFS = [
   {
@@ -2012,6 +2019,185 @@ const CUTOFFS = [
     source: {sheet: 'MRE', cell: 'C27'}
   },
   {
+    id: 'CUT-0083',
+    parameter: 'mre',
+    boundary: 'F>=1',
+    boundaryLabel: 'F0-F1 vs F≥1',
+    direction: 'above-is-worse',
+    fieldStrength: '1.5T',
+    cohort: 'adult-nafld',
+    value: 2.65,
+    valueRaw: '< 2.65 kPa',
+    unit: 'kPa',
+    operator: '<',
+    sourceRefIds: ['REF-014'],
+    externalRefIds: [],
+    citationProvenance: 'literature-only',
+    vendorClass: 'multi-vendor-incl-ge',
+    vendorClassAmbiguous: false,
+    technique: 'mre-2d-gre-60hz',
+    techniqueGroup: 'mre-60hz-stiffness',
+    evidenceGrade: 'A',
+    sensitivity: 69,
+    specificity: 82,
+    auc: 0.82,
+    performanceScope: 'this-record',
+    performanceRefIds: ['REF-014'],
+    population: 'NAFLD IPD meta-analysis (Chen 2023) — same cohort as CUT-0002/0058/0062',
+    provenance: 'literature',
+    note: 'Chen 2023 (REF-014) publishes cut-offs of 2.65 / 3.14 / 3.53 / 4.45 kPa for ' +
+          '>=F1 / >=F2 / >=F3 / F4 (LITERATURE.md § 12.17). VeriLiv already ships the last ' +
+          'three (CUT-0002/0058/0062). The workbook MRE sheet cell D11 (the >=F1 row, ' +
+          'NAFLD column) reads literally "n/a" — verified against the source workbook, not ' +
+          'assumed — so this rung was never a missed transcription, it was never in the ' +
+          'workbook at all. Verified via Europe PMC full-text XML (PMCID PMC10623141) ' +
+          '2026-08-31: Table 3\'s ">=F1" row carries its own "Meta-analysis (95% CI)" ' +
+          'column (bivariate random-effects model pooling REF-014\'s own 8 cohorts) — ' +
+          'AUROC 0.82 (0.79-0.85), sensitivity 69% (59-78%), specificity 82% (76-87%) — a ' +
+          'figure attributable to this cut-off and this study alone, not the "boundary-row ' +
+          'best across sibling papers" figures already printed on CUT-0054/0055/0056 for ' +
+          'this same F>=1 boundary (different numbers, three different source papers).',
+    source: null
+  },
+  {
+    id: 'CUT-0084',
+    parameter: 'mre',
+    boundary: 'F>=1',
+    boundaryLabel: 'F0-F1 vs F≥1',
+    direction: 'above-is-worse',
+    fieldStrength: '1.5T',
+    cohort: 'adult-hbv',
+    value: 2.45,
+    valueRaw: '< 2.45 kPa',
+    unit: 'kPa',
+    operator: '<',
+    sourceRefIds: ['REF-023'],
+    externalRefIds: [],
+    citationProvenance: 'literature-only',
+    vendorClass: 'ge-explicit',
+    vendorClassAmbiguous: false,
+    technique: 'mre-2d-gre-60hz',
+    techniqueGroup: 'mre-60hz-stiffness',
+    evidenceGrade: 'B',
+    sensitivity: 92.2,
+    specificity: 98.2,
+    auc: 0.985,
+    performanceScope: 'this-record',
+    performanceRefIds: ['REF-023'],
+    population: 'Chronic hepatitis B, 334 of 361 enrolled technically successful ' +
+                '(195 HBV-infected + 166 living-donor candidates), ROC analysis (Lee 2014)',
+    provenance: 'literature',
+    note: 'Lee JE et al., Korean J Radiol 2014;15:210-17 (REF-023), full text read via ' +
+          'Europe PMC (PMCID PMC3955787) 2026-08-31: Table 3 reports cut-off 2.45 kPa for ' +
+          'F0 vs >=F1, sensitivity 92.2%, specificity 98.2%, Az 0.985. Scanner confirmed in ' +
+          'text: 1.5T GE Signa HDx, MR-Touch driver. The workbook MRE sheet has no ' +
+          'hepatitis-B column at all — this cohort was never in the workbook, not a missed ' +
+          'transcription.',
+    source: null
+  },
+  {
+    id: 'CUT-0085',
+    parameter: 'mre',
+    boundary: 'F>=2',
+    boundaryLabel: 'F≥2 (significant)',
+    direction: 'above-is-worse',
+    fieldStrength: '1.5T',
+    cohort: 'adult-hbv',
+    value: 2.69,
+    valueRaw: '≥ 2.69 kPa',
+    unit: 'kPa',
+    operator: '>=',
+    sourceRefIds: ['REF-023'],
+    externalRefIds: [],
+    citationProvenance: 'literature-only',
+    vendorClass: 'ge-explicit',
+    vendorClassAmbiguous: false,
+    technique: 'mre-2d-gre-60hz',
+    techniqueGroup: 'mre-60hz-stiffness',
+    evidenceGrade: 'B',
+    sensitivity: 95.4,
+    specificity: 95.6,
+    auc: 0.988,
+    performanceScope: 'this-record',
+    performanceRefIds: ['REF-023'],
+    population: 'Chronic hepatitis B, 334 of 361 enrolled technically successful ' +
+                '(195 HBV-infected + 166 living-donor candidates), ROC analysis (Lee 2014)',
+    provenance: 'literature',
+    note: 'Lee JE et al., Korean J Radiol 2014;15:210-17 (REF-023), full text read via ' +
+          'Europe PMC (PMCID PMC3955787) 2026-08-31: Table 3 reports cut-off 2.69 kPa for ' +
+          '>=F2 vs <=F1, sensitivity 95.4%, specificity 95.6%, Az 0.988.',
+    source: null
+  },
+  {
+    id: 'CUT-0086',
+    parameter: 'mre',
+    boundary: 'F>=3',
+    boundaryLabel: 'F≥3 (advanced)',
+    direction: 'above-is-worse',
+    fieldStrength: '1.5T',
+    cohort: 'adult-hbv',
+    value: 3.0,
+    valueRaw: '≥ 3.0 kPa',
+    unit: 'kPa',
+    operator: '>=',
+    sourceRefIds: ['REF-023'],
+    externalRefIds: [],
+    citationProvenance: 'literature-only',
+    vendorClass: 'ge-explicit',
+    vendorClassAmbiguous: false,
+    technique: 'mre-2d-gre-60hz',
+    techniqueGroup: 'mre-60hz-stiffness',
+    evidenceGrade: 'B',
+    sensitivity: null,
+    specificity: null,
+    auc: null,
+    performanceScope: null,
+    performanceRefIds: [],
+    population: 'Chronic hepatitis B, 334 of 361 enrolled technically successful ' +
+                '(195 HBV-infected + 166 living-donor candidates), ROC analysis (Lee 2014)',
+    provenance: 'literature',
+    note: 'Lee JE et al., Korean J Radiol 2014;15:210-17 (REF-023), full text read via ' +
+          'Europe PMC (PMCID PMC3955787) 2026-08-31: the text states "cutoff values of LS ' +
+          'for >=F1, >=F2, >=F3, and F4 were 2.45 kPa, 2.69 kPa, 3.0 kPa, and 3.94 kPa, ' +
+          'respectively" and gives a combined Az range of 0.987-0.988 for the reported rows, ' +
+          'but sensitivity/specificity for the >=F3 threshold specifically are not stated in ' +
+          'Table 3 — left null rather than reused from a neighbouring row (CLAUDE.md § 1).',
+    source: null
+  },
+  {
+    id: 'CUT-0087',
+    parameter: 'mre',
+    boundary: 'F4',
+    boundaryLabel: 'F4 (cirrhosis)',
+    direction: 'above-is-worse',
+    fieldStrength: '1.5T',
+    cohort: 'adult-hbv',
+    value: 3.94,
+    valueRaw: '≥ 3.94 kPa',
+    unit: 'kPa',
+    operator: '>=',
+    sourceRefIds: ['REF-023'],
+    externalRefIds: [],
+    citationProvenance: 'literature-only',
+    vendorClass: 'ge-explicit',
+    vendorClassAmbiguous: false,
+    technique: 'mre-2d-gre-60hz',
+    techniqueGroup: 'mre-60hz-stiffness',
+    evidenceGrade: 'B',
+    sensitivity: 95.1,
+    specificity: 94.5,
+    auc: 0.987,
+    performanceScope: 'this-record',
+    performanceRefIds: ['REF-023'],
+    population: 'Chronic hepatitis B, 334 of 361 enrolled technically successful ' +
+                '(195 HBV-infected + 166 living-donor candidates), ROC analysis (Lee 2014)',
+    provenance: 'literature',
+    note: 'Lee JE et al., Korean J Radiol 2014;15:210-17 (REF-023), full text read via ' +
+          'Europe PMC (PMCID PMC3955787) 2026-08-31: Table 3 reports cut-off 3.94 kPa for ' +
+          'F4 vs <=F3, sensitivity 95.1%, specificity 94.5%, Az 0.987.',
+    source: null
+  },
+  {
     id: 'CUT-0067',
     parameter: 'mefib',
     boundary: 'rule-in',
@@ -2133,6 +2319,17 @@ const CUTOFFS = [
   },
   {
     id: 'CUT-0071',
+    /* W-135 — REF-018's own Limitations section (LITERATURE.md § 9.12): the
+       paper is 3T only and names 1.5T as undemonstrated. Sourced scope-of-use
+       caveat carried alongside the staging withdrawal. */
+    useCaveat: {
+      kind: 'scope-of-use',
+      quoteSource: 'publication-fulltext',
+      statement: 'applicability at other field strengths, in particular 1.5T, ' +
+                 'need to be demonstrated',
+      refIds: ['REF-018'],
+      transcribedIn: 'LITERATURE.md § 9.12'
+    },
     parameter: 't1',
     boundary: 'low|normal',
     boundaryLabel: 'Native T1 normal lower bound @ 1.5T',
@@ -2147,8 +2344,10 @@ const CUTOFFS = [
     externalRefIds: [],
     citationProvenance: 'workbook-rejected-unresolved',
     workbookCitationRejected: true,
-    dataQualityFlags: ['citation-unresolved'],
-    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved. THIS boundary is the one the rejected candidate CONTRADICTS rather than merely omits: where CUT-0071 reads 500, that abstract reads 550, and it is the only one of the four whose sibling values it reproduces exactly while differing here. Nothing follows from that for the value. An abstract sentence its own paper never supports cannot move a clinical number any more than it can source one (CLAUDE.md § 4), so 500 stands and stands unsourced.',
+    dataQualityFlags: ['citation-unresolved', 'staging-withdrawn'],
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-consensus-cutoff-citation-rejected',
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved. THIS boundary is the one the rejected candidate CONTRADICTS rather than merely omits: where CUT-0071 reads 500, that abstract reads 550, and it is the only one of the four whose sibling values it reproduces exactly while differing here. Nothing follows from that for the value. An abstract sentence its own paper never supports cannot move a clinical number any more than it can source one (CLAUDE.md § 4), so 500 stands and stands unsourced. W-135, 2026-08-31: also withdrawn from the staging path — no consensus ms native-T1 staging cut-off exists and the methodology literature argues that uncorrected native T1 is confounded by iron and fat (LITERATURE.md § 12.15, § 12.19). The value is unchanged; only its use as a staging boundary is withdrawn.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2167,6 +2366,17 @@ const CUTOFFS = [
   },
   {
     id: 'CUT-0072',
+    /* W-135 — REF-018's own Limitations section (LITERATURE.md § 9.12): the
+       paper is 3T only and names 1.5T as undemonstrated. Sourced scope-of-use
+       caveat carried alongside the staging withdrawal. */
+    useCaveat: {
+      kind: 'scope-of-use',
+      quoteSource: 'publication-fulltext',
+      statement: 'applicability at other field strengths, in particular 1.5T, ' +
+                 'need to be demonstrated',
+      refIds: ['REF-018'],
+      transcribedIn: 'LITERATURE.md § 9.12'
+    },
     parameter: 't1',
     boundary: 'normal|elevated',
     boundaryLabel: 'Native T1 elevated threshold @ 1.5T',
@@ -2181,8 +2391,10 @@ const CUTOFFS = [
     externalRefIds: [],
     citationProvenance: 'workbook-rejected-unresolved',
     workbookCitationRejected: true,
-    dataQualityFlags: ['citation-unresolved'],
-    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved.',
+    dataQualityFlags: ['citation-unresolved', 'staging-withdrawn'],
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-consensus-cutoff-citation-rejected',
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved. W-135, 2026-08-31: also withdrawn from the staging path — no consensus ms native-T1 staging cut-off exists and the methodology literature argues that uncorrected native T1 is confounded by iron and fat (LITERATURE.md § 12.15, § 12.19). The value is unchanged; only its use as a staging boundary is withdrawn.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2201,6 +2413,17 @@ const CUTOFFS = [
   },
   {
     id: 'CUT-0073',
+    /* W-135 — REF-018's own Limitations section (LITERATURE.md § 9.12): the
+       paper is 3T only and names 1.5T as undemonstrated. Sourced scope-of-use
+       caveat carried alongside the staging withdrawal. */
+    useCaveat: {
+      kind: 'scope-of-use',
+      quoteSource: 'publication-fulltext',
+      statement: 'applicability at other field strengths, in particular 1.5T, ' +
+                 'need to be demonstrated',
+      refIds: ['REF-018'],
+      transcribedIn: 'LITERATURE.md § 9.12'
+    },
     parameter: 't1',
     boundary: 'low|normal',
     boundaryLabel: 'Native T1 normal lower bound @ 3.0T',
@@ -2215,8 +2438,10 @@ const CUTOFFS = [
     externalRefIds: [],
     citationProvenance: 'workbook-rejected-unresolved',
     workbookCitationRejected: true,
-    dataQualityFlags: ['citation-unresolved'],
-    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved.',
+    dataQualityFlags: ['citation-unresolved', 'staging-withdrawn'],
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-consensus-cutoff-citation-rejected',
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved. W-135, 2026-08-31: also withdrawn from the staging path — no consensus ms native-T1 staging cut-off exists and the methodology literature argues that uncorrected native T1 is confounded by iron and fat (LITERATURE.md § 12.15, § 12.19). The value is unchanged; only its use as a staging boundary is withdrawn.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2235,6 +2460,17 @@ const CUTOFFS = [
   },
   {
     id: 'CUT-0074',
+    /* W-135 — REF-018's own Limitations section (LITERATURE.md § 9.12): the
+       paper is 3T only and names 1.5T as undemonstrated. Sourced scope-of-use
+       caveat carried alongside the staging withdrawal. */
+    useCaveat: {
+      kind: 'scope-of-use',
+      quoteSource: 'publication-fulltext',
+      statement: 'applicability at other field strengths, in particular 1.5T, ' +
+                 'need to be demonstrated',
+      refIds: ['REF-018'],
+      transcribedIn: 'LITERATURE.md § 9.12'
+    },
     parameter: 't1',
     boundary: 'normal|elevated',
     boundaryLabel: 'Native T1 elevated threshold @ 3.0T',
@@ -2249,8 +2485,10 @@ const CUTOFFS = [
     externalRefIds: [],
     citationProvenance: 'workbook-rejected-unresolved',
     workbookCitationRejected: true,
-    dataQualityFlags: ['citation-unresolved'],
-    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved.',
+    dataQualityFlags: ['citation-unresolved', 'staging-withdrawn'],
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-consensus-cutoff-citation-rejected',
+    dataQualityNote: 'W-036 reading pass, 2026-08-24 (LITERATURE.md § 9.12): this boundary cannot be traced to REF-018, its only citation. Searched in the retrieved full text at reference/papers/fulltext/PMID-24036007.xml and in the markup-stripped text: the strings "500", "620", "700" and "850" occur ZERO times each. The search is self-verifying — the same search finds the paper own cT1 group values 717, 750, 870 and 1025 once each, which is how retrieval was confirmed complete rather than truncated. The paper additionally measures iron-corrected cT1, not native T1: the phrases "native T1" and "uncorrected" occur zero times in it. This does NOT say the value is wrong; it says the citation does not support it, and W-036 found no replacement. value, valueRaw, operator and direction are unchanged and stay unchanged — moving a clinical number needs a source (CLAUDE.md § 4). Handed to W-018 as its first item. W-053 SECOND READING PASS, 2026-08-24 (LITERATURE.md § 9.12.2): a candidate source was found and REJECTED, and the class is therefore REINFORCED rather than resolved. Unal E, Idilman IS, Karcaaltincaba M (Expert Rev Gastroenterol Hepatol 2017;11(2):167-182, PMID 27937040, EXT-006, full text held at reference/papers/fulltext/PMID-27937040.pdf and read) states in its ABSTRACT "Normal T1 (550-620 ms for 1.5 T and 700-850 ms for 3 T)" — three of these four boundaries verbatim. MEASURED in that full text: the strings "550", "700" and "850" occur ONCE each, all three on the single abstract line, and "620" occurs twice, once in the abstract and once as the page range "619-620" in its reference 40. They occur in no sentence, no table and no citation of the body. The extraction is self-verifying: the same search finds that paper own Table 1 values "586" and "809" once each. Table 1 is the ONLY place it reports a normal liver T1 by field strength, and it attributes 586 +/- 39 ms at 1.5T and 809 +/- 71 ms at 3.0T to de Bazelaire 2004 (EXT-001) — different numbers, and at 3T not reconcilable with its own abstract band. Serai SD, Robson MD, Tirkes T, Trout AT (AJR 2025;224(6), PMID 39194308, EXT-008, full text read from PMC12555091) print the same band and cite TWO papers for it, its references 36 and 37 — Unal 2017 and Meloni 2024 (EXT-007). BOTH have been read in full and NEITHER contains it: Unal only in its own unsupported abstract line, and Meloni publishes 442-705 ms at 1.5T, not 550-620. Citing either would record an unsourced sentence AS a source, so externalRefIds stays EMPTY. The same AJR paper carries a SECOND and different normal statement it never reconciles with the first: its Table 2, captioned "Reference normal values for T1 in the abdomen using MOLLI-based T1 methods", gives liver 581 +/- 64 ms at 1.5T and 783 +/- 88 ms at 3.0T. That row is traceable — it is Gilligan 2019 (EXT-009, PMID 31049609) verbatim — and it is PEDIATRIC: 32 healthy children aged 7-17, 16 per field strength, MOLLI. AJR bridges the two with the in-text clause "and are similar for adults and children", which is an assertion rather than a measurement in an adult cohort. These records are cohort adult-general, so adopting a pediatric row for them would be the extrapolation CLAUDE.md § 1.3 forbids, on the same reading that refused to manufacture a pediatric MRE bound in the opposite direction. Recording a pediatric T1 reference range from Gilligan is a separate, legitimate task and is queued, not done here. The three primary normative measurements located instead — de Bazelaire 2004 (586 +/- 39 at 1.5T, 809 +/- 71 at 3.0T), Meloni 2024 (EXT-007, limits of normal 442-705 ms at 1.5T on GE MOLLI) and Obmann 2019 (767 +/- 82 ms at 3.0T, PMID 31147588) — publish none of these four values, and a mean with an SD is not a boundary. No value moved. W-135, 2026-08-31: also withdrawn from the staging path — no consensus ms native-T1 staging cut-off exists and the methodology literature argues that uncorrected native T1 is confounded by iron and fat (LITERATURE.md § 12.15, § 12.19). The value is unchanged; only its use as a staging boundary is withdrawn.',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 't1-molli',
@@ -2433,6 +2671,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-026'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-transferable-cutoff-published',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-135, 2026-08-31 (LITERATURE.md § 12.18): withdrawn from the staging path. No guideline stages liver fibrosis by raw ADC; the only pooled analysis (2017 Abdom Radiol SR+MA, PMID 27678393) reports AUCs and explicitly declines to pool an ADC cut-off because raw ADC does not transfer across b-value, field strength or vendor; healthy liver ADC ~1.24 x10^-3 mm^2/s (LITERATURE.md § 12.16) overlaps these values. value, valueRaw, operator, direction and sourceRefIds are unchanged — the number is not asserted wrong, its use as a transferable staging boundary is withdrawn (CLAUDE.md § 2.1, § 2.5).',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 'dwi-adc',
@@ -2464,6 +2706,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-026'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-transferable-cutoff-published',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-135, 2026-08-31 (LITERATURE.md § 12.18): withdrawn from the staging path. No guideline stages liver fibrosis by raw ADC; the only pooled analysis (2017 Abdom Radiol SR+MA, PMID 27678393) reports AUCs and explicitly declines to pool an ADC cut-off because raw ADC does not transfer across b-value, field strength or vendor; healthy liver ADC ~1.24 x10^-3 mm^2/s (LITERATURE.md § 12.16) overlaps these values. value, valueRaw, operator, direction and sourceRefIds are unchanged — the number is not asserted wrong, its use as a transferable staging boundary is withdrawn (CLAUDE.md § 2.1, § 2.5).',
     vendorClass: 'non-ge',
     vendorClassAmbiguous: false,
     technique: 'dwi-adc',
@@ -2494,6 +2740,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-027'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-transferable-cutoff-published',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-135, 2026-08-31 (LITERATURE.md § 12.18): withdrawn from the staging path. No guideline stages liver fibrosis by raw ADC; the only pooled analysis (2017 Abdom Radiol SR+MA, PMID 27678393) reports AUCs and explicitly declines to pool an ADC cut-off because raw ADC does not transfer across b-value, field strength or vendor; healthy liver ADC ~1.24 x10^-3 mm^2/s (LITERATURE.md § 12.16) overlaps these values. value, valueRaw, operator, direction and sourceRefIds are unchanged — the number is not asserted wrong, its use as a transferable staging boundary is withdrawn (CLAUDE.md § 2.1, § 2.5).',
     vendorClass: 'multi-vendor-incl-ge',
     vendorClassAmbiguous: true,
     technique: 'dwi-adc',
@@ -2525,6 +2775,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-027'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-transferable-cutoff-published',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-135, 2026-08-31 (LITERATURE.md § 12.18): withdrawn from the staging path. No guideline stages liver fibrosis by raw ADC; the only pooled analysis (2017 Abdom Radiol SR+MA, PMID 27678393) reports AUCs and explicitly declines to pool an ADC cut-off because raw ADC does not transfer across b-value, field strength or vendor; healthy liver ADC ~1.24 x10^-3 mm^2/s (LITERATURE.md § 12.16) overlaps these values. value, valueRaw, operator, direction and sourceRefIds are unchanged — the number is not asserted wrong, its use as a transferable staging boundary is withdrawn (CLAUDE.md § 2.1, § 2.5).',
     vendorClass: 'multi-vendor-incl-ge',
     vendorClassAmbiguous: true,
     technique: 'dwi-adc',
