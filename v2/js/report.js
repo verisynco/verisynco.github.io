@@ -15,7 +15,35 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.16';  /* W-144: buildLabs()'s `inputs` list is now
+const V2_REPORT_VERSION = '3.20';  /* W-159: `orientationRulerFor` + `card.orientationStrip` —
+   the three pediatric-adapted MRE stiffness values (CUT-0005/0065/0066, all stagingWithdrawn)
+   drawn as a verdict-less orientation strip on the pediatric MRE card. No `stage()` call, no
+   band assigned, no engine change, no `v2/data/` file opened. `pediatricScopeLineActive` is
+   factored out so `gapSentence` and the strip cannot disagree on when the pediatric branch is
+   active. W-158: partial-ladder staging reaches the card —
+   `row.stagingMode` passthrough, a partial staging ruler in `rulersFor` (built from
+   `stagingScale` even though it is not `drawable`), a bounded "≥ <band>" verdict chip for a
+   value in the grey zone (`partialVerdictBand`), a new `boundaryGap` card field
+   (`boundaryGapSentence`, sourced to REF-038, non-null only on a partial row), `noData`
+   guarded against the partial path, and a `provenanceSentence` clause. No `text`/`facts`
+   change; no data file; no hash but RESOLVED (engine) and the three version stamps.
+   ── W-157: `gapSentence` gains a pediatric
+   branch — in the 'peds' cohort a parameter whose ladder cannot close because a
+   rung is simply not published for children (or is withdrawn from staging) now
+   prints ONE plain-language scope line instead of the "No ladder could be
+   closed … N further reason is recorded" construction, which was written for the
+   test suite and read as a failure on the common pediatric path. For MRE the
+   line also carries the adult-adapted values verbatim from CUT-0005.valueRaw
+   (W-098 pattern). The adult path, technique gates and recoverable
+   ambiguous-technique gaps are all unchanged. No clinical value, threshold or
+   judgment moved.
+   W-147 round 2: `card.disagreement`'s
+   sentence shortened to "Guideline and matched publication disagree — both
+   shown, neither preferred." (was a two-clause, two-line sentence) — same
+   fact, developer feedback that the longer form read as an alarm rather than
+   a note to skim once moved between the two ruler bars. No clinical value,
+   threshold or judgment moved; only this one presentation string.
+   W-144: buildLabs()'s `inputs` list is now
    conditional — 'altUln'/'ggt' splice in between 'alt' and 'plt' only when
    Fibrosis is performed or either already carries a value (the same
    fibrosisOn-or-has-value gate the old fibrosisContextHtml() used), otherwise
@@ -350,6 +378,7 @@ function buildRow(selection, vendor, calibrationMode, parameter) {
     drawable: [],
     scales: null,
     staging: null,
+    stagingMode: null,
     stagingScale: null,
     stagingReason: null,
     missingReasons: [],
@@ -391,6 +420,7 @@ function buildRow(selection, vendor, calibrationMode, parameter) {
   row.drawable = built.drawable.slice();
   row.scales = built.scales;
   row.staging = built.staging;
+  row.stagingMode = built.stagingMode;
   row.stagingScale = built.stagingScale;
   row.stagingReason = built.stagingReason;
   row.gaps = built.gaps;
@@ -933,12 +963,31 @@ function matchedScale(row, indication, profile, etiologyCohort) {
    would erase a disagreement (SCHEMA § 10.5). Nothing here branches on a policy
    name — `staging` is read from the engine and the policy is only ever mapped to
    words. */
+/* W-158 — the verdict chip for a value that landed in the grey (unresolved)
+   zone. A bounded statement in the ladder's own words: "≥ moderate" when the
+   open end is the worst end, "≤ <band>" for the mirror. Never a severity. */
+function partialVerdictBand(zoneModel, staged) {
+  const grey = (zoneModel.zones || []).filter(z => z.unresolved)[0];
+  if (!grey || !grey.label) return null;
+  const parts = String(grey.label).split('–');
+  return staged.unbounded === 'below'
+    ? '≤ ' + parts[parts.length - 1]
+    : '≥ ' + parts[0];
+}
+
 function rulerFromScale(scale, parameter, row, hasValue, label, staging, role) {
   const zoneModel = _R.buildZones(scale, parameter);
   if (!zoneModel) return null;
   const staged = hasValue ? _R.stage(row.value, scale) : null;
-  const zone = staged && staged.index !== undefined
-    ? _R.zoneForIndex(zoneModel, staged.index) : null;
+  /* W-158 — a partial staging carries a full-ladder index RANGE; hand both ends
+     to zoneForIndex so a value past the last resolved rung lands on the grey
+     zone rather than on nothing. */
+  const zone = staged
+    ? (staged.partial
+        ? _R.zoneForIndex(zoneModel, staged.loIndex, staged.hiIndex)
+        : (staged.index !== undefined
+            ? _R.zoneForIndex(zoneModel, staged.index) : null))
+    : null;
   return {
     scaleLabel: label, staging: staging, role: role,
     axis: zoneModel.axis, unit: zoneModel.unit, dir: zoneModel.dir,
@@ -946,11 +995,57 @@ function rulerFromScale(scale, parameter, row, hasValue, label, staging, role) {
     value: hasValue ? row.value : null,
     /* The verdict chip, as words. `band` is the ladder's own name for where this
        patient sits; `sev` is null wherever V1 had no severity to port, and a null
-       there is what stops the renderer from colouring it. */
-    verdict: zone ? {band: zone.label, tag: zone.tag, sev: zone.sev} : null,
+       there is what stops the renderer from colouring it. W-158 — when the value
+       lands in the grey (unresolved) zone the band is a bounded "≥ <last resolved
+       band>" statement, never a severity. */
+    verdict: zone
+      ? (zone.unresolved
+          ? {band: partialVerdictBand(zoneModel, staged), tag: null, sev: null}
+          : {band: zone.label, tag: zone.tag, sev: zone.sev})
+      : null,
     nameSource: zoneModel.nameSource, severitySource: zoneModel.severitySource,
     axisSource: zoneModel.axisSource, note: bandNote(zoneModel),
     matchLabel: null, matchedRefs: [], missingRungs: [], scanner: null
+  };
+}
+
+/* W-159 — the pediatric MRE ORIENTATION strip. NOT a staging bar: it reads the
+   three adult-adapted stiffness values straight from the records (CUT-0005 /
+   CUT-0065 / CUT-0066, all stagingWithdrawn — `pediatricScopeLine` already reads
+   CUT-0005 this way), builds a display scale flagged `orientation`, and returns a
+   ruler with `verdict: null` and `staging: false`. `stage()` is never called; the
+   patient value travels as `value` and the renderer places the marker through the
+   same `axisXOf()` every bar uses. The strip exists only where the W-157
+   pediatric scope line does, so the "not established in children / were not used
+   to stage" sentence is always beside it. */
+const ORIENTATION_MRE_IDS = ['CUT-0005', 'CUT-0065', 'CUT-0066'];
+
+function orientationRulerFor(row, cohort) {
+  if (row.parameter !== 'mre' || !pediatricScopeLineActive(row, cohort)) return null;
+  const recs = _R.CUTOFFS
+    .filter(x => ORIENTATION_MRE_IDS.indexOf(x.id) !== -1)
+    .slice()
+    .sort((a, b) => a.value - b.value);
+  if (recs.length !== 3) return null;
+  const scale = {
+    complete: false, partial: false, orientation: true,
+    boundaries: recs.map(r => ({
+      boundary: r.boundary, value: r.value, unit: r.unit, direction: r.direction
+    }))
+  };
+  const zoneModel = _R.buildZones(scale, 'mre');
+  if (!zoneModel) return null;
+  const hasValue = row.value !== null && row.value !== undefined;
+  return {
+    scaleLabel: 'adult-adapted values (orientation only)',
+    staging: false, role: 'orientation', orientation: true,
+    axis: zoneModel.axis, unit: zoneModel.unit, dir: zoneModel.dir,
+    zones: zoneModel.zones, edges: zoneModel.edges,
+    value: hasValue ? row.value : null,
+    verdict: null,
+    nameSource: zoneModel.nameSource, severitySource: zoneModel.severitySource,
+    axisSource: zoneModel.axisSource, note: null,
+    matchLabel: null, matchedRefs: ['REF-034'], missingRungs: [], scanner: null
   };
 }
 
@@ -966,7 +1061,7 @@ function sameLadder(a, b) {
   return true;
 }
 
-function rulersFor(row, indication, profile, etiologyCohort) {
+function rulersFor(row, indication, profile, etiologyCohort, cohort) {
   const hasValue = row.value !== null && row.value !== undefined;
   const out = [];
   for (const policy of (row.drawable || [])) {
@@ -974,6 +1069,23 @@ function rulersFor(row, indication, profile, etiologyCohort) {
                              SCALE_WORDS[policy], row.staging === policy,
                              row.staging === policy ? 'consensus' : 'matched');
     if (r) out.push(r);
+  }
+  /* W-158 — a partial pediatric ladder is not `drawable` (that stays reserved
+     for a complete bar), but it IS the staging scale and it draws: the resolved
+     rungs colour and name their bands, the unpublished worst-end rung is a grey
+     ungraded segment. Only when nothing else produced a bar. */
+  if (!out.length && row.stagingMode === 'partial' && row.stagingScale) {
+    const pr = rulerFromScale(row.stagingScale, row.parameter, row, hasValue,
+                              SCALE_WORDS[row.staging], true, 'consensus');
+    if (pr) out.push(pr);
+  }
+  /* W-159 — the pediatric MRE orientation strip. It stages nothing (`staging:
+     false`, `role: 'orientation'`), so it lands in `second` below and never
+     becomes the verdict ruler. Only when nothing else drew — pediatric MRE
+     produces no other bar. */
+  if (!out.length) {
+    const o = orientationRulerFor(row, cohort || null);
+    if (o) out.push(o);
   }
   const consensus = out.filter(r => r.role === 'consensus');
   const second = out.filter(r => r.role !== 'consensus');
@@ -1045,6 +1157,10 @@ function provenanceSentence(row) {
     ? 'Staged against the published guideline ladder'
     : `Staged against the pooled ladder of published primary studies ` +
       `(${s.sourceCount} contributing ${s.sourceCount === 1 ? 'value' : 'values'})`);
+  if (row.stagingMode === 'partial') {
+    parts.push('against the published lower boundaries only — the ' +
+               'highest-grade boundary is not separately established in children');
+  }
   if (s.cohorts && s.cohorts.length) {
     parts.push(`the contributing studies were done in ${s.cohorts.join(' and ')} ` +
                `populations`);
@@ -1161,9 +1277,61 @@ function readerReason(entry) {
   return write ? write(entry) : (entry.raw || entry.reason);
 }
 
+/* W-157. The pediatric scope line. One sentence, screen and print, no internal
+   vocabulary ("ladder", "rung", "policy", "provenance class"): it states the
+   staging gap as a deliberate scope limit for children, not a failure. MRE
+   additionally carries the three adult-adapted values VERBATIM from the workbook
+   (CUT-0005.valueRaw — all three pediatric MRE records share the one cell, so
+   the string is taken, not retyped) together with the workbook's own hedge.
+   This is the W-098 pattern: a synthesis the tool may not author becomes
+   shippable once the source's own sentence is published verbatim, attributed,
+   with its caveat intact. */
+/* W-157 / W-159. The single condition that turns on the pediatric scope line —
+   and, for MRE, the orientation strip drawn beside it. Both readers call this so
+   they cannot disagree on when the pediatric branch is active: cohort is `peds`,
+   the row is not technique-gated, and the top-ranked gap reason offers no way
+   back in (`rank < 2` — a rank-2 reason is a recoverable ambiguous-technique
+   exclusion that keeps its own actionable sentence). */
+function pediatricScopeLineActive(row, cohort) {
+  if (cohort !== 'peds' || row.gate) return false;
+  const ranked = rankedReasons(row);
+  return ranked.length > 0 && ranked[0].rank < 2;
+}
+
+function pediatricScopeLine(row) {
+  if (row.parameter === 'mre') {
+    const c = _R.CUTOFFS.filter(x => x.id === 'CUT-0005')[0];
+    const raw = (c && c.valueRaw) || '';
+    return 'Liver stiffness staging is not established in children; ' +
+           'adult-adapted values — ' + raw + ' — are shown for orientation ' +
+           'only and were not used to stage this measurement.';
+  }
+  return 'In children, published values do not cover every step of the ' +
+         'staging range for this measurement, so no band is shown; the ' +
+         'boundaries that are published were not applied on their own.';
+}
+
+/* W-158. The sentence beside a PARTIAL pediatric ruler — the resolved rungs
+   stage, and this says why the top of the ladder is grey rather than banded.
+   Sourced to REF-038 (ESGAR/SAR 2023 / Reeder 2023), which the pediatric iron
+   cut-offs already cite: no new reference, no new PMID. Assembled from the
+   engine's own missing-boundary name, not model prose — the W-098 register. */
+function boundaryGapSentence(row) {
+  const s = row.stagingScale;
+  const missing = (s && s.missingBoundaries && s.missingBoundaries[0]) || null;
+  const names = missing ? String(missing).split('|') : null;
+  const gap = names && names.length === 2
+    ? names[0] + '/' + names[1] + ' boundary'
+    : 'worst-grade boundary';
+  return 'Pediatric iron staging: ESGAR/SAR 2023 (REF-038) publishes the two ' +
+         'highest overload grades as a single pediatric category, so the ' + gap +
+         ' is not separately established for children. The lower boundaries were ' +
+         'applied; the region above the last is shown but not graded.';
+}
+
 /* A parameter that cannot be staged says why, and never leaves an empty band a
    reader would take for "normal" (SCHEMA 10.3). */
-function gapSentence(row) {
+function gapSentence(row, cohort) {
   if (row.gate) return readerReason({code: 'technique-gate', raw: row.gate});
   /* W-050. ONE reason prints, and until now it was whichever the policy loop
      produced first — always the guideline class. For native T1 that printed
@@ -1181,6 +1349,13 @@ function gapSentence(row) {
      reordered on a distinction that was never made. */
   const ranked = rankedReasons(row);
   if (!ranked.length) return null;
+  /* W-157. Pediatric cohort: replace the "No ladder could be closed …"
+     construction with the single scope line — but ONLY when the top-ranked
+     reason offers no way back in. A rank-2 reason is a recoverable
+     ambiguous-technique exclusion (`allowAmbiguousTechnique`); its sentence
+     tells the reader how to act, so it is kept exactly as on the adult path
+     (e.g. pediatric cT1 on the LMS-MOLLI route). */
+  if (pediatricScopeLineActive(row, cohort)) return pediatricScopeLine(row);
   /* The trailing clause counts REASONS, so it says reasons: it used to call them
      boundaries and write "1 further boundaries" for a count of one. Reasons are
      deduplicated above, and a boundary count would not survive that. */
@@ -1263,7 +1438,8 @@ function buildCards(report, profile) {
     const indices = verdicts.map(v => v.index);
     const disagree = indices.length > 1 && indices.some(i => i !== indices[0]);
 
-    const rulers = rulersFor(row, indication, profile, etiologyCohort);
+    const rulers = rulersFor(row, indication, profile, etiologyCohort,
+                             report.selection && report.selection.cohort);
     const stagingRuler = rulers.filter(r => r.staging)[0] || null;
 
     return {
@@ -1293,7 +1469,7 @@ function buildCards(report, profile) {
       /* One bar is a fact about the data, not an exception to the layout — and
          there are two different facts behind it, so the sentence says which one
          applies rather than covering both with a vague line. */
-      singleLadderReason: rulers.length !== 1 ? null
+      singleLadderReason: rulers.length !== 1 || rulers[0].role === 'orientation' ? null
         : (rulers[0].matchIsSameLadder
             ? 'The publication matched to this indication is the ladder already ' +
               'drawn above, so it is named rather than drawn a second time. A ' +
@@ -1306,30 +1482,51 @@ function buildCards(report, profile) {
          neither needs to know a policy's name to do it. */
       rulers: rulers,
       ruler: stagingRuler,
+      /* W-159 — the pediatric MRE orientation strip, or null. Also present in
+         `rulers` (so `rulersHtml` draws it); this named field lets the renderer
+         branch its header and legend on the role without scanning `rulers`. It is
+         never the staging ruler — `ruler`/`verdict` stay null on this card. */
+      orientationStrip: rulers.filter(r => r.role === 'orientation')[0] || null,
       /* The chip beside the number: the band the patient is in, named. Null
          where nothing stages — and a null chip prints "—", never "normal". */
       verdict: stagingRuler ? stagingRuler.verdict : null,
       verdicts: verdicts,
       /* Named, not resolved. Two scales shown together preserve a disagreement
-         that a blended number would erase (SCHEMA 10.5). */
+         that a blended number would erase (SCHEMA 10.5). W-147 round 2: shortened
+         from the original two-line sentence to one that fits a single line at
+         the width this note draws at (between the two ruler bars) — developer
+         feedback, the longer form plus its box read as an alarm rather than a
+         note to skim. Same fact, fewer words: the two ladders disagree, both are
+         printed, neither is adjusted to fit the other. */
       disagreement: disagree
-        ? 'The guideline ladder and the published primary studies place this ' +
-          'value in different bands. Both are shown; neither is preferred.'
+        ? 'Guideline and matched publication disagree — both shown, neither is preferred.'
         : null,
       provenance: hasValue ? provenanceSentence(row) : null,
-      gap: row.staging === null || row.gate ? gapSentence(row) : null,
+      gap: row.staging === null || row.gate
+        ? gapSentence(row, report.selection && report.selection.cohort) : null,
       /* W-071. The code of the reason `gapSentence` promoted, beside the
          sentence it promoted. The renderer must not re-run the ranking to find
          out which refusal won: that is a decision, and the renderer carries
          none (`v2/tests/render.test.js` section K). Null wherever the card
          stages. */
       gapCode: row.staging === null || row.gate ? gapCodeOf(row) : null,
+      /* W-158 — 'full' | 'partial' | null, straight from the engine. The
+         renderer keys the grey-segment treatment on this, never on scale
+         internals. */
+      stagingMode: row.stagingMode,
+      /* W-158 — the one sentence beside a partial pediatric ruler: WHY the top
+         of the ladder is grey. Sourced to REF-038 (already cited by the
+         pediatric cut-offs), assembled — not model prose. Non-null only on a
+         partial row, so it never collides with `gap` (which is null there) or
+         the W-157 scope line (which fires only where `row.staging` is null). */
+      boundaryGap: row.stagingMode === 'partial' ? boundaryGapSentence(row) : null,
       /* W-063. True only for a row on the page SOLELY because it was
          toggled on: no value, AND nothing else already explains the
-         absence (no technique gate, no unstageable ladder — both already
-         print their own message through `gap` above, and this must never
-         print alongside one, per W-051's one-sentence-per-card rule). */
-      noData: !hasValue && row.staging !== null && !row.gate,
+         absence (no technique gate, no unstageable ladder, no partial-ladder
+         scope line — each prints its own message, and this must never print
+         alongside one, per W-051's one-sentence-per-card rule). */
+      noData: !hasValue && row.staging !== null && !row.gate
+              && row.stagingMode !== 'partial',
       /* W-038 — the limit a drawn record's own publication states on it. NOT an
          abstention: the chip, the rulers and the staging above are untouched,
          and the reader is told how far the number its source says it carries. */

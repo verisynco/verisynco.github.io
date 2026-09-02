@@ -53,7 +53,12 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_ZONES_VERSION = '1.1';   /* W-044: severity derived from a self-naming ladder */
+const V2_ZONES_VERSION = '1.3';   /* W-159: orientation reference strip — 3 published pediatric
+   boundaries, 4 bands, a neutral `ramp` index (NO severity: `sev`/`tag` null), `orientation:
+   true` on every band; assigns no patient band. W-158: partial-ladder zone model — resolved
+   bands ramp-coloured by ladder order, the unpublished worst-end rung(s) collapsed into one
+   grey `unresolved` zone with a `covers` index range. W-044: severity derived from a
+   self-naming ladder */
 
 /* V1's severity vocabulary, spelled the same way so the CSS classes match. */
 const ZONE_SEV = {ok: 'ok', low: 'low', mid: 'mid', high: 'high', sev: 'sev'};
@@ -173,7 +178,19 @@ function coverAxis(axis, values) {
    drawn as a partial bar: the missing rung is exactly where the patient's value
    might have fallen (the engine's own rule in stage()). */
 function buildZones(scale, parameter) {
-  if (!scale || !scale.complete || !scale.boundaries || !scale.boundaries.length) return null;
+  if (!scale || !scale.boundaries || !scale.boundaries.length) return null;
+  /* W-158 — a `partial` scale IS drawn: the resolved rungs colour and name their
+     bands, and the unpublished worst-end rung(s) collapse into one grey,
+     ungraded zone (patched in after the loop below). `complete` still gates the
+     ordinary path. */
+  if (!scale.complete && scale.partial !== true && scale.orientation !== true) return null;
+  const isPartial = !scale.complete && scale.partial === true;
+  /* W-159 — an `orientation` scale is drawn but grades nothing: the loop below
+     builds the bands, then the patch after it strips every severity signal and
+     adds the neutral `ramp` weight. `complete` and `partial` still gate their
+     own paths. */
+  const isOrientation = !scale.complete && scale.partial !== true
+                        && scale.orientation === true;
 
   const edges = scale.boundaries.filter(b => b.value !== null);
   if (!edges.length) return null;
@@ -234,6 +251,53 @@ function buildZones(scale, parameter) {
     });
   }
 
+  /* W-158 — PARTIAL patch. The resolved rungs are a healthy-end prefix; one or
+     more worst-end rungs are unpublished (ESGAR/SAR merges Moderate + Severe for
+     children). The single worst-severity zone built above actually stands for
+     every full-ladder band from there to the top: relabel it with both names,
+     strip its severity (it is shown, not graded), and record the full-ladder
+     index range it covers so zoneForIndex can resolve a staged range onto it.
+     Only a clean prefix is drawn — a non-prefix gap (no pediatric ladder has one
+     today) returns null and the card falls back to boundaryGap text with no
+     bar. */
+  if (isPartial) {
+    const prefixOk = split &&
+      scale.boundaries.slice(0, edges.length).every(b => b.value !== null) &&
+      scale.boundaries.slice(edges.length).every(b => b.value === null);
+    if (!prefixOk) return null;
+
+    const fullRungs = scale.boundaries.map(b => String(b.boundary));
+    const fullName = i => i === 0 ? fullRungs[0].split('|')[0]
+                                  : fullRungs[i - 1].split('|')[1];
+    const worstIdx = Math.max.apply(null, zones.map(z => z.index));  /* = edges.length */
+    const topIdx = fullRungs.length;                                 /* full-ladder top band */
+    const zi = zones.map(z => z.index).indexOf(worstIdx);
+    zones[zi] = Object.assign({}, zones[zi], {
+      label: fullName(worstIdx) + '–' + fullName(topIdx),
+      sev: null, tag: null, index: null,
+      covers: Array.from({length: topIdx - worstIdx + 1}, (_, x) => worstIdx + x),
+      boundary: fullRungs[worstIdx], unresolved: true
+    });
+  }
+
+  /* W-159 — ORIENTATION patch. Three published pediatric-adapted stiffness values
+     (CUT-0005/0065/0066, all stagingWithdrawn) drawn only so a measured value has
+     somewhere to sit. No band is a verdict: `sev` and `tag` are stripped, a
+     neutral `ramp` index (ascending-axis order) carries the light→dark weight the
+     renderer applies WITHOUT a severity token, and `orientation: true` routes
+     every band through the uncoloured z-none path. The band names are the F-form
+     subset the three boundaries imply — there is no F1 band, because there is no
+     F>=1 boundary. */
+  if (isOrientation) {
+    const ORIENT_LABELS = ['F0–F1', 'F2', 'F3', 'F4'];
+    for (let k = 0; k < zones.length; k++) {
+      zones[k] = Object.assign({}, zones[k], {
+        label: ORIENT_LABELS[k] || zones[k].label,
+        sev: null, tag: null, ramp: k, orientation: true
+      });
+    }
+  }
+
   return {
     parameter: parameter,
     axis: covered.axis,
@@ -250,10 +314,17 @@ function buildZones(scale, parameter) {
     edges: ascEdges.map(e => ({boundary: e.boundary, value: e.value, unit: e.unit,
                                n: e.n || null, min: e.min, max: e.max,
                                evidenceGrades: e.evidenceGrades || null})),
-    nameSource: split ? 'ladder' : (portApplies ? 'v1-ported' : 'unresolved'),
-    /* The field a renderer reads to decide whether it may use colour at all. */
-    severitySource: portApplies ? 'v1-ported'
-                                : (ascSevs ? 'ladder-derived' : 'unresolved'),
+    nameSource: isOrientation ? 'v1-ported-subset'
+              : (split ? 'ladder' : (portApplies ? 'v1-ported' : 'unresolved')),
+    /* The field a renderer reads to decide whether it may use colour at all.
+       W-158 — 'ladder-derived-partial': the resolved bands are ramp-coloured by
+       their own order, the merged worst band is deliberately ungraded.
+       W-159 — 'orientation-only': NO band is coloured by severity; the renderer
+       applies the neutral `ramp` weight and nothing else. */
+    severitySource: isOrientation ? 'orientation-only'
+                  : (isPartial ? 'ladder-derived-partial'
+                  : (portApplies ? 'v1-ported'
+                                 : (ascSevs ? 'ladder-derived' : 'unresolved'))),
     axisSource: portApplies ? (covered.widened ? 'v1-ported-widened' : 'v1-ported')
                             : 'derived-from-ladder'
   };
@@ -262,8 +333,15 @@ function buildZones(scale, parameter) {
 /* Which band a staged index belongs to. stage() returns the index; this returns
    the zone that index names, so a verdict chip prints a band rather than a
    number a reader has to decode. */
-function zoneForIndex(zoneModel, index) {
+function zoneForIndex(zoneModel, index, hiIndex) {
   if (!zoneModel || index === null || index === undefined) return null;
+  /* W-158 — a staged RANGE (loIndex !== hiIndex) resolves onto the one grey zone
+     whose `covers` array holds it. A scalar index keeps the exact behaviour it
+     had before this argument existed. */
+  if (hiIndex !== undefined && hiIndex !== index) {
+    return zoneModel.zones.filter(z => z.covers && z.covers.indexOf(index) !== -1)[0]
+        || null;
+  }
   return zoneModel.zones.filter(z => z.index === index)[0] || null;
 }
 

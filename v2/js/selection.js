@@ -11,7 +11,12 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_SELECTION_VERSION = '2.9';   /* W-143: `path` now defaults to 'ge',
+const V2_SELECTION_VERSION = '2.10';  /* W-149: `applySelection` now accepts
+   `indication: null` ("not set") — same rule etiologyCohort already used —
+   so the form can clear it and render.js can mark the empty select. The
+   default (INDICATIONS[3], 'non-specific') is unchanged and a null indication
+   produces a byte-identical report (report.js reads it as 'non-specific').
+   Was 2.9 for W-143: `path` now defaults to 'ge',
    same as `fieldStrength` defaults to FIELD_STRENGTHS[0] — a fresh report opens
    pre-staged on GE HealthCare rather than asking the reader to name a scanner
    before anything renders. Still a real, changeable axis: `other` and an
@@ -163,8 +168,14 @@ function applySelection(state, patch) {
      thresholds.js, so this is the only place it can be caught. An unrecognised
      value is a caller error — falling back to `non-specific` would head the report
      with an indication nobody selected. Placed AFTER pick(), so an absent or
-     explicitly-undefined key is left alone rather than thrown at. */
-  if (INDICATIONS.indexOf(next.indication) === -1) {
+     explicitly-undefined key is left alone rather than thrown at.
+     W-149 — `null` is now legal too ("not set"), the same rule etiologyCohort
+     already uses below. `createSelection` still defaults to a STATED value
+     (INDICATIONS[3]); this only lets the form clear it, and report.js reads a
+     null indication as 'non-specific' everywhere it matters (report.js:1249,
+     1857, 2099), so nothing in the built report changes. An unrecognised
+     non-null value still throws. */
+  if (next.indication !== null && INDICATIONS.indexOf(next.indication) === -1) {
     throw new Error('unrecognised indication: ' + String(next.indication));
   }
 

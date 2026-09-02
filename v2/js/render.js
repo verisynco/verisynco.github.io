@@ -26,7 +26,103 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.55';  /* W-146: bmi moves out of the laboratory-
+const V2_RENDER_VERSION = '3.66';  /* W-080: the three page-2 "additional" headings
+   (Additional measurements / Third-party quantification / Research measurements) merge into
+   one `#section-additional` — one heading, one shared note; the per-card tier tag (`ptag`)
+   is removed; the entry panel's "Additional measurements" grid is reordered to match the
+   report card order. Render layer only — no v2/data/ file opened, no hash lock moved.
+   Was 3.65 for W-159: the pediatric MRE card gains an orientation
+   reference strip — `card.orientationStrip` drawn through the ordinary ruler frame as
+   `.rul.rul-orientation`, its four `z-none` bands tinted by a neutral `rul-ramp-{0..3}` ramp
+   (a single --uncertain colour stepped by opacity — NO `--sev-*`, W-085), the three adapted
+   boundary values ticked, a patient marker when a value is entered. The not-staged "—" chip
+   and the W-157 scope sentence are unchanged; the strip carries no verdict. Render-layer
+   only — no v2/data/ record, band, sev or hash lock moved.
+   ── W-158: a partial pediatric iron card renders the
+   `card.boundaryGap` scope line in a `.scopegap` slot (why the top of the bar is grey), and
+   the grey `unresolved` zone draws through the existing uncoloured `z-none` path with no
+   verdict tag. Render-layer only — no v2/data/ record, band, sev or hash lock moved.
+   ── W-154: the on-screen 281mm page-break
+   preview line (W-128) is withdrawn — see the styles.css `.page` base rule and
+   `body[data-mode="sample"] .page` comments. The estimate was blind to content
+   and routinely crossed a parameter card mid-way while the real print keeps
+   each card whole (`.pcard { break-inside: avoid }`); behind the sample
+   watermark it read as a render glitch. render.js change is comment-only (this
+   block and the toolbar() caption note), but render.js is a released artifact
+   so the stamp advances with every hash unchanged (SCHEMA § 5.1.1).
+   render.test.js N60 rewritten (W-014). Developer-approved, 2026-09-02.
+
+   Was 3.62 for W-152: holistic toolbar redesign. One row
+   of buttons over one caption line: "New Report" (always, leftmost — exits a
+   sample or clears a live report), "Print / Save as PDF" (the one filled
+   control), "Email" (live only), "View Sample" / dev scenario picker (far
+   right). Buttons carry inline-SVG icons, size to their content (the W-126
+   fixed box is gone). The three inline mono notes were first folded into one
+   state-dependent `.tb-caption`; round 2 (developer, same day) withdrew the
+   dashed-line note and the "print dialog first" note, so a live, ready report
+   now carries no caption at all. Screen-only — every change is inside
+   @media screen / .screen-only, no printed-page effect, no clinical value /
+   threshold / calibration / hash moved. render.test.js N22/N29/N54/N60 and
+   entry.test.js I4/I4k rewritten to state the new rules (W-014).
+   Developer-approved, 2026-09-02.
+
+   Was 3.61 for W-151: the light/dark theme toggle button
+   is withdrawn from toolbar() so the reader can never enter dark mode. Machinery
+   left dormant, not deleted: styles.css keeps every :root[data-theme="dark"]
+   block, app.js keeps readTheme/writeTheme/applyTheme/toggleTheme; nothing
+   writes data-theme any more, so the dark blocks never apply. Screen-only
+   change, no printed-page effect, no clinical value / threshold / hash moved.
+   render.test.js N59 keeps locking the dormant dark palette (W-014: rewrite a
+   lock to state the new rule, don't drop it). Developer-approved, 2026-09-02.
+
+   Was 3.60 for W-150: a screen-only, non-blocking NUDGE
+   under the Cohort cell (studyMeta / cohortNudgeNeeded) — when the entered age
+   is a number below PAEDIATRIC_AGE_MAX (18) and the cohort is still 'adult', the
+   entry form suggests switching Cohort to Paediatric. Advisory only: the engine
+   still reads only the human's Cohort <select>, no derivation, no model state
+   touched, `@media screen` / screen-only so the printed page is unaffected
+   (W-079). No clinical value, threshold, calibration or data hash moved; a hard
+   age→cohort auto-derive was rejected (no guideline mandates one age for cut-off
+   selection) — v2/data/LITERATURE.md § 13. Developer-approved, 2026-09-02
+   (journal W-150).
+
+   Was 3.59 for W-149: the W-134 fill-state wash collapses
+   to ONE tone (data-fill-emph and --fill-needed-quiet are gone) and widens to
+   every empty staging-affecting field — the MRE card's ascites/etiologyCohort
+   selects (once mre has a value), the header bmi/age inputs, the laboratory
+   grid cells, the study indication select once it is cleared to "not set"
+   (selection.js now accepts indication:null), and the acquisition-method
+   control (methodControl) on a non-GE path, where nothing stages until a
+   method is picked. Presentation only: no clinical value, threshold,
+   calibration or data hash moved. Developer-approved, 2026-09-02 (journal
+   W-149).
+
+   Was 3.58 for W-148: the Tier-1 checkbox block heading
+   (performedBlock()) changes from "Which measurements were performed" to
+   "Measurements used in the staging assessment" — all three Tier-1 groups
+   feed a staging ladder, so the wording names that stake instead of asking a
+   neutral inventory question. Screen-only heading, the separate Tier-2
+   "Additional measurements" heading is untouched. Presentation copy only: no
+   clinical value, threshold, calibration or hash moved. Developer-approved,
+   2026-09-01 (journal W-148).
+
+   W-147 round 2: the guideline/matched
+   disagreement note (card.disagreement, report.js) moved from `.pfacts`,
+   below the verdict chip, to sit between the consensus and matched ruler
+   blocks in `.rulers` — the point the eye crosses while comparing the two
+   bars, instead of a paragraph reached only after a judgment is already
+   formed from the bars alone. Round 1 (a bordered, cream-background box with
+   the sentence's first clause bolded) read as an alarm rather than a note to
+   skim, per developer feedback on a screenshot — round 2 drops the box
+   entirely (plain muted text, `.disagree` now matches `.prov`/`.vfrom`'s
+   low-weight style) and the sentence itself is shortened in `report.js`
+   ("Guideline and matched publication disagree — both shown, neither
+   preferred.", was two clauses across two lines) so it reads as one short
+   line rather than a block to read closely. Removed from `.pfacts` so it
+   prints once, not twice. Presentation-only: no clinical value or threshold
+   moved. Developer-approved design, 2026-09-01 (journal W-147).
+
+   W-146: bmi moves out of the laboratory-
    adjacent "Clinical context (optional)" block (contextBlock(), deleted) and
    into the patient/accession header (patientMeta) — IDENTITY_CELLS keeps
    accession/studyDate/age, STUDY_CELLS gains cohort/indication ahead of
@@ -118,13 +214,14 @@ const V2_RENDER_VERSION = '3.55';  /* W-146: bmi moves out of the laboratory-
    matching W-113 comment on buildComposite()).
    W-128 — paper preview: screen density
    now matches print's (styles.css scopes the same seven-step --s-* scale
-   print already used to .page), an approximate ≈281mm page-break line
-   (background-image, layered behind the sample watermark rather than
-   replacing it), and every editable field on the sheet (.pcard .pval input,
-   .lc input/select, and a new .method select rule) reads as a quiet
-   underline instead of a boxed form control — print's own chrome-removal
-   rules are unchanged throughout. Presentation-only: no v2/data/ file
-   opened, no hash lock moved.
+   print already used to .page), and every editable field on the sheet
+   (.pcard .pval input, .lc input/select, and a new .method select rule) reads
+   as a quiet underline instead of a boxed form control — print's own
+   chrome-removal rules are unchanged throughout. Presentation-only: no
+   v2/data/ file opened, no hash lock moved.
+   (W-128 also added a ≈281mm background page-break line; W-154 withdrew it —
+   see the styles.css .page comments. The density scale and the underline
+   fields stay.)
    W-131 second revision (same day,
    developer feedback: the dark theme read as one flat grey plane, not
    layered). `--hair2` widens `#2E3136` -> `#34373D` — a real, visible step
@@ -403,41 +500,49 @@ const VENDOR_CLASS_LABELS = {
   'guideline': 'guideline / consensus'
 };
 
-/* ───────────────────────────────────────────────── WHERE A PARAMETER LANDS
-   The mount point is resolved per row by js/scope.js and read here. This table
-   is the whole of the renderer's placement logic: a row is drawn in the section
-   whose `mount` equals its `mountPoint`, and a section that collects no row is
-   not written — nor is the sheet that would hold only empty sections. Adding a
-   tier means adding a row here, never a conditional below. */
-/* ───────────────────────────────────────────────── WHERE A PARAMETER LANDS
-   The mount point is resolved per row by js/scope.js and read here. This table
-   is the whole of the renderer's placement logic: a row is drawn in the section
-   whose `mount` equals its `mountPoint`, and a section that collects no row is
-   not written. Adding a tier means adding a row here, never a conditional below.
-
-   `tag` is the SHORT tier tag printed on the card. The long note is not printed
-   beside the card; it goes to the methodology sheet, which prints every time. */
+/* ───────────────────────────────────────────────── WHERE A PARAMETER LANDS */
 const SECTIONS = [
   /* `grouped` is W-035: the cards on the clinical page are printed under the
      domain heading they belong to. The two tier sections below stay flat --
      they already carry their own title and note, and a second heading level
      inside a short list costs page budget for a grouping the reader can see
      at a glance (developer decision, 2026-08-24). */
-  {id: 'clinical', mount: 'page1-inline', tag: null, title: null, note: null,
+  {id: 'clinical', mount: 'page1-inline', title: null, note: null,
    grouped: true},
-  {id: 'thirdparty', mount: 'page2-thirdparty', tag: 'third-party',
-   title: 'Third-party quantification',
-   note: 'These measurements are quantified by a product other than the scanner ' +
-         'vendor\u2019s own software. The parameter, its ladder and its provenance are ' +
-         'the same as the rest of the report; the product that measures it is what ' +
-         'differs. This says nothing about regulatory status, which this repository ' +
-         'does not record.'},
-  {id: 'research', mount: 'page2-research', tag: 'research', ivim: true,
-   title: 'Research measurements',
-   note: 'This repository records no clinical quantification product for these ' +
-         'measurements. They are printed because they were acquired, and whatever ' +
-         'is said about them is said with that in mind.'}
+  {id: 'additional', title: 'Additional measurements', additional: true,
+   note: 'These sit apart from the primary staging: some are produced by the ' +
+         'scanner\u2019s own software, some by third-party post-processing, some ' +
+         'by no product on record \u2014 and each is staged only where a ' +
+         'published cut-off exists, the rest shown for reference. Regulatory ' +
+         'status is not recorded here.'}
 ];
+
+/* W-080. The shared note, verbatim, for the on-screen head of `#section-additional`.
+   The methodology sheet prints the same words from the SECTIONS entry above. */
+const ADDITIONAL_NOTE = SECTIONS[1].note;
+
+/* W-080. The merged section collects rows from more than one mountPoint -- the
+   Tier-1 native readings that used to sit inline on page 1 (native T1, ADC), the
+   third-party rows (cT1), and the dormant `page2-research` mount -- plus IVIM,
+   appended separately (it is not a report row). Row selection is this predicate,
+   stated once, not a conditional in the renderer below. */
+function additionalRows(ordered) {
+  return ordered.filter(p =>
+    p.row.mountPoint === 'page2-thirdparty' ||
+    p.row.mountPoint === 'page2-research' ||
+    (p.row.mountPoint === 'page1-inline' &&
+     _RN.TIER2_GROUPS.indexOf(p.row.domain) !== -1));
+}
+
+/* W-080. True when the merged section drew anything at all -- used by the
+   methodology sheet's note loop, which cannot key on a single `mount`. */
+function additionalSectionDrew(model) {
+  return model.report.rows.some(r => r.rendered &&
+    (r.mountPoint === 'page2-thirdparty' || r.mountPoint === 'page2-research' ||
+     (r.mountPoint === 'page1-inline' &&
+      _RN.TIER2_GROUPS.indexOf(r.domain) !== -1))) ||
+    !!(model.ivim && model.ivim.rendered);
+}
 
 /* ──────────────────────────────────────────────────────────────── ESCAPING
    Attribute-safe, not just text-safe. Every interpolation below lands in a
@@ -464,9 +569,15 @@ function esc(s) {
 function methodControl(selection, domain) {
   const chosen = (selection.techniques && selection.techniques[domain]) || '';
   const groups = _RN.optionsForDomain(domain);
+  /* W-149 — this control only renders where the scanner path has no preset
+     technique (parameterCard's showControl), i.e. the non-GE paths, and NOTHING
+     on the card stages until a method is picked (the ruler bar does not draw).
+     So an unpicked one carries the fill wash, the same as an empty value input.
+     Caught by the shared `.pcard .pident select[data-fill="needed"]` rule. */
+  const fillAttr = chosen ? '' : ' data-fill="needed"';
   let html = '<label class="method screen-only">' +
     '<span class="mlabel">Acquisition method</span>' +
-    '<select data-domain="' + esc(domain) + '">' +
+    '<select data-domain="' + esc(domain) + '"' + fillAttr + '>' +
     '<option value=""' + (chosen ? '' : ' selected') + '>Not selected</option>';
   for (const g of groups) {
     html += '<optgroup label="' + esc(g.label) + '">';
@@ -585,10 +696,11 @@ function masthead(profile) {
    cleared back to not-stated from the form. Without it the empty option
    appeared only while the value was still null. Non-nullable cells are
    unchanged: they show the empty option only when unset. */
-function selectCell(label, axis, options, chosen, screenOnly, nullable) {
+function selectCell(label, axis, options, chosen, screenOnly, nullable, fillNeeded) {
   const unset = chosen === null || chosen === undefined;
   return '<div class="cell' + (screenOnly ? ' screen-only' : '') + '"><label>' +
-    esc(label) + '</label><select data-axis="' + esc(axis) + '">' +
+    esc(label) + '</label><select data-axis="' + esc(axis) + '"' +
+    (fillNeeded ? ' data-fill="needed"' : '') + '>' +
     ((unset || nullable)
       ? '<option value=""' + (unset ? ' selected' : '') + '>Not selected</option>' : '') +
     options.map(o => '<option value="' + esc(o.value) + '"' +
@@ -602,10 +714,11 @@ function selectCell(label, axis, options, chosen, screenOnly, nullable) {
    filled in. The span carries the sentence and the stylesheet shows it only in
    print, where the input it replaces is hidden. Same rule as § 1.2 — absence is
    recorded as a described fact, never as silence. */
-function textCell(label, axis, value, placeholder, type) {
+function textCell(label, axis, value, placeholder, type, fillNeeded) {
   const unset = value === null || value === undefined || String(value) === '';
   return '<div class="cell"><label>' + esc(label) + '</label>' +
     '<input data-axis="' + esc(axis) + '"' +
+    (fillNeeded ? ' data-fill="needed"' : '') +
     (type ? ' type="' + esc(type) + '"' : '') + ' value="' +
     esc(unset ? '' : String(value)) +
     '" placeholder="' + esc(placeholder) + '">' +
@@ -656,9 +769,23 @@ const ETIOLOGY_COHORT_CELL = {axis: 'etiologyCohort',
   options: (selection) => etiologyCohortsFor(selection).map(
     c => ({value: c, label: ETIOLOGY_COHORT_LABELS[c]}))};
 
+/* W-149 — the MRE card's own context selects (ascites, etiologyCohort) only
+   refine staging once mre carries a value: a trigger built from either only
+   attaches to `mre` after `mre` already has one (reliability.js:216). So the
+   fill wash on an unset one is gated on exactly that — Fibrosis performed, mre
+   valued, the select still "not stated". */
+function mreContextFillNeeded(row, selection, chosen) {
+  return chosen === null || chosen === undefined
+    ? !!(row.value !== null && row.value !== undefined &&
+         selection && selection.performed && selection.performed.fibrosis === true)
+    : false;
+}
+
 function etiologyCohortHtml(row, selection) {
   if (row.parameter !== 'mre') return '';
-  return metaCell(ETIOLOGY_COHORT_CELL, selection);
+  const chosen = selection && selection.etiologyCohort;
+  return metaCell(ETIOLOGY_COHORT_CELL, selection,
+    mreContextFillNeeded(row, selection, chosen));
 }
 
 /* W-144. Was fibrosisContextHtml()'s ascites field, drawn far below in a
@@ -675,20 +802,22 @@ function ascitesCellHtml(row, selection) {
   if (row.parameter !== 'mre') return '';
   const v = (selection && selection.values && selection.values.ascites);
   const chosen = (v === true || v === false) ? v : null;
-  return '<div class="cell"><label>Ascites</label><select data-value="ascites">' +
+  const fill = mreContextFillNeeded(row, selection, chosen) ? ' data-fill="needed"' : '';
+  return '<div class="cell"><label>Ascites</label><select data-value="ascites"' + fill + '>' +
     '<option value=""' + (chosen === null ? ' selected' : '') + '>not provided</option>' +
     '<option value="true"' + (chosen === true ? ' selected' : '') + '>present</option>' +
     '<option value="false"' + (chosen === false ? ' selected' : '') + '>absent</option>' +
     '</select></div>';
 }
 
-/* W-134. Presentation-only: the purpose group the selected indication puts the
-   strongest fill-state emphasis on (valueAreaHtml). It GATES NOTHING and STAGES
-   NOTHING — every group stays in the same unfiltered pool, every card renders on
-   the same rule as before; this map only chooses which unentered field gets the
-   fuller wash and which the quieter one. A null primary (non-specific) means
-   every needed field is emphasised equally — there is no quieter tier to drop
-   the rest to. */
+/* W-134. Presentation-only: the purpose group the selected indication leads
+   with. It GATES NOTHING and STAGES NOTHING — every group stays in the same
+   unfiltered pool, every card renders on the same rule as before.
+   W-149 — this no longer picks a fill-wash strength (the wash is one tone now);
+   its only remaining reader is `performedAlsoOpen`, which names the OTHER
+   Tier-1 groups so the reader can hide them. A null primary (non-specific, or a
+   cleared indication) means there is no "other" set to name — the line is not
+   drawn. */
 const PRIMARY_GROUP_BY_INDICATION = {
   'iron-overload': 'iron',
   'steatotic-liver-disease': 'fat',
@@ -710,9 +839,13 @@ const IDENTITY_CELLS = [
   {axis: 'accession', label: 'Patient / Accession', placeholder: 'e.g. 2026-00123'},
   {axis: 'studyDate', label: 'Study date', placeholder: 'YYYY-MM-DD'},
   {axis: 'age', label: 'Age (yr)', placeholder: ''},
-  /* Age does NOT derive the cohort: checked, not recalled — no adult/paediatric
-     age boundary exists anywhere in v2/data/ or v2/js/, and writing one would
-     put an unsourced boundary into a file that stages patients (§ 11.1). */
+  /* Age does NOT silently derive the cohort — the engine still reads only the
+     human's Cohort <select> (unchanged). W-150 added a screen-only, non-blocking
+     NUDGE toward Paediatric when the entered age is below PAEDIATRIC_AGE_MAX
+     (studyMeta / cohortNudgeNeeded, below); the age value itself still feeds only
+     FIB-4. No staging boundary was created: a hard auto-derive was rejected
+     because no guideline mandates one age for cut-off selection — see
+     v2/data/LITERATURE.md § 13 for the search and the reasoning. */
   /* W-146: cohort/indication moved OUT of this array and into STUDY_CELLS,
      below, so the header's first row can carry bmi instead — the axes
      themselves, and their route order, are unchanged; only which visual row
@@ -739,7 +872,11 @@ const STUDY_CELLS = [
   {axis: 'cohort', label: 'Cohort',
    options: () => _RN.AGE_GROUPS.map(
      a => ({value: a, label: a === 'adult' ? 'Adult' : 'Paediatric'}))},
-  {axis: 'indication', label: 'Indication',
+  {axis: 'indication', label: 'Indication', nullable: true,
+   /* W-149 — `nullable` keeps the "Not selected" option in the list even after
+      a value is chosen, so the reader can clear it back to "not set"
+      (selection.js now accepts indication:null). The default is still a stated
+      value; a null indication reads as 'non-specific' in report.js. */
    options: () => _RN.INDICATIONS.map(
      i => ({value: i, label: INDICATION_LABELS[i]}))},
   {axis: 'fieldStrength', label: 'Field strength',
@@ -751,10 +888,14 @@ const STUDY_CELLS = [
 
 /* A cell with an option list is a <select>; a cell with a placeholder is a text
    box. The distinction is the descriptor's own shape, so a new cell declares
-   what it is by what it carries. */
-function metaCell(cell, selection) {
+   what it is by what it carries. `fillNeeded` (W-149) is the caller's own
+   decision — metaCell only forwards it — because the condition ("this axis is
+   empty AND its value would change a staging output") is per-axis and lives
+   with the surface that draws the axis. */
+function metaCell(cell, selection, fillNeeded) {
   if (!cell.options) {
-    return textCell(cell.label, cell.axis, selection[cell.axis], cell.placeholder, cell.type);
+    return textCell(cell.label, cell.axis, selection[cell.axis], cell.placeholder,
+                    cell.type, fillNeeded);
   }
   const opts = cell.options(selection);
   /* W-136 review — a <select> with no options for the current selection (the
@@ -762,13 +903,46 @@ function metaCell(cell, selection) {
      is drawn nowhere rather than as an inert control offering only "Not
      selected". entryRoute applies the same test so the Tab route matches. */
   if (!opts.length) return '';
-  return selectCell(cell.label, cell.axis, opts, selection[cell.axis], false, cell.nullable);
+  return selectCell(cell.label, cell.axis, opts, selection[cell.axis], false,
+                    cell.nullable, fillNeeded);
+}
+
+/* W-149 — an axis value is empty (no staging input to read from it yet). */
+function axisIsEmpty(v) {
+  return v === null || v === undefined || String(v) === '';
+}
+
+/* W-150 — the age below which the entry form NUDGES (screen-only, non-blocking)
+   toward the Paediatric cohort. This is NOT a clinical cut-off and NOT a staging
+   input: the engine still reads only the human's Cohort <select>, exactly as
+   before this task. 18 is the operational boundary the paediatric liver-MRI
+   literature uses consistently — the repo's own paediatric MRE normative source,
+   Trout 2020 (EXT-004, PMID 32960728), enrols 7–17.9 y, and the QIBA-adjacent
+   multi-site paediatric MRE cohort is defined "< 18 years". No single guideline
+   SENTENCE mandates one age for cut-off selection (a minority of studies use
+   ≤ 21), which is why the nudge is advisory and no hard auto-derive was built.
+   Full search and reasoning: v2/data/LITERATURE.md § 13. */
+const PAEDIATRIC_AGE_MAX = 18;
+
+/* W-150 — true when the entered age is a number below PAEDIATRIC_AGE_MAX and the
+   cohort has not been set to 'peds'. Pure; its only consumer is studyMeta, which
+   draws a screen-only advisory. */
+function cohortNudgeNeeded(selection) {
+  const raw = selection.age;
+  if (raw === null || raw === undefined || String(raw).trim() === '') return false;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return false;
+  return n < PAEDIATRIC_AGE_MAX && selection.cohort === 'adult';
 }
 
 function patientMeta(selection, uiState) {
   const context = _RN.buildContext(selection);
   return '<div class="meta">' +
-    IDENTITY_CELLS.map(c => metaCell(c, selection)).join('') +
+    /* W-149 — `age` is a FIB-4 term; an empty one gets the fill wash. The other
+       identity cells (accession, studyDate) change no staging output, so they
+       do not. */
+    IDENTITY_CELLS.map(c => metaCell(c, selection,
+      c.axis === 'age' && axisIsEmpty(selection.age))).join('') +
     bmiHeaderCellHtml(context) +
     bmiCalcCellHtml(context, uiState) +
     '</div>';
@@ -780,9 +954,19 @@ function studyMeta(selection, profile) {
      is the branch K6 forbids. */
   const consequence = profile && profile.pathNote
     ? '<p class="pathnote screen-only">' + esc(profile.pathNote) + '</p>' : '';
+  /* W-150 — a screen-only, non-blocking suggestion sitting under the Cohort
+     cell. It changes no model state; the reader acts on it by picking
+     Paediatric in the Cohort <select> above, which stays fully editable. */
+  const cohortNudge = cohortNudgeNeeded(selection)
+    ? '<p class="cohort-nudge screen-only">Age entered is under ' + PAEDIATRIC_AGE_MAX +
+      ' — set Cohort to Paediatric if this is a paediatric study.</p>'
+    : '';
   return '<div class="meta study">' +
-    STUDY_CELLS.map(c => metaCell(c, selection)).join('') +
-    '</div>' + consequence;
+    /* W-149 — `indication` cleared to "not set" (selection.js now allows null)
+       gets the wash. fieldStrength / path / cohort always carry a value. */
+    STUDY_CELLS.map(c => metaCell(c, selection,
+      c.axis === 'indication' && axisIsEmpty(selection.indication))).join('') +
+    '</div>' + cohortNudge + consequence;
 }
 
 /* W-063b. One checkbox per PURPOSE GROUP (domains.js TIER1_GROUPS), always
@@ -805,7 +989,7 @@ function performedBlock(selection) {
       '<span class="perf-sub">' + esc(m.sub) + '</span></span></label>';
   }).join('');
   return '<div class="labs-head ctx-head screen-only"><span class="t">' +
-    'Which measurements were performed</span></div>' +
+    'Measurements used in the staging assessment</span></div>' +
     '<div class="perf-grid screen-only">' + rows + '</div>' +
     performedAlsoOpen(selection, performed);
 }
@@ -841,11 +1025,17 @@ function performedAlsoOpen(selection, performed) {
    patches selection.performed[group] AND, in app.js, raises selection.scope to
    the tier that parameter needs; the render side only draws the control. */
 const TIER2_LABELS = {t1: 'Native T1', ct1: 'cT1', adc: 'ADC'};
+/* W-080. The entry checkbox order mirrors the report's card order in the merged
+   "Additional measurements" section (native T1, then ADC, then the third-party
+   cT1), so the panel and the report read the same left to right. This is a
+   local presentation order — `TIER2_GROUPS` (domains.js) keeps its own order,
+   which partitions GROUP_PARAMETERS and is asserted elsewhere. */
+const TIER2_ENTRY_ORDER = ['t1', 'adc', 'ct1'];
 function tier2Block(model, selection) {
   const performed = selection.performed || {};
   const byParam = {};
   model.report.rows.forEach(r => { byParam[r.parameter] = r; });
-  const rows = _RN.TIER2_GROUPS.filter(g => {
+  const rows = TIER2_ENTRY_ORDER.filter(g => {
     const p = _RN.GROUP_PARAMETERS[g][0];
     const r = byParam[p];
     return !r || !r.scope || r.scope.quantification !== 'none';
@@ -907,9 +1097,13 @@ function bmiHeaderCellHtml(context) {
   const computed = context.bmiDerived
     ? '<span class="bmi-computed">' + esc(String(context.bmi)) +
       ' kg/m² (computed)</span>' : '';
+  /* W-149 — bmi feeds TRG-0001 (mre) and TRG-0014 (pdff at 3.0T); an absent one
+     (neither typed nor derived from height/weight) gets the fill wash. */
+  const fillNeeded = context.bmi === null;
   return '<div class="cell"><label>Body-mass index <span class="hint" title="' +
     esc(BMI_HINT) + '">?</span></label>' +
-    '<input type="number" inputmode="decimal" step="any" data-value="bmi" value="' +
+    '<input type="number" inputmode="decimal" step="any" data-value="bmi"' +
+    (fillNeeded ? ' data-fill="needed"' : '') + ' value="' +
     bmiValue + '">' + computed + '</div>';
 }
 
@@ -945,9 +1139,13 @@ function bmiCalcCellHtml(context, uiState) {
    report.js buildLabs() for where the fields live now. */
 function labsBlock(labs, selection, model) {
   if (!labs) return '';
+  /* W-149 — an empty laboratory cell gets the fill wash: ast/alt/platelets feed
+     FIB-4, altUln feeds INT-0035, ggt the reliability rules. Screen-only and
+     live-only via the CSS guard, exactly like the parameter-card inputs. */
   const grid = labs.inputs.map(f =>
     '<div class="' + lcClass(f.value === null) + '"><label>' + esc(f.label) + '</label><div class="r2">' +
-    '<input type="number" inputmode="decimal" step="any" data-value="' + esc(f.key) + '" value="' +
+    '<input type="number" inputmode="decimal" step="any" data-value="' + esc(f.key) + '"' +
+    (f.value === null ? ' data-fill="needed"' : '') + ' value="' +
     (f.value === null ? '' : esc(String(f.value))) + '"><span class="u">' +
     esc(f.unit) + '</span></div></div>').join('');
 
@@ -1067,7 +1265,9 @@ function rulerSvg(ruler, axis, slim) {
        take the min/max rather than assume the first call is the left edge. */
     const xa = xOf(z.a), xb = xOf(z.b);
     const x1 = Math.min(xa, xb), x2 = Math.max(xa, xb), w = x2 - x1;
-    s += '<rect class="' + zoneClass(z.sev) + '" x="' + x1.toFixed(1) + '" y="' + barY +
+    s += '<rect class="' + zoneClass(z.sev) +
+         (z.ramp != null ? ' rul-ramp-' + z.ramp : '') +
+         '" x="' + x1.toFixed(1) + '" y="' + barY +
          '" width="' + w.toFixed(1) + '" height="' + barH + '">' +
          '<title>' + esc((z.label || 'unnamed band') + (z.tag ? ' — ' + z.tag : '')) +
          '</title></rect>';
@@ -1218,6 +1418,7 @@ function bandLegend(ruler, axis) {
     placed.map(p => {
       const left = (p.x1 / RULER_W * 100).toFixed(2), width = ((p.x2 - p.x1) / RULER_W * 100).toFixed(2);
       return '<span class="bd' + (p.z.sev ? ' bd-' + p.z.sev : '') +
+             (p.z.ramp != null ? ' bd-ramp-' + p.z.ramp : '') +
              '" style="left:' + left + '%;width:' + width + '%">' +
              '<span class="bd-t">' + esc(p.z.label || 'unnamed') + '</span></span>';
     }).join('') + '</p>';
@@ -1413,9 +1614,11 @@ function rulerBlock(ruler, axis) {
      publication's own ladder was matched to this specific indication
      (matchLabel is set). The reader could not tell which was true; now the
      header says so. */
-  const roleText = ruler.role === 'consensus' ? 'stages this value'
-    : (ruler.matchLabel ? 'a publication specific to this indication'
-                        : 'guideline and published studies disagree here');
+  const roleText = ruler.role === 'orientation'
+    ? 'shown for orientation — not used to stage'
+    : (ruler.role === 'consensus' ? 'stages this value'
+      : (ruler.matchLabel ? 'a publication specific to this indication'
+                          : 'guideline and published studies disagree here'));
 
   return '<div class="rul rul-' + esc(ruler.role) + '" data-role="' + esc(ruler.role) + '"' +
     (why.length ? ' title="' + esc(why.join('\n')) + '"' : '') + '>' +
@@ -1445,7 +1648,18 @@ function rulersHtml(card) {
      is therefore always the one the verdict came from (W-030 § 3.2). */
   const ordered = card.rulers.filter(r => r.role === 'consensus')
                     .concat(card.rulers.filter(r => r.role !== 'consensus'));
-  return '<div class="rulers">' + ordered.map(r => rulerBlock(r, axis)).join('') + '</div>';
+  const blocks = ordered.map(r => rulerBlock(r, axis));
+  /* W-147: the disagreement note sits at the junction between the two bars —
+     after the first (consensus), before the rest (matched) — the point the
+     eye crosses while comparing them, rather than below both in `.pfacts`.
+     Round 2: plain text, not a box (developer feedback — round 1's bordered,
+     bold-lead box read as an alarm); the sentence prints as-is, unsplit. */
+  const note = card.disagreement
+    ? '<p class="disagree">' + esc(card.disagreement) + '</p>' : '';
+  const parts = note && blocks.length > 1
+    ? [blocks[0], note].concat(blocks.slice(1))
+    : blocks.concat(note ? [note] : []);
+  return '<div class="rulers">' + parts.join('') + '</div>';
 }
 
 /* W-051. ONE gap sentence per card, and it is `card.gap`. Nothing else on the
@@ -1571,17 +1785,18 @@ function sourceCaveatHtml(card) {
    same key W-033 chose, and deliberately not `card.derived`. A slot that appeared
    the moment somebody typed an override would make the override look like a
    different reading. The class reserves height on screen and is removed in print. */
-function valueAreaHtml(row, card, canDerive, fill) {
+function valueAreaHtml(row, card, canDerive, fillNeeded) {
   const unit = '<span class="unit">' + esc(_RN.PARAMETER_UNITS[row.parameter]) +
                '</span>';
   /* W-134. Screen-only, Live-Report-only affordance: an unentered value field
      whose measurement group is switched on carries data-fill="needed" so the
-     reader can see what is still expected; data-fill-emph is the indication's
-     tint strength. Inert without the body[data-mode="live"] CSS, so it is safe
-     to emit unconditionally. Never on the derived branch — a derived card
-     already shows a number. */
-  const fillAttr = fill
-    ? ' data-fill="needed" data-fill-emph="' + fill + '"' : '';
+     reader can see what is still expected. Inert without the
+     body[data-mode="live"] CSS, so it is safe to emit unconditionally. Never on
+     the derived branch — a derived card already shows a number.
+     W-149 collapsed W-134's two-tone emphasis: there is one wash now, so no
+     data-fill-emph and no indication-dependent strength — every needed field,
+     here and across the entry form, reads the same. */
+  const fillAttr = fillNeeded ? ' data-fill="needed"' : '';
   /* W-122: the arrow-key step matches this parameter's cut-off precision, so
      the up/down arrows land on every published threshold rather than stepping
      by 1. Falls back to "any" for a parameter with no PARAMETER_STEPS entry. */
@@ -1650,7 +1865,7 @@ function bmiEchoHtml(row, selection) {
     ')</p>';
 }
 
-function parameterCard(row, card, selection, tag) {
+function parameterCard(row, card, selection) {
   /* W-090. Was `row.domain` — the SAME value ('iron') for lic/r2star/t2star,
      which is why they used to draw an IDENTICAL control on all three cards.
      `row.controlKey` is that value for every other parameter and the
@@ -1671,23 +1886,22 @@ function parameterCard(row, card, selection, tag) {
 
   /* W-134. The unentered-field affordance: this row needs a value when its
      purpose group is switched on and it holds no number (the same condition the
-     screen-only pval-warn below already uses). The indication's primary group
-     gets 'primary' emphasis, every other switched-on group 'secondary'; a null
-     primary (non-specific) makes every needed field 'primary'. */
+     screen-only pval-warn below already uses).
+     W-149 removed the indication-dependent emphasis — one wash for every needed
+     field. `PRIMARY_GROUP_BY_INDICATION` still exists, but only
+     `performedAlsoOpen` reads it now. */
   const fillGroup = _RN.purposeGroupOf(row.parameter);
   const fillNeeded = !!(selection.performed && fillGroup !== null &&
     selection.performed[fillGroup] === true &&
     (row.value === null || row.value === undefined));
-  let fill = null;
-  if (fillNeeded) {
-    const primGroup = PRIMARY_GROUP_BY_INDICATION[selection.indication];
-    fill = (primGroup === null || primGroup === undefined || fillGroup === primGroup)
-      ? 'primary' : 'secondary';
-  }
 
   return '<section class="pcard" data-param="' + esc(row.parameter) + '"' + attrs + '>' +
     '<div class="pident">' +
-      (tag ? '<span class="ptag">' + esc(tag) + '</span>' : '') +
+      /* W-080: the per-card tier tag (`third-party` / `research`) is gone. The
+         `quantification` provenance is unchanged in the data; it is surfaced now
+         only by the "Additional measurements" heading + its shared note and by
+         the methodology sheet's provenance census (SCHEMA / LITERATURE record
+         the cost). */
       '<h4>' + esc(_RN.PARAMETER_LABELS[row.parameter]) + '</h4>' +
       /* Read from report.js:acquisitionLine, NOT rebuilt here. That function
          names a product only where the resolved scope row's vendor is GE and a
@@ -1699,7 +1913,7 @@ function parameterCard(row, card, selection, tag) {
         esc(card.acquisitionLine) +
         (card.derived ? ' \u00b7 value computed through a published calibration' : '') +
       '</p>' +
-      valueAreaHtml(row, card, row.calibration !== null, fill) +
+      valueAreaHtml(row, card, row.calibration !== null, fillNeeded) +
       /* W-063. Screen only: the printed page either carries a value or
          carries card.noData's own sentence below — a live authoring hint
          has no reason to survive onto paper. W-063b: `performed` is
@@ -1731,9 +1945,13 @@ function parameterCard(row, card, selection, tag) {
     '<div class="pfacts">' +
       notInterpretableHtml(card) +
       sourceCaveatHtml(card) +
-      (card.disagreement ? '<p class="disagree">' + esc(card.disagreement) + '</p>' : '') +
       (card.gap ? '<p class="gap">' + esc(card.gap) + '</p>' : '') +
       (card.noData ? '<p class="gap">No data available for this measurement.</p>' : '') +
+      /* W-158 — the partial-ladder scope line: WHY the top of the pediatric iron
+         bar is grey. Reuses `.scopegap` (W-157's slot for a cohort scope
+         statement — same register, and it belongs on paper). Non-null only on a
+         partial row, so it never renders beside `card.gap`. */
+      (card.boundaryGap ? '<p class="scopegap">' + esc(card.boundaryGap) + '</p>' : '') +
       rowGapHtml(row) +
       bmiEchoHtml(row, selection) +
     '</div>' +
@@ -1800,49 +2018,23 @@ function domainGroupHtml(g, build) {
     g.pairs.map(build).join('') + '</div>';
 }
 
-/* W-130. Within the flat 'clinical' section, the domains that stage a Tier-1
-   finding print exactly as before; the domains in TIER2_GROUPS (t1, ct1, adc —
-   readings that measure but do not drive the primary staging) get one
-   section-level heading, "Additional measurements", the first time one of them
-   appears — never written when no Tier-2 domain actually rendered a row
-   (mirrors the "a heading whose group is empty is not written" rule
-   domainGroupHtml already follows). IVIM is deliberately NOT moved here: it
-   stages nothing at all (no ladder, no verdict — spec W-081 § 3), so folding it
-   into a heading that also covers three staged readings would blur exactly the
-   distinction the report exists to keep visible. It stays on page 2 in its own
-   "Research measurements" section (developer decision 2026-08-30, re-affirming
-   W-081's page-budget reasoning), and this heading carries one line pointing to
-   it instead — a fact stated once, in the section that would otherwise leave
-   the reader wondering where a performed IVIM measurement went. */
-function additionalMeasurementsHtml(ivim) {
-  const ivimNote = (ivim && ivim.rendered && ivim.hasAny)
-    ? '<p class="snote">IVIM was also acquired — printed on page 2, under ' +
-      '“Research measurements” (it stages nothing, so it is not listed here).</p>'
-    : '';
-  return '<h2>Additional measurements</h2>' + ivimNote;
+/* W-080. The `clinical` section prints the Tier-1 domain groups only. The
+   TIER2_GROUPS domains (native T1, cT1, ADC) no longer take a sub-heading here --
+   they move, with their domain grouping intact, into the merged `additional`
+   section (additionalSectionHtml). A domain with no card in this section prints
+   no heading, as before (domainGroupHtml's own rule). */
+function groupedCardsHtml(pairs, build) {
+  return _RN.groupCardsByDomain(pairs)
+    .filter(g => _RN.TIER2_GROUPS.indexOf(g.domain) === -1)
+    .map(g => domainGroupHtml(g, build)).join('');
 }
 
-function groupedCardsHtml(pairs, build, ivim) {
-  const groups = _RN.groupCardsByDomain(pairs);
-  const isTier2 = g => _RN.TIER2_GROUPS.indexOf(g.domain) !== -1;
-  const tier1Html = groups.filter(g => !isTier2(g)).map(g => domainGroupHtml(g, build)).join('');
-  const tier2Groups = groups.filter(isTier2);
-  const tier2Html = tier2Groups.length
-    ? additionalMeasurementsHtml(ivim) +
-      tier2Groups.map(g => domainGroupHtml(g, build)).join('')
-    : '';
-  return tier1Html + tier2Html;
-}
-
-function sectionHtml(section, pairs, counter, build, ivim) {
+function sectionHtml(section, pairs, counter, build) {
   if (!pairs.length) return '';
-  /* The title stays; the long note does NOT. Each card already carries the short
-     tier tag, and the paragraph explaining what the tier means is a reason, not a
-     fact — it goes to the methodology sheet, which prints every time (§ 6). */
   return '<section class="psection" id="section-' + esc(section.id) + '">' +
     (section.title ? '<h2>' + esc(section.title) + '</h2>' : '') +
     (section.grouped
-      ? groupedCardsHtml(pairs, build, ivim)
+      ? groupedCardsHtml(pairs, build)
       : pairs.map(build).join('')) +
     '</section>';
 }
@@ -1918,22 +2110,32 @@ function ivimBlockHtml(param, block) {
     '</div>';
 }
 
-function ivimSectionHtml(section, ivim) {
-  /* `ivim.rendered` carries the scope decision from the model (report.js
-     buildIvim). The renderer takes no scope branch of its own (K6). */
-  if (!ivim || !ivim.rendered) return '';
+/* W-080. The merged "Additional measurements" section: one heading, one
+   screen-only shared note, then the staged additional readings (native T1, ADC,
+   cT1) under their own domain headings, then IVIM. IVIM keeps exactly what it
+   had -- no ruler, no verdict chip, no severity (it stages nothing, CLAUDE.md
+   § 1.3); that structural absence, next to cards that DO carry a ladder, is now
+   the only in-card signal that a reading is not staged. Print-drop: when the
+   section has no staged card and IVIM carries no value, `ivim-section-empty`
+   lets the stylesheet drop the bare heading (the W-104 pattern); the on-screen
+   IVIM inputs still render as the entry affordance. `ivim.rendered` carries the
+   scope decision from the model (report.js buildIvim); the renderer takes no
+   scope branch of its own (K6). */
+function additionalSectionHtml(pairs, build, ivim) {
+  const ivimOn = !!(ivim && ivim.rendered);
+  if (!pairs.length && !ivimOn) return '';
+  const cardHtml = _RN.groupCardsByDomain(pairs)
+    .map(g => domainGroupHtml(g, build)).join('');
   const blockOf = {'ivim-d': 'd', 'ivim-dstar': 'dstar', 'ivim-f': 'f'};
-  const blocks = _RN.IVIM_PARAMS
-    .map(p => ivimBlockHtml(p, ivim && ivim[blockOf[p]]))
-    .join('');
-  /* Screen: the section shows (the three inputs are the entry affordance).
-     Print: `ivim-section-empty` — decided from the model, not from a `:has()`
-     rule — drops the bare heading when no IVIM value was entered (W-104). */
-  const cls = 'psection' + (ivim.hasAny ? '' : ' ivim-section-empty');
-  return '<section class="' + cls + '" id="section-' + esc(section.id) + '">' +
-    (section.title ? '<h2>' + esc(section.title) + '</h2>' : '') +
-    (section.note ? '<p class="ivim-note screen-only">' + esc(section.note) + '</p>' : '') +
-    blocks + '</section>';
+  const ivimHtml = ivimOn
+    ? _RN.IVIM_PARAMS.map(p => ivimBlockHtml(p, ivim[blockOf[p]])).join('')
+    : '';
+  const emptyCls = (!pairs.length && ivimOn && !ivim.hasAny)
+    ? ' ivim-section-empty' : '';
+  return '<section class="psection' + emptyCls + '" id="section-additional">' +
+    '<h2>Additional measurements</h2>' +
+    '<p class="snote screen-only">' + esc(ADDITIONAL_NOTE) + '</p>' +
+    cardHtml + ivimHtml + '</section>';
 }
 
 /* ═══════════════════════════════════════════════════════════ SHEET 3 — RECEIPTS */
@@ -2265,19 +2467,18 @@ function sectionsHtml(model, selection) {
      file could not be asserted without rendering (plan D5). */
   /* The indication no longer orders anything (W-061); `orderCards` lists. */
   const ordered = _RN.orderCards(model.report, model.cards);
+  const build = p => parameterCard(p.row, p.card, selection);
   let html = '';
   for (const section of SECTIONS) {
-    /* W-081. The `research` section (SECTIONS entry flagged `ivim`) is filled
-       from model.ivim, not from report rows — nothing mounts to page2-research,
-       so the special-case is total. */
-    if (section.ivim) {
-      html += ivimSectionHtml(section, model.ivim);
+    /* W-080. The merged `additional` section has no single `mount`: its rows are
+       chosen by additionalRows(), and IVIM (not a report row) is appended by
+       additionalSectionHtml itself. */
+    if (section.additional) {
+      html += additionalSectionHtml(additionalRows(ordered), build, model.ivim);
       continue;
     }
     const pairs = ordered.filter(p => p.row.mountPoint === section.mount);
-    html += sectionHtml(section, pairs, counter,
-                        p => parameterCard(p.row, p.card, selection, section.tag),
-                        model.ivim);
+    html += sectionHtml(section, pairs, counter, build);
   }
   return html;
 }
@@ -2335,13 +2536,54 @@ function sampleLine() {
    needs a secure — https — context that `file://` never has; CHANGELOG.md
    records the six avenues checked). So app.js opens the print dialog FIRST,
    then the draft — the caption below says so up front. */
+/* W-152. Toolbar icons are inline SVG — no icon font, no external file (runtime
+   constraint 6). Each glyph is drawn on a 16-unit box, stroked, inheriting
+   `currentColor` so the filled Print button and the ghost buttons colour their
+   icon by the same rule as their label. `aria-hidden` + `focusable="false"`:
+   the visible text is the accessible name, the icon is decoration. */
+function tbIcon(name) {
+  const d = {
+    'new':   '<line x1="8" y1="3.5" x2="8" y2="12.5"/><line x1="3.5" y1="8" x2="12.5" y2="8"/>',
+    'print': '<path d="M4 6.5V2.5h8v4"/><rect x="2.5" y="6.5" width="11" height="5.5" rx="1"/>' +
+             '<path d="M4.5 12v1.5h7V12"/>',
+    'mail':  '<rect x="2" y="3.5" width="12" height="9" rx="1"/><path d="M2.5 4.5 8 8.5l5.5-4"/>',
+    'eye':   '<path d="M1.2 8S3.8 3.5 8 3.5 14.8 8 14.8 8 12.2 12.5 8 12.5 1.2 8 1.2 8Z"/>' +
+             '<circle cx="8" cy="8" r="1.9"/>'
+  };
+  return '<svg class="tb-ic" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" ' +
+    'focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' + (d[name] || '') + '</svg>';
+}
+
+/* W-152 rebuilt this bar as one coherent control strip: a single row of buttons
+   over one caption line. LEFT is always "New Report" — in a sample it leaves the
+   sample (what "Start Reporting" used to do), in a live report it clears every
+   entered value (app.js asks first). MIDDLE is the output group: "Print / Save
+   as PDF" (the one filled, primary control — the browser has a single
+   window.print() dialog, and "Save as PDF" is a destination inside it, so this
+   is one button, not two) and, in a live report only, "Email". RIGHT, pushed to
+   the far edge: "View Sample" in a live report, or the dev-only scenario picker
+   in a sample.
+
+   The button opens no new authority (W-052). It calls the WRAPPED
+   window.print() in app.js, which refuses unless the terms were accepted AND an
+   acquisition was named; Ctrl+P is refused by the @media print rules. This bar
+   reads neither condition and carries no handler of its own. `ready` is the one
+   thing it is told: where no acquisition has been named, Print and Email are
+   disabled and the caption says why.
+
+   THE CAPTION IS ONE LINE, AND ONLY TWO STATES CARRY IT. W-128's dashed-line
+   note and W-132's "print dialog first" note were withdrawn in round 2
+   (developer, 2026-09-02): a live, ready report shows no caption at all. What
+   remains is W-052's not-ready reason and the sample lock note, one `.tb-caption`
+   under the row, rendered only when there is a word to say. NO PAGE COUNT in any
+   label — no test here can count a PDF's pages, so a number would be a claim
+   nothing locks (§ 1.2). */
 function toolbar(view, ready, dev, scenarios) {
   const sample = !!(view && view.mode === 'sample');
-  const sendOK = !!(ready && !sample);
   /* SAMPLE mode only — there is nothing to switch between until a scenario is
-     already loaded, so "Clear values" (which leaves sample mode) makes the
-     menu disappear with it in the same render, with no separate state to
-     forget to clear. */
+     already loaded, so "New Report" (which leaves sample mode) makes the menu
+     disappear with it in the same render, with no separate state to forget. */
   const menu = (sample && dev && Array.isArray(scenarios) && scenarios.length)
     ? '<label class="tb-scenario">Scenario ' +
       '<select data-sample-scenario>' +
@@ -2349,41 +2591,36 @@ function toolbar(view, ready, dev, scenarios) {
                           esc(s.label) + '</option>').join('') +
       '</select></label>'
     : '';
+  /* W-152 round 2 (developer, 2026-09-02): a live, ready report carries NO
+     caption. The dashed-line note (W-128) and the "Email opens the print
+     dialog first" note (W-132) are withdrawn — and W-154 then withdrew the
+     on-screen page-break line the first note used to describe, so there is
+     nothing left to label; the print dialog opening on an Email click is left
+     unexplained. Only the two states that still need a word keep one: the
+     not-ready reason, and the sample lock note. */
+  const caption = !ready
+    ? 'Not ready to print: no acquisition has been selected yet.'
+    : sample
+      ? 'Sample data is loaded and the fields are locked.'
+      : '';
   return '<div class="toolbar screen-only">' +
-    /* W-131. Screen-only, like every other toolbar control: the theme has no
-       print form (styles.css keeps every dark token inside `@media screen`),
-       so there is nothing here for the print stylesheet to hide separately.
-       Both label spans always render — this is a pure string builder with no
-       DOM to read the current theme back from — and CSS alone decides which
-       one shows, keyed off the same `data-theme` attribute the tokens are. */
-    '<button type="button" class="tb-theme" data-action="toggle-theme" ' +
-      'aria-label="Toggle light/dark theme">' +
-      '<span class="tb-theme-to-dark">Dark mode</span>' +
-      '<span class="tb-theme-to-light">Light mode</span>' +
-    '</button>' +
-    '<button type="button" class="tb-print" data-action="print"' +
-      (ready ? '' : ' disabled') + '>Print / Save PDF</button>' +
-    /* W-128. The screen view now carries an approximate page-break line
-       (styles.css .page background-image) so the sheet reads closer to what
-       actually prints — but it IS an approximation (screen has no @page),
-       and a line with no label reads as exact. One sentence, said once. */
-    '<span class="tb-note">Dashed lines mark ≈ where each printed page ' +
-    'ends.</span>' +
-    (sample
-      ? ''
-      : '<button type="button" class="tb-send" data-action="send-requestor"' +
-          (sendOK ? '' : ' disabled') + '>Send e-mail</button>' +
-        '<span class="tb-note">Opens the print dialog first, then your mail ' +
-        'app.</span>') +
-    (ready
-      ? ''
-      : '<span class="tb-reason">Not ready to print: no acquisition has been ' +
-        'selected yet.</span>') +
-    (sample
-      ? '<span class="tb-note">Sample data is loaded and the fields are locked.</span>' +
-        menu + '<button type="button" data-sample="clear">Start Reporting</button>'
-      : '<button type="button" data-sample="load">Load Sample Report</button>') +
-    '</div>';
+    '<div class="tb-row">' +
+      '<button type="button" class="tb-new" data-action="new-report">' +
+        tbIcon('new') + 'New Report</button>' +
+      '<button type="button" class="tb-print" data-action="print"' +
+        (ready ? '' : ' disabled') + '>' + tbIcon('print') +
+        'Print / Save as PDF</button>' +
+      (sample
+        ? ''
+        : '<button type="button" class="tb-send" data-action="send-requestor"' +
+            (ready ? '' : ' disabled') + '>' + tbIcon('mail') + 'Email</button>') +
+      (sample
+        ? menu
+        : '<button type="button" class="tb-sample" data-sample="load">' +
+            tbIcon('eye') + 'View Sample</button>') +
+    '</div>' +
+    (caption ? '<p class="tb-caption">' + caption + '</p>' : '') +
+  '</div>';
 }
 
 function renderClinicalSheets(model, profile, selection, versions, view) {
@@ -2660,12 +2897,11 @@ function tableC(profile, model) {
      a record changes. */
   const counted = [fallbackSentence(model.coverage), gapListSentence(model.cards)]
     .filter(x => x !== null);
-  /* The long tier notes live here rather than beside a card — the card carries the
-     short tag, and the paragraph explaining what the tier means is a reason. Only
-     for tiers that actually collected a row: a note for a section the reader never
-     saw describes nothing. */
-  const mounted = {};
-  for (const row of model.report.rows) if (row.rendered) mounted[row.mountPoint] = true;
+  /* W-080. The merged "Additional measurements" section's shared note lives here
+     rather than beside a card — the paragraph explaining what the section covers
+     is a reason, not a fact. Printed only when that section actually drew
+     something (additionalSectionDrew): a note for a section the reader never saw
+     describes nothing. */
   return tableHead('B', 'Limitations and measurement notes') +
     profile.caveats.map(c => '<p>' + esc(c) + '</p>').join('') +
     measurementNotes(model) +
@@ -2673,9 +2909,10 @@ function tableC(profile, model) {
     withheldTable(model) +
     gapReasonTable(model) +
     counted.map(c => '<p class="counted">' + esc(c) + '</p>').join('') +
-    SECTIONS.filter(sc => sc.note && mounted[sc.mount]).map(
-      sc => '<p class="snote"><b>' + esc(sc.title) + '.</b> ' +
-            esc(sc.note) + '</p>').join('');
+    (additionalSectionDrew(model)
+      ? '<p class="snote"><b>Additional measurements.</b> ' +
+        esc(ADDITIONAL_NOTE) + '</p>'
+      : '');
 }
 
 /* Which parameters and BOUNDARIES cite a reference — counted from the receipts, so
@@ -2953,7 +3190,10 @@ if (typeof module !== 'undefined' && module.exports) {
                     gapReasonTable,
                     parameterCard, stampText, buildRequestorEmail, esc, fmtTick, toolbar, sampleLine,
                     entryRoute, IDENTITY_CELLS, STUDY_CELLS,
+                    cohortNudgeNeeded, PAEDIATRIC_AGE_MAX,
                     SECTIONS, SCOPE_LABELS, DOMAIN_LABELS, DOMAIN_TITLES,
                     VENDOR_CLASS_LABELS,
+                    additionalRows, additionalSectionDrew, ADDITIONAL_NOTE,
+                    TIER2_GROUPS: _RN.TIER2_GROUPS,
                     V2_RENDER_VERSION};
 }

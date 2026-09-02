@@ -77,7 +77,7 @@ const GROUP_PARAMETERS = {
 
 /* Tier 1 = the staging purposes chosen at the outset. Tier 2 = readings that
    do not stage a Tier-1 finding, offered separately (render.js tier2Block).
-   Tier-1 order is the "Which measurements were performed" checkbox order and the
+   Tier-1 order is the Tier-1 checkbox order (render.js performedBlock) and the
    data-entry block order it implies; Tier-2 order matches REPORT_PARAMETERS.
    W-142 re-set Tier-1 to lead with fibrosis (developer decision 2026-08-31), so
    every ordered surface — entry form, checkbox summary, printed cards, Tab route

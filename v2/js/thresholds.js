@@ -79,7 +79,16 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.10';   /* W-136: RESOLVED_HASH moved — CUT-0083..0087 add
+const V2_THRESHOLDS_VERSION = '1.12';   /* W-158: partial-ladder staging — buildScale gains
+   `partial` / `resolvedBoundaries`, buildScales adds a pediatric-gated staging branch and a
+   `stagingMode` field ('full' | 'partial' | null), and stage() returns a full-ladder band-index
+   RANGE (loIndex / hiIndex / unbounded) for a partial scale. `complete` is unchanged. No data
+   file touched; RESOLVED_HASH moves because peds lic/r2star/t2star STAGING flips none -> guideline.
+   ── W-157: RESOLVED_HASH moved — CUT-0005 / CUT-0065 /
+   CUT-0066 (pediatric MRE F>=2 / F>=3 / F4) gained stagingWithdrawn in cutoffs.data.js, so
+   resolveBoundary now short-circuits them and the resolved set for the peds MRE path changes.
+   No thresholds.js code changed; the existing W-135 stagingWithdrawn branch is what excludes
+   them. No value moved (SCHEMA § 5.1.1). W-136: RESOLVED_HASH moved — CUT-0083..0087 add
    five records to the MRE "primary-studies" pool, shifting the pooled mean at all four MRE
    boundaries (adult, both field strengths, via the field-independent-by-group flag). No
    thresholds.js code changed; the resolver's existing unweighted-mean pooling is what moved
@@ -587,12 +596,20 @@ function buildScale(opts) {
   const unusable = boundaries.filter(r => r.value === null);
 
   return {
+    parameter: opts.parameter,
     policy: opts.policy,
     vendorClasses: policyClasses(opts.policy),
     /* A ladder is drawable only when EVERY rung resolved to a number. A
        three-quarters ladder cannot stage anything: the missing rung is exactly
        where a patient's value might have fallen. */
     complete: unusable.length === 0,
+    /* W-158 — a ladder that resolved at least one rung and is short at least
+       one. NOT drawable as a bar; reachable only as the pediatric staging scale
+       (buildScales). `complete` is deliberately untouched — `drawable`,
+       `disagreementOf` and `buildZones` all read it as "the full ladder is
+       present". */
+    partial: usable.length > 0 && unusable.length > 0,
+    resolvedBoundaries: usable,
     missingBoundaries: unusable.map(r => r.boundary),
     /* Why each rung is missing, one line per rung, so the report can say
        "no guideline value published for F>=1" instead of showing a broken bar. */
@@ -681,10 +698,27 @@ function buildScales(sel) {
     staging = 'primary-studies';
     stagingReason = 'no complete guideline ladder for this parameter; staged on the ' +
                     'pooled ladder of published primary studies, badged rung by rung';
+  } else if (ageGroup === 'peds' && POLICIES.some(p => scales[p].partial)) {
+    /* W-158 — no complete ladder, but a pediatric ladder resolved most rungs and
+       is short only a boundary the guideline does not publish separately for
+       children (ESGAR/SAR 2023 merges Moderate + Severe into one pediatric
+       category). Stage against the rungs that resolved; the region past the last
+       is shown but not graded. Guideline before primary-studies, same precedence
+       as the complete branch. */
+    staging = scales.guideline.partial ? 'guideline' : 'primary-studies';
+    stagingReason = 'no complete ladder for this parameter in the pediatric cohort; ' +
+                    'staged against the boundaries that are published, with the ' +
+                    'region beyond the last resolved boundary shown but not graded';
   } else {
     stagingReason = 'no complete ladder from either provenance policy — this parameter ' +
                     'cannot be staged from the available evidence';
   }
+
+  /* W-158 — 'full' wherever a complete scale stages (every path before this
+     task), 'partial' on the pediatric branch above, null where nothing stages.
+     The one flag every downstream reader keys on. */
+  const stagingMode = staging === null ? null
+    : (scales[staging].complete ? 'full' : 'partial');
 
   const gaps = [];
   for (const [policy, s] of Object.entries(scales)) {
@@ -708,6 +742,7 @@ function buildScales(sel) {
        selects a vendor class any more (W-029). */
     drawable: POLICIES.filter(p => scales[p].complete),
     staging,
+    stagingMode,
     stagingScale: staging ? scales[staging] : null,
     stagingReason,
     gaps,
@@ -724,14 +759,59 @@ function buildScales(sel) {
    falls in. Band NAMES are presentation and stay in W-007; what comes back is
    the index and the boundaries that bracket it. */
 
+/* W-158 — stage a value against the rungs a pediatric ladder DID resolve, and
+   report which band(s) of the FULL ladder it could be in. Where a missing
+   boundary sits inside the value's band, loIndex < hiIndex — the evidence in
+   hand cannot separate those full-ladder bands, and the report says so rather
+   than picking one. `unbounded` names an OPEN end: 'above' when the value is
+   past the worst resolved boundary and the boundary beyond it is unpublished,
+   'below' for the mirror at the healthy end, null for a bounded merged band. */
+function stagePartial(value, scale) {
+  if (value === null || value === undefined || isNaN(value)) return null;
+  const ladder = LADDERS[scale.parameter];
+  const resolved = scale.resolvedBoundaries || [];
+  if (!resolved.length || !ladder) return null;
+
+  const dir = resolved[0].direction;
+  const posOf = b => ladder.indexOf(b.boundary);
+
+  let idx = 0;
+  for (const b of resolved) {
+    const crossed = dir === 'above-is-worse' ? value >= b.value : value <= b.value;
+    if (crossed) idx++; else break;
+  }
+  const below = idx > 0 ? resolved[idx - 1] : null;
+  const above = idx < resolved.length ? resolved[idx] : null;
+
+  /* Full-ladder band indices this value could occupy. A band sits between
+     full-ladder boundary positions loIndex and hiIndex; loIndex < hiIndex means
+     one or more ladder boundaries inside that span are unpublished. */
+  const loIndex = below ? posOf(below) + 1 : 0;
+  const hiIndex = above ? posOf(above) : ladder.length;
+  const unbounded = hiIndex > loIndex
+    ? (above === null ? 'above' : (below === null ? 'below' : null))
+    : null;
+
+  return {
+    index: idx, below: below, above: above, direction: dir,
+    policy: scale.policy, worstRung: scale.worstRung,
+    partial: true, loIndex: loIndex, hiIndex: hiIndex, unbounded: unbounded
+  };
+}
+
 function stage(value, scale) {
   if (value === null || value === undefined || isNaN(value)) return null;
   if (!scale || !scale.boundaries) return null;
   /* Staging on an incomplete ladder is refused, not approximated: the missing
-     rung is exactly where the value might have fallen. */
+     rung is exactly where the value might have fallen — UNLESS the ladder is
+     `partial` (W-158), where the resolved rungs stage and the gap is reported
+     as an open or merged band rather than a refusal. */
   if (!scale.complete) {
-    return {refused: 'ladder incomplete — cannot stage',
-            missing: scale.missingBoundaries, policy: scale.policy};
+    if (!scale.partial) {
+      return {refused: 'ladder incomplete — cannot stage',
+              missing: scale.missingBoundaries, policy: scale.policy};
+    }
+    return stagePartial(value, scale);
   }
   const usable = scale.boundaries.filter(b => b.value !== null);
   if (!usable.length) return null;

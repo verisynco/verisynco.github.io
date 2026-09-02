@@ -10,7 +10,23 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_APP_VERSION = '0.14.3';  /* W-134 moves this 0.14.2 -> 0.14.3: a
+const V2_APP_VERSION = '0.14.6';  /* W-156 moves this 0.14.5 -> 0.14.6: the
+   V2 terms text is corrected — section 05 no longer describes a Google Fonts
+   request that W-009 removed — so V2_DISCLAIMER_VERSION goes 1.0 -> 1.1 and this
+   released-change counter moves with it. Prose only, no network, no storage, no
+   clinical value, no hash lock.
+   W-152 moves this 0.14.4 -> 0.14.5: the
+   holistic toolbar redesign adds one "New Report" control. In a live report it
+   clears every entered value behind a window.confirm; in a sample it leaves the
+   sample. It only resets the in-memory selection and re-renders — no network,
+   no storage. Screen-only, no clinical value, no hash lock.
+   W-151 moves this 0.14.3 -> 0.14.4: the
+   light/dark theme toggle is withdrawn — the module-top applyTheme(readTheme())
+   call and the toggle-theme click binding are removed (with the render.js
+   toolbar button). readTheme/writeTheme/applyTheme/toggleTheme + V2_THEME_KEY
+   stay defined but dead; nothing writes data-theme, so styles.css's dark
+   blocks never apply. Screen-only, no clinical value, no hash lock.
+   W-134 moves this 0.14.2 -> 0.14.3: a
    click handler for the Live Report "also open" line's Hide/Show button, which
    flips a set of Tier-1 purpose groups on the same `performed` axis as the
    per-group checkboxes. No new default, no network call, no clinical value.
@@ -59,11 +75,23 @@ const V2_APP_VERSION = '0.14.3';  /* W-134 moves this 0.14.2 -> 0.14.3: a
 
 /* Bumped independently of every other counter. V2 keeps its own namespace and its
    own storage key, so a V1 acknowledgement can never open V2 and vice versa. V1's
-   disclaimer version and storage key (see v1/js/app.js) are not touched by this file. */
-const V2_DISCLAIMER_VERSION = '1.0';
+   disclaimer version and storage key (see v1/js/app.js) are not touched by this file.
+   W-156 moves this 1.0 -> 1.1: terms section 05 no longer claims a Google Fonts
+   request (removed in W-009). Text-only; a pre-1.1 acknowledgement re-gates. */
+const V2_DISCLAIMER_VERSION = '1.1';
 const V2_DISCLAIMER_KEY = 'veriliv-v2-disclaimer';
 
 /* ═══════════════════════════════════════════════════════ W-131 — THE THEME
+   (W-151: WITHDRAWN, DORMANT — NOT DELETED.) W-131 added a manual light/dark
+   toggle; W-151 removed its two live wires — the module-top `applyTheme(readTheme())`
+   below and the `data-action="toggle-theme"` click binding in wireSelectionScreen()
+   — plus the button itself in render.js toolbar(). The four functions and the
+   storage key stay defined so re-enabling is a few lines (restore both wires and
+   the button). Nothing calls them now, so nothing ever writes `data-theme`, so
+   styles.css's `:root[data-theme="dark"]` blocks never apply. render.test.js N59
+   and entry.test.js I4j lock both the dormant palette and the absence of the
+   wiring.
+
    Screen-only: styles.css keeps every dark token inside `@media screen`, so
    the printed page is unaffected by whatever this reads or writes. Manual
    toggle only, by developer decision — no `prefers-color-scheme` auto-switch.
@@ -92,10 +120,10 @@ function toggleTheme() {
   writeTheme(next);
   applyTheme(next);
 }
-/* Runs now, at module load — `#app` and `#gate` both start `hidden` in the
-   markup (v2/index.html), so nothing has painted yet and there is no flash
-   to guard against by reaching for an inline <head> script instead. */
-applyTheme(readTheme());
+/* W-151: the module-top `applyTheme(readTheme())` call was here. Removed so a
+   theme persisted in localStorage from before W-151 no longer reapplies on
+   load. Restore this one line (and the click binding + the render.js button) to
+   bring dark mode back. */
 
 /* ═══════════════════════════════════════════════════════ SAMPLE MODE (W-014)
    THE DEMONSTRATION CASES. Every number in every scenario is fabricated: it
@@ -170,6 +198,26 @@ function enterSample(key) {
    an unlocked sample is a live-looking report full of invented numbers. */
 function exitSample() {
   viewMode = 'live';
+  selection = createSelection();
+  removed = {};
+  bmiPopupOpen = false;
+  renderSelectionScreen();
+}
+
+/* W-152. "New Report" (toolbar, always leftmost). In a sample it leaves the
+   sample the way exitSample() always has. In a live report it clears every
+   entered value — so it asks first, through the browser's own confirm, when
+   the selection differs from a fresh createSelection(). The dirty check is a
+   plain structural compare: createSelection() and applySelection() both build
+   their object in the same fixed key order, so a stringify compares equal
+   until the reader has actually changed something. It errs toward asking. */
+function selectionIsDirty() {
+  return JSON.stringify(selection) !== JSON.stringify(createSelection());
+}
+function newReport() {
+  if (viewMode === 'sample') { exitSample(); return; }
+  if (selectionIsDirty() &&
+      !window.confirm('Clear all entered values and start a new report?')) return;
   selection = createSelection();
   removed = {};
   bmiPopupOpen = false;
@@ -440,9 +488,13 @@ function wireSelectionScreen() {
   /* Wired first, and OUTSIDE the sheets: while the sample is loaded both sheets
      carry `inert`, and a control inside an inert subtree cannot be pressed —
      including the one control that leaves the mode. */
+  /* W-152: the only `data-sample` button left is "View Sample" (`load`) — the
+     sample-mode exit moved to the `data-action="new-report"` control below,
+     which is present in both modes. */
   app.querySelectorAll('button[data-sample]').forEach(el =>
-    el.addEventListener('click', () =>
-      el.getAttribute('data-sample') === 'clear' ? exitSample() : enterSample()));
+    el.addEventListener('click', () => enterSample()));
+  app.querySelectorAll('button[data-action="new-report"]').forEach(el =>
+    el.addEventListener('click', newReport));
   /* W-116. Dev-only scenario menu: picking an option re-enters SAMPLE mode
      loading that case. Present only on a dev host (sampleDevHost()) — a
      listener on an element that was never drawn is simply never called. */
@@ -453,12 +505,9 @@ function wireSelectionScreen() {
      the button, the keyboard shortcut and the stylesheet all answer to. */
   app.querySelectorAll('button[data-action="print"]').forEach(el =>
     el.addEventListener('click', () => window.print()));
-  /* W-131. No re-render: the theme is a CSS custom-property switch, and
-     toggling it does not change anything the model or the route computed —
-     re-running renderSelectionScreen() here would rebuild the whole report
-     to flip one attribute. */
-  app.querySelectorAll('button[data-action="toggle-theme"]').forEach(el =>
-    el.addEventListener('click', toggleTheme));
+  /* W-151: the `data-action="toggle-theme"` click binding was here (W-131). It
+     is gone with the toolbar button — restore both, plus the module-top
+     `applyTheme(readTheme())` call above, to bring dark mode back. */
   app.querySelectorAll('button[data-action="toggle-bmi-calc"]').forEach(el =>
     el.addEventListener('click', toggleBmiPopup));
   app.querySelectorAll('button[data-action="close-bmi-calc"]').forEach(el =>

@@ -31,7 +31,15 @@
  */
 
 const CUTOFFS_REV = 'xlsx-v1';
-const CUTOFFS_VERSION = '1.13';   /* W-136: five new records — MRE NAFLD F>=1 (CUT-0083,
+const CUTOFFS_VERSION = '1.14';   /* W-157: CUT-0005 / CUT-0065 / CUT-0066 (pediatric
+   MRE, grade C, adapted-from-adult, "adapt with caution" in the workbook's own words) gain
+   stagingWithdrawn — the W-135 mechanism: a record that exists but is withdrawn from the
+   staging path, stated as a gap and never a number a caller can ask back. value, valueRaw,
+   evidenceGrade and sourceRefIds are UNCHANGED. This is the data-layer recording of a
+   decision CLAUDE.md § 1.3 already states in prose ("no pediatric MRE bound was
+   manufactured"): without it the three grade-C values stay live staging inputs that only
+   fail to close a ladder because F>=1 is absent for children. Values did not move; the
+   record shape did (SCHEMA § 5.1.1). Previous note (W-136): five new records — MRE NAFLD F>=1 (CUT-0083,
    REF-014's own published rung, absent because the workbook's own MRE!D11 cell reads "n/a",
    not a missed transcription) and the HBV MRE cohort ladder (CUT-0084..0087, REF-023, a
    cohort the workbook never had a column for at all). Both use the new citationProvenance
@@ -43,7 +51,7 @@ const CUTOFFS_VERSION = '1.13';   /* W-136: five new records — MRE NAFLD F>=1 
 /* SHA-256 over the canonical serialisation of every record. See v2/tests/schema.test.js.
    W-050 added the 15th canonical element — whether a record's own citation is accepted
    or rejected. The record SHAPE moved and no value did (SCHEMA § 5.1.1). */
-const CUTOFFS_HASH = '28489ac799a123fa2a8af22f223861e2fff70d5493b2672d2202c4d0409db7a5';
+const CUTOFFS_HASH = 'c60dea7123c3de2e5d11c2567ec94a27cc6c2a7d716bed9436ab84931fdf4bab';
 
 const CUTOFFS = [
   {
@@ -1943,6 +1951,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-034'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-pediatric-cutoff-established',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-157, 2026-09-02 (LITERATURE.md § 14; spec docs/superpowers/specs/2026-09-02-pediatric-cohort-scope-design.md): withdrawn from the staging path. Pediatric liver-stiffness staging is not established — these three values are grade C, adapted from adult thresholds, and the workbook prints them with its own hedge "adapt with caution"; no F>=1 (no-fibrosis vs any-fibrosis) stiffness value has ever been published for children, so the ladder could not close in any case. value, valueRaw, operator, direction, evidenceGrade and sourceRefIds (REF-034) are unchanged — the numbers are not asserted wrong, only their use as pediatric staging boundaries is withdrawn (CLAUDE.md § 1.3, § 2.5). The report states this as the pediatric scope line, not as a number.',
     vendorClass: 'ge-explicit',
     vendorClassAmbiguous: false,
     technique: 'mre-2d-se-epi-60hz',
@@ -1955,7 +1967,7 @@ const CUTOFFS = [
     performanceRefIds: [],
     population: 'Pediatric NAFLD (Xanthakos), reported via the Serai pediatric review',
     provenance: 'adapted-from-adult',
-    note: 'EDGE CASE — grade C, "adapt with caution" in the sheet\'s own words, and its citing reference was published with a placeholder PMID, since resolved (W-020). Same boundary and same technique GROUP as the adult records but a different cohort, so it must never be pooled with them. Technique differs within the group (SE-EPI, ~90% technical success in children vs ~50% for GRE under 10 y) — a protocol choice, not a threshold change. All three pediatric thresholds share one workbook cell, hence the identical valueRaw.',
+    note: 'EDGE CASE — grade C, "adapt with caution" in the sheet\'s own words, and its citing reference was published with a placeholder PMID, since resolved (W-020). Same boundary and same technique GROUP as the adult records but a different cohort, so it must never be pooled with them. Technique differs within the group (SE-EPI, ~90% technical success in children vs ~50% for GRE under 10 y) — a protocol choice, not a threshold change. All three pediatric thresholds share one workbook cell, hence the identical valueRaw. W-157: also withdrawn from the staging path (stagingWithdrawn) — the value is unchanged, only its use as a pediatric staging boundary is withdrawn; see dataQualityNote.',
     source: {sheet: 'MRE', cell: 'C27'}
   },
   {
@@ -1973,6 +1985,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-034'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-pediatric-cutoff-established',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-157, 2026-09-02 (LITERATURE.md § 14; spec docs/superpowers/specs/2026-09-02-pediatric-cohort-scope-design.md): withdrawn from the staging path. Pediatric liver-stiffness staging is not established — these three values are grade C, adapted from adult thresholds, and the workbook prints them with its own hedge "adapt with caution"; no F>=1 (no-fibrosis vs any-fibrosis) stiffness value has ever been published for children, so the ladder could not close in any case. value, valueRaw, operator, direction, evidenceGrade and sourceRefIds (REF-034) are unchanged — the numbers are not asserted wrong, only their use as pediatric staging boundaries is withdrawn (CLAUDE.md § 1.3, § 2.5). The report states this as the pediatric scope line, not as a number.',
     vendorClass: 'ge-explicit',
     vendorClassAmbiguous: false,
     technique: 'mre-2d-se-epi-60hz',
@@ -1985,7 +2001,7 @@ const CUTOFFS = [
     performanceRefIds: [],
     population: 'Pediatric NAFLD (Xanthakos), reported via the Serai pediatric review',
     provenance: 'adapted-from-adult',
-    note: 'EDGE CASE — grade C, "adapt with caution" in the sheet\'s own words, and its citing reference was published with a placeholder PMID, since resolved (W-020). Same boundary and same technique GROUP as the adult records but a different cohort, so it must never be pooled with them. Technique differs within the group (SE-EPI, ~90% technical success in children vs ~50% for GRE under 10 y) — a protocol choice, not a threshold change. All three pediatric thresholds share one workbook cell, hence the identical valueRaw.',
+    note: 'EDGE CASE — grade C, "adapt with caution" in the sheet\'s own words, and its citing reference was published with a placeholder PMID, since resolved (W-020). Same boundary and same technique GROUP as the adult records but a different cohort, so it must never be pooled with them. Technique differs within the group (SE-EPI, ~90% technical success in children vs ~50% for GRE under 10 y) — a protocol choice, not a threshold change. All three pediatric thresholds share one workbook cell, hence the identical valueRaw. W-157: also withdrawn from the staging path (stagingWithdrawn) — the value is unchanged, only its use as a pediatric staging boundary is withdrawn; see dataQualityNote.',
     source: {sheet: 'MRE', cell: 'C27'}
   },
   {
@@ -2003,6 +2019,10 @@ const CUTOFFS = [
     sourceRefIds: ['REF-034'],
     externalRefIds: [],
     citationProvenance: 'workbook',
+    stagingWithdrawn: true,
+    stagingWithdrawnReason: 'no-pediatric-cutoff-established',
+    dataQualityFlags: ['staging-withdrawn'],
+    dataQualityNote: 'W-157, 2026-09-02 (LITERATURE.md § 14; spec docs/superpowers/specs/2026-09-02-pediatric-cohort-scope-design.md): withdrawn from the staging path. Pediatric liver-stiffness staging is not established — these three values are grade C, adapted from adult thresholds, and the workbook prints them with its own hedge "adapt with caution"; no F>=1 (no-fibrosis vs any-fibrosis) stiffness value has ever been published for children, so the ladder could not close in any case. value, valueRaw, operator, direction, evidenceGrade and sourceRefIds (REF-034) are unchanged — the numbers are not asserted wrong, only their use as pediatric staging boundaries is withdrawn (CLAUDE.md § 1.3, § 2.5). The report states this as the pediatric scope line, not as a number.',
     vendorClass: 'ge-explicit',
     vendorClassAmbiguous: false,
     technique: 'mre-2d-se-epi-60hz',
@@ -2015,7 +2035,7 @@ const CUTOFFS = [
     performanceRefIds: [],
     population: 'Pediatric NAFLD (Xanthakos), reported via the Serai pediatric review',
     provenance: 'adapted-from-adult',
-    note: 'EDGE CASE — grade C, "adapt with caution" in the sheet\'s own words, and its citing reference was published with a placeholder PMID, since resolved (W-020). Same boundary and same technique GROUP as the adult records but a different cohort, so it must never be pooled with them. Technique differs within the group (SE-EPI, ~90% technical success in children vs ~50% for GRE under 10 y) — a protocol choice, not a threshold change. All three pediatric thresholds share one workbook cell, hence the identical valueRaw.',
+    note: 'EDGE CASE — grade C, "adapt with caution" in the sheet\'s own words, and its citing reference was published with a placeholder PMID, since resolved (W-020). Same boundary and same technique GROUP as the adult records but a different cohort, so it must never be pooled with them. Technique differs within the group (SE-EPI, ~90% technical success in children vs ~50% for GRE under 10 y) — a protocol choice, not a threshold change. All three pediatric thresholds share one workbook cell, hence the identical valueRaw. W-157: also withdrawn from the staging path (stagingWithdrawn) — the value is unchanged, only its use as a pediatric staging boundary is withdrawn; see dataQualityNote.',
     source: {sheet: 'MRE', cell: 'C27'}
   },
   {
