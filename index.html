@@ -3,53 +3,344 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="0; url=v2/index.html">
-<!-- W-071. THE REDIRECT HAS TO CARRY THE QUERY STRING. A meta refresh cannot:
-     it names a fixed address, so an invitation opened at "/?r=xxxxx" arrived at
-     the report with no invite code and the trial feedback layer correctly
-     refused to appear. The script below forwards the search and the fragment;
-     the meta above stays as the no-JavaScript fallback, which loses the code but
-     still opens the report -- the report is the thing that must never depend on
-     a script running. -->
+<title>verisyn.co — quantitative imaging reports a radiologist can defend</title>
+<meta name="description" content="VERISYN.CO builds quantitative medical-imaging reports a radiologist can defend: traceable to published evidence, honest about their limits, built for scrutiny. veri.Liver is available now.">
+<link rel="canonical" href="https://verisynco.github.io/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2048%2048'%20fill='none'%20stroke='%232b4a6f'%20stroke-width='5'%20stroke-linecap='round'%3E%3Cpath%20d='M16%209%20A17%2017%200%200%200%2016%2039'/%3E%3Cpath%20d='M32%209%20A17%2017%200%200%201%2032%2039'/%3E%3Ccircle%20cx='24'%20cy='24'%20r='6'%20fill='%232b4a6f'%20stroke='none'/%3E%3C/svg%3E">
+
+<!-- W-162. THIS PAGE REPLACED A BARE REDIRECT. The root used to forward straight
+     to v2/index.html; it is now a one-screen landing page for the organisation
+     and only forwards when the URL carries something to forward. An invitation
+     opened at "/?r=xxxxx" or a deep link at "/?fb=open" still has to reach the
+     report with its query intact, so the script below replaces the location
+     whenever a search or a hash is present. A bare "/" falls through to the
+     page. There is no <meta refresh> fallback: with a real landing page a
+     visitor without JavaScript simply sees the page and follows the link, and
+     the report still never depends on a script running. -->
 <script>
   (function () {
     var q = location.search + location.hash;
     if (q) { location.replace('v2/index.html' + q); }
   }());
 </script>
-<link rel="canonical" href="v2/index.html">
-<title>VeriLiv — Quantitative Liver MRI</title>
-<!-- W-001: the published link opens V2 directly. The version chooser that stood here until
-     2026-08-24 described V2 as a skeleton unfit for any use, which stopped being true, and it
-     was the only page in this project still requesting a webfont over the network (W-009
-     removed every other one). V1 is frozen and stays reachable at v1/index.html by its own
-     URL; it is deliberately not linked from here, because the report an expert is asked to
-     try is V2, and V2 states its own terms before it will open. -->
+
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    color-scheme: light;
+    /* Neutral — from v2/docs/DESIGN-DIRECTION.md / v2/css/styles.css, verbatim. */
+    --paper: #FCFCFA;
+    --ink: #16191C;
+    --ink-2: #5A6570;
+    --frame: #8C9298;
+    --hair: #D8DCE0;
+    --accent: #2b4a6f;
+    /* Severity ramp — used ONLY inside the labelled report facsimile below
+       (an illustration of the product's own output), never on marketing chrome
+       (brand-guidelines.md § 5, W-085). Values are the report's, incl. the
+       W-009 correction --sev-3 #A66047. */
+    --sev-0: #F2F0EC;
+    --sev-1: #E5CFC2;
+    --sev-2: #D0A088;
+    --sev-3: #A66047;
+    --sans: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, "Segoe UI",
+            Roboto, -apple-system, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    min-height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 16px/1.6 var(--sans);
+  }
+  .wrap { max-width: 68rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---- header ---- */
+  header { border-bottom: 1px solid var(--hair); }
+  header .wrap { display: flex; align-items: center; padding-top: 1.15rem; padding-bottom: 1.15rem; }
+  .lockup { display: flex; align-items: center; gap: .65rem; }
+  .lockup svg { width: 34px; height: 34px; flex: none; }
+  .lockup b { font-size: 1.0625rem; font-weight: 700; letter-spacing: .03em; }
+  .lockup b span { color: var(--accent); }
+
+  /* ---- hero ---- */
+  .hero .wrap {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 3.25rem;
+    align-items: center;
+    padding-top: 4.25rem;
+    padding-bottom: 4.25rem;
+  }
+  .eyebrow {
+    margin: 0 0 1rem;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  h1 {
+    margin: 0 0 .85rem;
+    font-size: 2.5rem;
+    line-height: 1.14;
+    font-weight: 700;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+  }
+  .strap {
+    margin: 0 0 1.15rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .lede {
+    margin: 0 0 2rem;
+    font-size: 1.0625rem;
+    color: var(--ink-2);
+    max-width: 44ch;
+  }
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .85rem 1.5rem;
+    font-size: .9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--paper);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+  }
+  .cta .liver { width: 34px; height: 22px; flex: none; fill: currentColor; }
+  .cta:hover { filter: brightness(1.12); }
+  .cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .cta-note { margin: .85rem 0 0; font-size: .8125rem; color: var(--ink-2); }
+
+  /* ---- report facsimile ---- */
+  .sample {
+    border: 1px solid var(--frame);
+    border-radius: 10px;
+    background: #fff;
+    padding: 1.5rem 1.6rem 1.7rem;
+  }
+  .sample .cap {
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    margin: 0 0 1.1rem;
+  }
+  .sample .metric { margin: 0; font-family: var(--mono); font-size: .8125rem; color: var(--ink); }
+  .sample .metric b { font-weight: 600; }
+  .sample .mk { position: relative; height: 22px; }
+  .sample .mk::before {
+    content: "";
+    position: absolute;
+    left: 61%;
+    bottom: 0;
+    width: 2px;
+    height: 17px;
+    background: var(--ink);
+  }
+  .sample .track {
+    margin: 0 0 .4rem;
+    height: 13px;
+    display: flex;
+    border: 1px solid var(--frame);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .sample .track i { flex: 1; border-right: 1px solid var(--frame); }
+  .sample .track i:last-child { border-right: 0; }
+  .sample .track i:nth-child(1) { background: var(--sev-0); }
+  .sample .track i:nth-child(2) { background: var(--sev-1); }
+  .sample .track i:nth-child(3) { background: var(--sev-2); }
+  .sample .track i:nth-child(4) { background: var(--sev-3); }
+  .sample .ticks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: .6875rem;
+    color: var(--ink-2);
+  }
+  .sample .verdict {
+    margin: .95rem 0 0;
+    padding-top: .8rem;
+    border-top: 1px solid var(--hair);
+    font-family: var(--mono);
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .sample .verdict b { color: var(--ink); font-weight: 600; }
+
+  /* ---- proof ---- */
+  .proof { border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); background: #fff; }
+  .proof .wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; padding-top: 2rem; padding-bottom: 2rem; }
+  .proof h2 { margin: 0 0 .35rem; font-size: .9375rem; font-weight: 700; }
+  .proof p { margin: 0; font-size: .875rem; color: var(--ink-2); }
+
+  /* ---- available ---- */
+  .avail .wrap { padding-top: 3.5rem; padding-bottom: 3.5rem; }
+  .cards { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 1.25rem; align-items: stretch; }
+  .card { border: 1px solid var(--hair); border-radius: 10px; padding: 1.5rem; }
+  .card--live { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: .55rem; }
+  .card--live .motif {
+    position: absolute;
+    right: 14px;
+    top: 14px;
+    width: 104px;
+    height: 66px;
+    fill: var(--accent);
+    opacity: .10;
+    pointer-events: none;
+  }
+  .card .tag {
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .card--live .name { display: flex; align-items: center; gap: .6rem; }
+  .card--live .name h3 { margin: 0; font-size: 1.125rem; font-weight: 700; }
+  .card--live .name .liver { width: 32px; height: 20px; flex: none; fill: var(--accent); }
+  .card--live p { margin: .15rem 0 0; font-size: .875rem; color: var(--ink-2); }
+  .card--tease {
     display: flex;
     align-items: center;
     justify-content: center;
-    font: 400 15px/1.6 "Segoe UI", -apple-system, system-ui, Arial, sans-serif;
-    background: #f7f8f9;
-    color: #1b1f23;
+    min-height: 9rem;
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    color: var(--ink-2);
+    opacity: .5;
   }
-  .fallback { max-width: 30rem; padding: 2rem; text-align: center; }
-  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 .5rem; }
-  p { margin: 0 0 1.25rem; color: #4a5259; }
-  a { color: #1b4d7a; }
+  .card--tease span { color: var(--accent); }
+
+  /* ---- footer ---- */
+  footer { border-top: 1px solid var(--hair); }
+  footer .wrap { padding-top: 1.75rem; padding-bottom: 2.25rem; }
+  footer p { margin: 0; font-size: .8125rem; line-height: 1.6; color: var(--ink-2); }
+  footer .disc { margin-bottom: .4rem; }
+
+  @media (max-width: 52rem) {
+    .hero .wrap { grid-template-columns: 1fr; gap: 2.5rem; padding-top: 2.75rem; padding-bottom: 2.75rem; }
+    h1 { font-size: 2rem; }
+    .proof .wrap { grid-template-columns: 1fr; gap: 1.5rem; }
+    .cards { grid-template-columns: 1fr; }
+    .card--tease { min-height: 6rem; font-size: 2.5rem; }
+  }
 </style>
 </head>
 <body>
-  <main class="fallback">
-    <h1>VeriLiv — Quantitative Liver MRI</h1>
-    <p>Opening the report. If nothing happens, follow the link below.</p>
-    <p><a href="v2/index.html" id="go">Open VeriLiv V2 &rarr;</a></p>
-    <p><small>Educational reference tool · not a diagnostic device · does not replace
-    radiologist interpretation.</small></p>
-  </main>
+
+<!-- veri.Liver product mark: a low-poly / wireframe liver — a modelled organ,
+     not a drawn one. Monochrome, inherits currentColor. Used on the CTA and the
+     veri.Liver card. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- veri.Liver product mark: a solid, confident liver silhouette (bulky right
+       lobe, sharp interlobar notch, tapering left lobe). Solid rather than
+       faceted on purpose: a faceted organ turns to mush below ~80px, a clean
+       silhouette still reads at 44px. -->
+  <symbol id="liver" viewBox="0 0 120 76">
+    <path d="M12 40C10 22 26 7 48 6C64 5 74 9 79 15L76 33L88 13C97 6 109 7 116 14C119 17 118 21 113 25C103 33 91 38 79 39C71 40 67 38 62 43C51 56 33 65 21 60C12 56 10 48 12 40Z"/>
+  </symbol>
+</svg>
+
+<header>
+  <div class="wrap">
+    <span class="lockup">
+      <svg viewBox="0 0 48 48" fill="none" stroke="#2b4a6f" stroke-width="3"
+           stroke-linecap="round" aria-hidden="true">
+        <!-- a measured value held between two published bounds -->
+        <path d="M17 8.5 A17 17 0 0 0 17 39.5"/>
+        <path d="M31 8.5 A17 17 0 0 1 31 39.5"/>
+        <circle cx="24" cy="24" r="4.4" fill="#2b4a6f" stroke="none"/>
+      </svg>
+      <b>verisyn<span>.co</span></b>
+    </span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Quantitative imaging</p>
+      <h1>Reports a radiologist can defend.</h1>
+      <p class="strap">Traceable. Honest about its limits. Built for scrutiny.</p>
+      <p class="lede">veri.Liver turns quantitative liver-MRI measurements into
+      guideline-based staging, presented so that every conclusion can be checked &mdash; and
+      so that whatever the evidence cannot support is stated plainly rather than left
+      blank.</p>
+      <a class="cta" href="v2/index.html?fb=open">
+        <svg class="liver" aria-hidden="true"><use href="#liver"/></svg>
+        Open veri.Liver
+      </a>
+      <p class="cta-note">Opens the report with the trial feedback form ready.</p>
+    </div>
+
+    <div class="sample" aria-label="Illustration of a veri.Liver staging bar">
+      <p class="cap">veri.Liver — report facsimile</p>
+      <p class="metric">MRE liver stiffness&nbsp;&nbsp;<b>3.1 kPa</b></p>
+      <div class="mk"></div>
+      <div class="track"><i></i><i></i><i></i><i></i></div>
+      <div class="ticks"><span>F0</span><span>F1</span><span>F2</span><span>F3</span><span>F4</span></div>
+      <p class="verdict"><b>stage F2&ndash;F3</b> &middot; sources cited on the report</p>
+    </div>
+  </div>
+</section>
+
+<section class="proof">
+  <div class="wrap">
+    <div>
+      <h2>Traceable to published evidence</h2>
+      <p>Conclusions rest on named, peer-reviewed sources &mdash; not on opaque defaults.</p>
+    </div>
+    <div>
+      <h2>Honest where the evidence is not settled</h2>
+      <p>Where published guidance does not agree, the report says so rather than picking for you.</p>
+    </div>
+    <div>
+      <h2>No silent gaps</h2>
+      <p>What cannot be supported is named as a limitation, never left as an empty cell.</p>
+    </div>
+  </div>
+</section>
+
+<section class="avail">
+  <div class="wrap">
+    <p class="eyebrow">Available</p>
+    <div class="cards">
+      <div class="card card--live">
+        <svg class="motif" aria-hidden="true"><use href="#liver"/></svg>
+        <span class="tag">Available</span>
+        <span class="name">
+          <svg class="liver" aria-hidden="true"><use href="#liver"/></svg>
+          <h3>veri.Liver</h3>
+        </span>
+        <p>Single-patient quantitative liver MRI &mdash; iron, fat, fibrosis and stiffness,
+        staged and printed as two A4 pages. Vendor-neutral, nothing to install, works
+        offline.</p>
+      </div>
+      <div class="card card--tease" aria-hidden="true">veri<span>.</span></div>
+      <div class="card card--tease" aria-hidden="true">veri<span>.</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="disc">Educational reference tool &middot; not a diagnostic device &middot;
+    does not replace radiologist interpretation.</p>
+    <p>&copy; 2026 verisyn.co</p>
+  </div>
+</footer>
+
 </body>
 </html>

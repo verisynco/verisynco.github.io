@@ -186,6 +186,55 @@
   border: 0;
 }
 
+/* W-161. The reporter names themselves once. Same visual register as the panel
+   body — ink prompt, muted helper, the shared spacing and type scales — so it
+   reads as part of the panel, not a second dialog. */
+.fb-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+}
+.fb-identity .fb-prompt {
+  padding: 0;
+  border-bottom: 0;
+  font-size: var(--t-micro);
+  color: var(--muted);
+}
+.fb-idrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--t-micro);
+  color: var(--ink);
+}
+.fb-idrow input {
+  font: inherit;
+  font-size: var(--t-band);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hair2);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.fb-identity [data-fb-identity-submit] { align-self: flex-start; }
+
+/* A quiet line under the frame — where the report is edited, not a control that
+   competes with it. Muted, underlined on interaction only. */
+.fb-idedit {
+  margin: 0;
+  padding: var(--s-3) var(--s-5);
+  font-size: var(--t-micro);
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--hair2);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.fb-idedit:hover, .fb-idedit:focus-visible { color: var(--ink); text-decoration: underline; }
+
 /* WCAG 2.2 AA, Focus Not Obscured (Minimum). A pinned panel that covers the
    control a keyboard user has just reached is a failure of the criterion, and
    the honest fix is to move the panel rather than to hope the overlap never

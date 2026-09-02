@@ -10,7 +10,14 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_APP_VERSION = '0.14.6';  /* W-156 moves this 0.14.5 -> 0.14.6: the
+const V2_APP_VERSION = '0.14.7';  /* W-161 moves this 0.14.6 -> 0.14.7: the
+   trial feedback layer is opened to every reader who has accepted the terms
+   (the invite code is retired as a gate), the reader now self-declares a name
+   and e-mail kept in localStorage, and the sample scenario menu is no longer
+   restricted to a dev host. Terms sections 05 and 07 are reworded, so
+   V2_DISCLAIMER_VERSION goes 1.1 -> 1.2 and this released-change counter moves
+   with it. No clinical value, no hash lock.
+   W-156 moved this 0.14.5 -> 0.14.6: the
    V2 terms text is corrected — section 05 no longer describes a Google Fonts
    request that W-009 removed — so V2_DISCLAIMER_VERSION goes 1.0 -> 1.1 and this
    released-change counter moves with it. Prose only, no network, no storage, no
@@ -76,9 +83,12 @@ const V2_APP_VERSION = '0.14.6';  /* W-156 moves this 0.14.5 -> 0.14.6: the
 /* Bumped independently of every other counter. V2 keeps its own namespace and its
    own storage key, so a V1 acknowledgement can never open V2 and vice versa. V1's
    disclaimer version and storage key (see v1/js/app.js) are not touched by this file.
-   W-156 moves this 1.0 -> 1.1: terms section 05 no longer claims a Google Fonts
-   request (removed in W-009). Text-only; a pre-1.1 acknowledgement re-gates. */
-const V2_DISCLAIMER_VERSION = '1.1';
+   W-156 moved this 1.0 -> 1.1: terms section 05 no longer claims a Google Fonts
+   request (removed in W-009). W-161 moves it 1.1 -> 1.2: sections 05 and 07 are
+   reworded — the trial feedback layer no longer needs an invite code, the
+   reader self-declares a name and e-mail kept in this browser, and section 05
+   discloses that stored item. Text-only; a pre-1.2 acknowledgement re-gates. */
+const V2_DISCLAIMER_VERSION = '1.2';
 const V2_DISCLAIMER_KEY = 'veriliv-v2-disclaimer';
 
 /* ═══════════════════════════════════════════════════════ W-131 — THE THEME
@@ -144,16 +154,15 @@ function caseByKey(key) {
          SAMPLE_CASES.find(c => c.key === DEFAULT_SAMPLE_KEY);
 }
 
-/* dev-only gate for the scenario menu (W-116). Reused from feedback.js's own
-   "development has to be possible" rule (v2/feedback/feedback.js): a file://
-   page or a localhost/127.0.0.1 host is a developer's machine, never the
-   published one. Reads `location` only — no storage, no network, so it adds
-   nothing for feedback.test.js's "no fetch/XHR from v2/js" guard to catch. */
-function sampleDevHost() {
-  try {
-    return location.protocol === 'file:' ||
-           location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  } catch (e) { return false; }
+/* W-116 gated the scenario menu to a dev host (file:// or localhost). W-161
+   opens it to the published site: the developer's call — a reader browsing the
+   fabricated demonstration cases is the point of an educational tool. The menu
+   still self-limits in render.js `toolbar()` — it is drawn only in SAMPLE mode
+   and only when a scenario list is handed in, and "New Report" leaves sample
+   mode and takes the menu with it. Kept as a named function (not inlined) so a
+   future decision to re-gate it has one place to change. */
+function sampleMenuAllowed() {
+  return true;
 }
 
 function sampleScenarioList() {
@@ -459,7 +468,7 @@ function renderSelectionScreen(ackTs) {
     document.body.classList.remove('path-chosen');
     const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen};
     currentRoute = entryRoute(null, selection, view);
-    app.innerHTML = toolbar({mode: viewMode}, false, sampleDevHost(), sampleScenarioList()) +
+    app.innerHTML = toolbar({mode: viewMode}, false, sampleMenuAllowed(), sampleScenarioList()) +
       '<div class="page" id="clinical">' +
       masthead(profileForPath('other')) + patientMeta(selection, view) +
       studyMeta(selection, profileForPath('other')) +
@@ -471,7 +480,7 @@ function renderSelectionScreen(ackTs) {
     const model = buildModel(report, profile, selection);
     const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen};
     currentRoute = entryRoute(model, selection, view);
-    app.innerHTML = toolbar({mode: viewMode}, true, sampleDevHost(), sampleScenarioList()) +
+    app.innerHTML = toolbar({mode: viewMode}, true, sampleMenuAllowed(), sampleScenarioList()) +
       renderReport(model, profile, selection,
                    {app: V2_APP_VERSION,
                     disclaimer: V2_DISCLAIMER_VERSION,
@@ -495,8 +504,8 @@ function wireSelectionScreen() {
     el.addEventListener('click', () => enterSample()));
   app.querySelectorAll('button[data-action="new-report"]').forEach(el =>
     el.addEventListener('click', newReport));
-  /* W-116. Dev-only scenario menu: picking an option re-enters SAMPLE mode
-     loading that case. Present only on a dev host (sampleDevHost()) — a
+  /* W-116 / W-161. Scenario menu: picking an option re-enters SAMPLE mode
+     loading that case. Drawn only in SAMPLE mode (render.js `toolbar()`); a
      listener on an element that was never drawn is simply never called. */
   app.querySelectorAll('select[data-sample-scenario]').forEach(el =>
     el.addEventListener('change', () => enterSample(el.value)));

@@ -16,10 +16,23 @@
  * ---------------------------------------------------------------------------
  */
 
-const FEEDBACK_VERSION = '1.2';
+/* W-162 round 2 moves this 1.4 -> 1.5: the feedback layer is a LIVE-report
+   affordance now — over a sample report neither the pinned tab nor the
+   per-card flag buttons are drawn (feedbackVisibleForMode), and a
+   body[data-mode] observer draws them when the reader leaves the sample
+   with "New Report". `?fb=open` from the landing page no longer opens on
+   load; it is remembered and spent the first time the report is live. No
+   network call, no gate condition changed, no clinical value. */
+const FEEDBACK_VERSION = '1.5';
 
-/* A token names a clinician to the developer's own list and to nothing else.
-   The page never asks for a name or an address, and none travels. */
+/* W-161. THE INVITE CODE IS RETIRED AS A GATE. Feedback is open to any reader
+   who has accepted the terms on an https page — no code is distributed. Instead
+   the reporter names themselves: the page asks for a name and an e-mail the
+   first time the panel opens, keeps them in localStorage so they are not
+   retyped (§ 5 of the terms text discloses this), and pre-fills them into the
+   Tally URL. `readInvite` stays because an old `?r=…` link is still worth
+   reading as a submission tag — it just no longer decides whether the layer
+   appears. */
 const INVITE_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 function readInvite(search) {
@@ -30,6 +43,34 @@ function readInvite(search) {
   let token;
   try { token = decodeURIComponent(hit); } catch (e) { return null; }
   return INVITE_RE.test(token) ? token : null;
+}
+
+/* W-162. A landing page deep-links straight into an open feedback panel by
+   putting ?fb=open on the report URL. This is read exactly like the invite
+   above — split, not a substring — and it only ever AUTO-OPENS a panel the
+   https + terms gate has already allowed; it does not activate a refused
+   layer, and the browser bootstrap routes it through the same requestOpen()
+   the pinned tab uses, so a first-time reporter still meets the identity
+   form. */
+function wantsAutoOpen(search) {
+  if (typeof search !== 'string' || search.length === 0) return false;
+  const q = search.charAt(0) === '?' ? search.slice(1) : search;
+  const hit = q.split('&').map(p => p.split('=')).filter(p => p[0] === 'fb').map(p => p[1])[0];
+  if (hit === undefined || hit === null) return false;
+  let val;
+  try { val = decodeURIComponent(hit); } catch (e) { return false; }
+  return val === 'open';
+}
+
+/* W-162 round 2. THE FEEDBACK LAYER BELONGS TO A LIVE REPORT, NOT THE SAMPLE.
+   Over a SAMPLE report — the fabricated demonstration cases — neither the
+   pinned tab nor the per-card flag buttons are drawn: a reader browsing the
+   sample has nothing of their own to flag yet. They appear when the reader
+   leaves the sample with "New Report" and the report goes live. `null` or an
+   unknown mode reads as live, the same safe direction the payload's `view`
+   field already takes. */
+function feedbackVisibleForMode(mode) {
+  return mode !== 'sample';
 }
 
 /* THE LAYER'S FIRST STATEMENT IS A REFUSAL, and it names which condition failed
@@ -54,11 +95,48 @@ function activationState(env) {
   const localhost = e.hostname === 'localhost' || e.hostname === '127.0.0.1';
   const secure = e.protocol === 'https:' || (e.protocol === 'http:' && localhost);
   if (!secure) return {active: false, reason: 'not-https'};
-  if (readInvite(e.search) === null) return {active: false, reason: 'no-invite'};
+  /* W-161: no invite branch. Two conditions gate the layer now — a secure page
+     and accepted terms — and 'no-invite' is a reason this function can no
+     longer produce. */
   if ((e.bodyClasses || []).indexOf('gate-accepted') === -1) {
     return {active: false, reason: 'terms-not-accepted'};
   }
   return {active: true, reason: 'ok'};
+}
+
+/* ══════════════════════════════════════ THE REPORTER'S OWN IDENTITY (W-161)
+   Self-declared, kept in localStorage so it is typed once, injected via a
+   `store` argument so the pure layer stays testable and a blocked store (a
+   private window, storage disabled) degrades to null rather than throwing. */
+const IDENTITY_KEY = 'veriliv.v2.feedback.identity';
+
+function identityStore(store) {
+  if (store) return store;
+  try { return typeof localStorage !== 'undefined' ? localStorage : null; }
+  catch (e) { return null; }
+}
+
+function readIdentity(store) {
+  try {
+    const s = identityStore(store);
+    if (!s) return null;
+    const raw = s.getItem(IDENTITY_KEY);
+    if (!raw) return null;
+    const rec = JSON.parse(raw);
+    if (!rec || typeof rec !== 'object') return null;
+    return {name: rec.name || null, email: rec.email || null};
+  } catch (e) { return null; }
+}
+
+function writeIdentity(id, store) {
+  try {
+    const s = identityStore(store);
+    if (!s) return false;
+    s.setItem(IDENTITY_KEY, JSON.stringify({
+      name: (id && id.name) || null, email: (id && id.email) || null
+    }));
+    return true;
+  } catch (e) { return false; }
 }
 
 /* ══════════════════════════════════════════════════ THE ALLOW-LIST (§ 4.1)
@@ -79,7 +157,11 @@ function activationState(env) {
    asking about unless the readable name is one of the fields it holds. */
 const PAYLOAD_FIELDS = Object.freeze([
   'invite', 'path', 'fieldStrength', 'cohort', 'techniques', 'versions',
-  'param', 'paramLabel', 'band', 'sev', 'reason', 'view', 'viewportWidth'
+  'param', 'paramLabel', 'band', 'sev', 'reason', 'view', 'viewportWidth',
+  /* W-161 — the reporter's own name and e-mail, self-declared in the page.
+     Tally form XxPG6Y must carry these two fields or their columns arrive
+     empty while every other field keeps working. */
+  'reporterName', 'reporterEmail'
 ]);
 
 /* THE BAND TRAVELS, THE VALUE DOES NOT, and that is the load-bearing decision.
@@ -106,7 +188,10 @@ function buildPayload(ctx) {
     sev:           card.sev === undefined ? null : card.sev,
     reason:        card.reason === undefined ? null : card.reason,
     view:          c.view || null,
-    viewportWidth: c.viewportWidth === undefined ? null : c.viewportWidth
+    viewportWidth: c.viewportWidth === undefined ? null : c.viewportWidth,
+    /* W-161. Only from c.reporter — never reconstructed from the selection. */
+    reporterName:  (c.reporter && c.reporter.name) || null,
+    reporterEmail: (c.reporter && c.reporter.email) || null
   };
 }
 
@@ -141,9 +226,11 @@ function esc(s) {
 /* Said in the terms gate and again here, because the second place is where the
    clinician is actually about to type. */
 const NOTICE =
-  'What this sends: your invite code, the acquisition you selected, the band ' +
-  'your reading fell in, and what you write. It never sends the measurements ' +
-  'you typed, the accession number, the study date or the age.';
+  'What this sends: the name and e-mail you enter, the acquisition you ' +
+  'selected, the band your reading fell in, and what you write. It never ' +
+  'sends the measurements you typed, the accession number, the study date ' +
+  'or the age. Your name and e-mail are kept in this browser so you need ' +
+  'not retype them.';
 
 /* NOT "Report". The document this layer sits on top of is called a report on
    every surface it has — the print button, the sheets, the footer — so a control
@@ -282,7 +369,8 @@ function surveyPromptHtml(url) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {readInvite, activationState, gateWatchNeeded, buildPayload, PAYLOAD_FIELDS,
+  module.exports = {readInvite, wantsAutoOpen, feedbackVisibleForMode, activationState, gateWatchNeeded, buildPayload, PAYLOAD_FIELDS,
+                    readIdentity, writeIdentity, IDENTITY_KEY,
                     TALLY, payloadToQuery, formUrl,
                     cardButtonHtml, readCardFacts, promptFor, panelHtml, NOTICE,
                     surveyDue, surveyUrl, surveyPromptHtml, SURVEY_FIELDS,
@@ -331,6 +419,47 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
     document.body.appendChild(root);
 
     let open = false, openFacts = null, lastOpener = null;
+    /* W-162. ?fb=open opens the panel once. The latch stops it from fighting a
+       manual close or re-firing on a later re-render. W-162 round 2: it no
+       longer fires on load — `pendingAutoOpen` remembers the intent and
+       `maybeAutoOpen()` spends it the first time the report is live. */
+    let autoOpened = false, pendingAutoOpen = false;
+
+    /* W-162 round 2. The mode is written to body[data-mode] on every render
+       (app.js). The layer draws nothing while it says 'sample'. */
+    function currentMode() {
+      return document.body.getAttribute('data-mode') === 'sample' ? 'sample' : 'live';
+    }
+    function layerLive() { return feedbackVisibleForMode(currentMode()); }
+
+    /* W-161. The reporter names themselves once. `identity` is re-read from the
+       store on every request rather than cached, so an edit in one tab is seen
+       in the next use; `needIdentity` is the transient state of showing the
+       little form; `pendingCard` is the card the reporter clicked while the
+       form was up. */
+    let identity = readIdentity();
+    let needIdentity = false, pendingCard = null;
+
+    function idFormHtml() {
+      const n = esc((identity && identity.name) || '');
+      const em = esc((identity && identity.email) || '');
+      return '<form class="fb-identity" data-fb-identity>' +
+        '<p class="fb-prompt">Tell the trial who is reporting. Kept in this ' +
+        'browser so you enter it once; it never identifies a patient.</p>' +
+        '<label class="fb-idrow">Name' +
+          '<input type="text" name="name" value="' + n + '" autocomplete="name" required></label>' +
+        '<label class="fb-idrow">E-mail' +
+          '<input type="email" name="email" value="' + em + '" autocomplete="email"></label>' +
+        '<button type="submit" class="fb-tab" data-fb-identity-submit>Continue</button>' +
+      '</form>';
+    }
+
+    function idEditHtml() {
+      const who = (identity && identity.name) || 'anonymous';
+      return '<button type="button" class="fb-idedit" data-fb-identity-edit' +
+        ' aria-label="Change the name and e-mail used for feedback">' +
+        'Reporting as ' + esc(who) + ' — change</button>';
+    }
 
     /* The report's own parameter table, read once per use and never cached: the
        page can be rebuilt under this layer at any moment (W-046). */
@@ -369,6 +498,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
     function srcFor(facts) {
       return formUrl(buildPayload({
         invite: invite,
+        reporter: identity || null,
         selection: selectionFacts(),
         card: facts,
         view: document.body.getAttribute('data-mode') === 'sample' ? 'sample' : 'live',
@@ -379,6 +509,20 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
 
     let pendingSrc = null;
     function draw() {
+      /* W-162 round 2. Nothing over a sample — not the tab, not the panel. */
+      if (!layerLive()) { root.innerHTML = ''; return; }
+      /* W-161. Identity first: no Tally frame is built until a name is known. */
+      if (needIdentity) {
+        root.innerHTML = '<div class="fb-root"><div class="fb-panel" role="dialog"' +
+          ' aria-label="Identify yourself for the trial"><div class="fb-head">' +
+          '<p class="fb-title">Flag an issue</p>' +
+          '<button type="button" class="fb-close" data-fb-close' +
+          ' aria-label="Close the feedback panel">Close</button></div>' +
+          idFormHtml() + '</div></div>';
+        const inp = root.querySelector('.fb-identity input');
+        if (inp) inp.focus();
+        return;
+      }
       const f = openFacts || {};
       root.innerHTML = panelHtml({
         open: open, src: pendingSrc,
@@ -386,6 +530,10 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
         band: f.band === undefined ? null : f.band,
         reason: f.reason === undefined ? null : f.reason
       });
+      if (open) {
+        const panel = root.querySelector('.fb-panel');
+        if (panel) panel.insertAdjacentHTML('beforeend', idEditHtml());
+      }
     }
 
     function openFor(cardEl, opener) {
@@ -401,20 +549,62 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       if (frame) frame.focus();
     }
 
+    /* W-161. Every open goes through here: if no name is stored, show the
+       identity form and remember which card to open once it is filled. */
+    function requestOpen(cardEl, opener) {
+      lastOpener = opener || null;
+      pendingCard = cardEl || null;
+      identity = readIdentity();
+      if (!identity || !identity.name) { needIdentity = true; draw(); return; }
+      needIdentity = false;
+      openFor(pendingCard, lastOpener);
+    }
+
     function close() {
-      open = false; pendingSrc = null; openFacts = null;
+      open = false; needIdentity = false; pendingSrc = null; openFacts = null;
       draw();
       if (lastOpener && document.contains(lastOpener)) lastOpener.focus();
       lastOpener = null;
     }
 
+    /* W-162 round 2. ?fb=open no longer opens on load — the reader lands on
+       the sample. The intent is spent the first time the report is live (the
+       "New Report" click), through the same pinned-tab path a manual open
+       uses, so a first-time reporter still meets the identity form. */
+    function maybeAutoOpen() {
+      if (autoOpened || !pendingAutoOpen || !layerLive()) return;
+      autoOpened = true;
+      requestOpen(null, root.querySelector('[data-fb-open]'));
+    }
+
     draw();
+
+    document.addEventListener('submit', function (e) {
+      const form = e.target.closest && e.target.closest('[data-fb-identity]');
+      if (!form) return;
+      e.preventDefault();
+      const nameEl = form.querySelector('input[name="name"]');
+      const mailEl = form.querySelector('input[name="email"]');
+      const name = (nameEl && nameEl.value || '').trim();
+      const email = (mailEl && mailEl.value || '').trim();
+      if (!name) { if (nameEl) nameEl.focus(); return; }
+      writeIdentity({name: name, email: email});
+      identity = readIdentity();
+      needIdentity = false;
+      openFor(pendingCard, lastOpener);
+    });
 
     document.addEventListener('click', function (e) {
       const flag = e.target.closest && e.target.closest('.fb-flag');
-      if (flag) { openFor(flag.closest('.pcard'), flag); return; }
+      if (flag) { requestOpen(flag.closest('.pcard'), flag); return; }
+      if (e.target.closest && e.target.closest('[data-fb-identity-edit]')) {
+        needIdentity = true; draw();
+        const inp = root.querySelector('.fb-identity input');
+        if (inp) inp.focus();
+        return;
+      }
       if (e.target.closest && e.target.closest('[data-fb-open]')) {
-        openFor(null, e.target); return;
+        requestOpen(null, e.target); return;
       }
       if (e.target.closest && e.target.closest('[data-fb-close]')) { close(); }
     });
@@ -443,6 +633,8 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
        root above is OUTSIDE #app and is never touched by it. */
     let queued = null;
     function decorateCards() {
+      /* W-162 round 2. No flag button on a sample card. */
+      if (!layerLive()) return;
       const cards = app.querySelectorAll('section.pcard');
       Array.prototype.forEach.call(cards, function (el) {
         if (el.querySelector('.fb-flag')) return;          /* idempotent */
@@ -477,6 +669,33 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       queued = setTimeout(decorateCards, 50);
     }).observe(app, {childList: true, subtree: true});
     decorateCards();
+
+    /* W-162 round 2. The #app observer above only re-runs decorateCards; the
+       pinned tab is drawn by draw(), which it never calls. body[data-mode]
+       flips when the reader leaves the sample with "New Report" — watch it,
+       redraw the tab, decorate the (fresh) cards, and spend a pending
+       ?fb=open the first time the report is live. Kept for the life of the
+       layer: the mode can flip back and forth (View Sample). */
+    let lastMode = currentMode();
+    new MutationObserver(function () {
+      const m = currentMode();
+      if (m === lastMode) return;
+      lastMode = m;
+      if (m === 'sample') {
+        if (open || needIdentity) close();
+        root.innerHTML = '';
+        return;
+      }
+      draw();
+      decorateCards();
+      maybeAutoOpen();
+    }).observe(document.body, {attributes: true, attributeFilter: ['data-mode']});
+
+    /* W-162 round 2. ?fb=open is remembered, not fired on load — see
+       maybeAutoOpen(). It resolves now (live report loaded directly, an
+       unusual path) or on the first mode flip to live (the normal one). */
+    pendingAutoOpen = wantsAutoOpen(location.search);
+    maybeAutoOpen();
     }
   }());
 }

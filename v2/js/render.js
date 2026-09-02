@@ -26,7 +26,13 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.66';  /* W-080: the three page-2 "additional" headings
+const V2_RENDER_VERSION = '3.67';  /* W-161: comment currency pass only — the
+   scenario menu is no longer gated to a dev host (app.js `sampleMenuAllowed`
+   now returns true), so `toolbar()`'s "dev host only" comments are corrected.
+   No code path in this file changed; the version-literal locks (N43/N56/N57/
+   N60/N61/N63/N64/N65) exist so any render.js edit is a deliberate bump
+   (SCHEMA § 5.1.1). No hash lock moved.
+   Was 3.66 for W-080: the three page-2 "additional" headings
    (Additional measurements / Third-party quantification / Research measurements) merge into
    one `#section-additional` — one heading, one shared note; the per-card tier tag (`ptag`)
    is removed; the entry panel's "Additional measurements" grid is reordered to match the
@@ -379,9 +385,10 @@ const V2_RENDER_VERSION = '3.66';  /* W-080: the three page-2 "additional" headi
    `toolbar(view, ready, dev, scenarios)` grows two
    optional arguments. Both falsy (or omitted, as every call site outside app.js
    still does), the bar is byte-identical to 3.21's. When app.js hands in
-   `dev: true` (a file:// or localhost host) and a scenario list from the new
-   SAMPLE_CASES registry (v2/js/sample-cases.js) AND the view is already in
-   SAMPLE mode, a <select data-sample-scenario> is inserted beside "Clear
+   `dev: true` (a dev host at the time — W-161 later made this always true) and a
+   scenario list from the new SAMPLE_CASES registry (v2/js/sample-cases.js) AND
+   the view is already in SAMPLE mode, a <select data-sample-scenario> is
+   inserted beside "Clear
    values" — live mode (including the moment "Clear values" is pressed) never
    carries the menu, developer decision 2026-08-29: nothing to switch between
    until a scenario is loaded, so the control leaves with the mode in the same
@@ -2518,13 +2525,15 @@ function sampleLine() {
    NO PAGE COUNT IN THE LABEL. V1's says "(2 pages)" and V2 measures 4 — but no
    test in this repo can count the pages of a PDF, so a number here would be a
    claim nothing locks (§ 1.2). */
-/* `dev` + `scenarios` (W-116). The scenario menu is a DEVELOPMENT aid: app.js
-   hands `dev` in only on a dev host (file:// or localhost) and `scenarios`
-   only from the registry it owns — render.js stays pure, it never reads
-   SAMPLE_CASES itself. Either argument missing or false and the bar is
-   byte-identical to what it printed before this task: the published page's
-   single "Load example" / "Clear values" pair is never replaced, only, on a
-   dev host, joined by a way to pick which case that button loads. */
+/* `dev` + `scenarios` (W-116; W-161). The scenario menu lets a reader move
+   between the fabricated demonstration cases. app.js hands `dev` in from
+   `sampleMenuAllowed()`, which W-161 changed to always true — the published
+   site carries the menu now — and `scenarios` only from the registry app.js
+   owns, so render.js stays pure and never reads SAMPLE_CASES itself. `dev` is
+   still an AND-gate here so a test can pass it false; either argument missing
+   or false, and the bar is byte-identical to what it printed before W-116. The
+   menu is drawn only in SAMPLE mode: "New Report" leaves the sample and takes
+   the menu with it in the same render. */
 /* "Send e-mail" (W-017 round 2, renamed and ungated in W-129). The control
    opens the clinician's own mail client on a `mailto:` draft (app.js). In a
    SAMPLE report it is not rendered at all (W-126) — a demonstration must
@@ -2562,8 +2571,8 @@ function tbIcon(name) {
    as PDF" (the one filled, primary control — the browser has a single
    window.print() dialog, and "Save as PDF" is a destination inside it, so this
    is one button, not two) and, in a live report only, "Email". RIGHT, pushed to
-   the far edge: "View Sample" in a live report, or the dev-only scenario picker
-   in a sample.
+   the far edge: "View Sample" in a live report, or the scenario picker in a
+   sample (W-161 removed its dev-host restriction).
 
    The button opens no new authority (W-052). It calls the WRAPPED
    window.print() in app.js, which refuses unless the terms were accepted AND an
