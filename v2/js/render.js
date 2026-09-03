@@ -26,7 +26,17 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_RENDER_VERSION = '3.67';  /* W-161: comment currency pass only — the
+const V2_RENDER_VERSION = '3.68';  /* W-162: the masthead lockup product string
+   is corrected "veri.liver" → "veri.Liver" (the capital L is the product name;
+   it has read lowercase since W-139) and the brand-mark `alt` is aligned to the
+   organisation name "VERISYN.CO". The mark file v2/assets/brand-mark.png is
+   also replaced with a higher-resolution render of the same globe logo, and a
+   dark-background variant brand-mark-dark.png is added for the brand kit (no
+   consumer in v2/ yet — the report and the landing page are both light). No
+   engine output moved; no hash lock moved. The version-literal locks
+   (N43/N56/N57/N60/N61/N63/N64/N65) exist so any render.js edit is a
+   deliberate bump (SCHEMA § 5.1.1).
+   Was 3.67 for W-161: comment currency pass only — the
    scenario menu is no longer gated to a dev host (app.js `sampleMenuAllowed`
    now returns true), so `toolbar()`'s "dev host only" comments are corrected.
    No code path in this file changed; the version-literal locks (N43/N56/N57/
@@ -665,13 +675,14 @@ function masthead(profile) {
      placement in markup below is cosmetic; it stays after the lockup div in
      source order only because that reads more naturally next to the text it
      used to sit beside. */
-    /* W-100/W-139: this lockup is V2's own \u2014 no longer verbatim V1's
+    /* W-100/W-139/W-162: this lockup is V2's own \u2014 no longer verbatim V1's
        (v1/index.html:133, frozen, unchanged). Developer-specified brand +
-       product strings, scoped to this one string: "VERISYN.CO" (renamed from
-       "VERISYNCO" to read as the domain, verisyn.co) and "veri.liver"
-       (renamed from "Veri.Liv"). */
-  return '<div class="masthead"><div><div class="lockup">VERISYN.CO - <b>veri.liver</b></div>' +
-    '<img class="brand-mark" src="assets/brand-mark.png" alt="verisyn.co">' +
+       product strings, scoped to this one string: the organisation is
+       "VERISYN.CO" (uppercase in all prose \u2014 renamed from "VERISYNCO" at
+       W-139 to read as the domain verisyn.co) and the product is "veri.Liver"
+       (W-162 fixed the capital L; it read "veri.liver" since W-139). */
+  return '<div class="masthead"><div><div class="lockup">VERISYN.CO - <b>veri.Liver</b></div>' +
+    '<img class="brand-mark" src="assets/brand-mark.png" alt="VERISYN.CO">' +
     '<h1>Liver MRI \u2014 Quantitative Imaging Biomarkers</h1>' +
     '<div class="sub">Measurements in, published staging out, every cut-off shown ' +
     'with its source.</div>' +
