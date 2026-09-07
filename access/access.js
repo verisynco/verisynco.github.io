@@ -1,91 +1,81 @@
-/* VeriLiv — THE ACCESS DOOR  (W-165)
+/* VeriLiv — THE ACCESS DOOR  (W-165, rebuilt W-166)
  * ===========================================================================
  * A one-screen page that sits between the public landing page and the report.
- * It tells the visitor the preview is by invitation, lets somebody who has one
- * introduce themselves once, and points somebody who has not at a form.
+ * A visitor types the e-mail their invitation was sent to; if that address is
+ * on a short in-page list, the door continues to the report, and otherwise it
+ * shows a way to ask.
  *
- * WHAT THIS IS NOT, STATED HERE BECAUSE IT DECIDES EVERY LINE BELOW
+ * WHAT THIS IS, STATED HERE BECAUSE IT DECIDES EVERY LINE BELOW
  *   The site is static and served publicly. Everything in this file runs in the
- *   visitor's own browser, so a person who knows the report's address opens it
- *   without ever seeing this page, and a person who reads the page source can
- *   step around it. This is a COURTESY door: it states the rule, records who
- *   the visitor says they are, and offers a way to ask. It is not access
- *   control, the page never says it is, and access.test.js section G is what
- *   keeps that promise from rotting.
+ *   visitor's own browser, and the report keeps its own public address. So the
+ *   list gates THIS PAGE, not the report: a person who knows the report's
+ *   address opens it without seeing this page, and a person who reads the
+ *   source can step around it. This is a COURTESY door with a real check on
+ *   the front — it is not access control, the page never says it is, and
+ *   access.test.js section G is what keeps that promise from rotting.
+ *
+ * W-166 — WHY TALLY IS GONE
+ *   The W-165 door sent the visitor to a third-party form, asked for the
+ *   e-mail a second time there, and accepted any address. The
+ *   developer's decision (2026-09-07): drop Tally entirely, check the typed
+ *   address against an in-page allow-list, stay on verisyn.co. This reverses
+ *   the W-165 rejection of a client-side allow-list; journal/completed/W-166.md
+ *   records the decision and the two limits that still hold (the report stays
+ *   public; the list holds hashes, not addresses).
  *
  * WHY IT WRITES THE FEEDBACK LAYER'S OWN RECORD
- *   W-161 gave the trial feedback layer a self-declared name and e-mail, kept
- *   in localStorage so a reporter types them once. The door writes that same
- *   record under that same key, so a visitor who came through here is already
- *   named when they file a defect from a card, and the panel never asks. The
- *   key is restated rather than imported — v2/feedback/feedback.js is not
- *   modified — and the suite proves the two literals agree, so a rename over
- *   there fails a test here instead of silently emptying a column in the form.
- *
- * A REAL LOG, NOT A SILENT ONE (round 3, 2026-09-06)
- *   The first time somebody enters through the door, they are sent on to a
- *   SECOND Tally form (`veri.Liver — check-in`, short code OD2zpM) before the
- *   report opens — a real page, where they press Tally's own Submit button.
- *   That is a navigation the visitor completes, exactly the W-071 pattern the
- *   feedback layer already uses (a URL, never a request this code issues), so
- *   it costs nothing against G4/G5. What it buys: the developer gets an actual
- *   row per first-time visitor, because a real submission happened — not a
- *   client-side log only this browser ever sees. The check-in form's own
- *   "redirect after submission" setting sends the browser on to this door's
- *   forward target once Tally has recorded the row; this file does not
- *   control that redirect, Tally does, and it was proved live (2026-09-06, a
- *   real submission through Edge headless landed on the report's own terms
- *   screen) rather than assumed. A returning visitor — known already — skips
- *   this entirely and goes straight in.
- *
- *   Prefill was tried and dropped: Tally's free plan does not expose a
- *   URL-parameter prefill for an ordinary question (only Share/Embed/Template
- *   links), so passing `?email=…` reached the page and changed nothing —
- *   confirmed by loading the real form with the parameter set and reading
- *   back an empty box, not assumed from Tally's docs. Typing the address
- *   twice (once at the door, once on Tally's own page) is the honest cost of
- *   a real external submission instead of an invented shortcut.
+ *   W-161 gave the trial feedback layer a self-declared e-mail, kept in
+ *   localStorage so a reporter types it once. The door writes that same record
+ *   under that same key, so a visitor who came through here is already named
+ *   when they file a defect from a card, and the panel never asks. The key is
+ *   restated rather than imported — v2/feedback/feedback.js is not modified —
+ *   and the suite proves the two literals agree.
  *
  * RUNTIME CONSTRAINTS (CLAUDE.md § 6)
  *   Plain script, no module syntax, no dependency, no build step, and no
- *   network request of any kind. The invitation link is a navigation the
- *   visitor chooses, not something this page issues. The module.exports tail is
- *   what lets the Node suite load this very file.
+ *   network request of any kind. crypto.subtle is a local digest, not a
+ *   request. The module.exports tail is what lets the Node suite load this
+ *   very file.
  * ===========================================================================
  */
 
 /* Its own namespace. Nothing here shares a version with the report, because
    nothing here can change what the report says. */
-const ACCESS_VERSION = '1.2';
+const ACCESS_VERSION = '2.0';
 
 /* The literal, and the reason it is a literal, are in the header above. */
 const IDENTITY_KEY = 'veriliv.v2.feedback.identity';
 
-/* The invitation-request form, created 2026-09-06. This short code IS the
-   contract with Tally: change it and the button quietly points at somebody
-   else's form, so the suite pins the literal. Null is still the honest value
-   when no form exists — it withdraws the button rather than inventing an
-   address, the rule TALLY.surveyFormId follows in the feedback layer. */
-const INVITE_REQUEST_FORM_ID = 'zx9qlZ';
-
-/* The check-in form a first-time invited visitor is sent to (round 3). Its
-   own "redirect after submission" setting — configured in Tally, not here —
-   is what carries the browser on to the report; this code only builds the
-   address, it never learns whether the redirect fired. */
-const CHECKIN_FORM_ID = 'OD2zpM';
-
 /* Shape limit. Not a rule about people — 254 is the longest address a mail
-   system will carry. The door collects e-mail only (round 3): a name added
-   nothing a Tally row does not already carry once the visitor is the one
-   submitting it. */
+   system will carry. */
 const EMAIL_MAX = 254;
+
+/* THE ALLOW-LIST. SHA-256 hex of each invited address, normalised the way
+   `hashEmail` normalises: String(email).trim().toLowerCase(), and nothing
+   else (no gmail dot/plus folding). Only hashes live here — the plain
+   addresses are never committed, so a public repo does not publish the
+   invitee list, and there are no identifying comments beside the hashes for
+   the same reason. An empty list denies everyone.
+
+   To manage the list: keep the plain addresses one per line in the
+   gitignored file access/allowlist.txt, then run
+     node access/tools/hash-allowlist.js
+   which rewrites the array below from that file. Commit access.js; never
+   commit allowlist.txt. Reproduce a single hash:
+     node -e "const c=require('crypto');console.log(c.createHash('sha256').update(process.argv[1].trim().toLowerCase()).digest('hex'))" 'someone@example.org'
+*/
+const ALLOWED_HASHES = [
+  '1a3c91e16248fc39210026f36743b517070e25c61fd0c5d482dc157ba0867944',
+  '4d860a4f97988d35cef2f16e779d7ae6e46b19049957358402e33077fb70da71',
+  'f7ba8dba273a301f7f5cbb3529aef903821640a7d9ba65b2457fe6120bca9453'
+];
 
 
 /* ═══════════════════════════════════════════════════════════ THE RECORD ══
    The store arrives as an argument so the pure layer is testable from Node,
    and every path degrades to null / false rather than throwing: a private
-   window or a storage policy must cost the visitor a re-typed name, never a
-   broken page. */
+   window or a storage policy must cost the visitor a re-typed address, never
+   a broken page. */
 function identityStore(store) {
   try { return store || (typeof localStorage !== 'undefined' ? localStorage : null); }
   catch (e) { return null; }
@@ -124,11 +114,10 @@ function clearIdentity(store) {
 }
 
 
-/* ══════════════════════════════════════════════ THE FIELDS, SHAPE ONLY ══
-   These answer "could this be an address" and nothing else. A static page has
+/* ══════════════════════════════════════════════ THE FIELD, SHAPE ONLY ══
+   This answers "could this be an address" and nothing else. A static page has
    no way to learn whether an address exists or belongs to the person typing
-   it, and a check that implied otherwise would be the page lying about what
-   it knows. */
+   it. */
 function emailLooksValid(v) {
   if (typeof v !== 'string') return false;
   const s = v.trim();
@@ -144,17 +133,64 @@ function emailLooksValid(v) {
 }
 
 
-/* ═════════════════════════════════════════ WHICH SCREEN THE DOOR DRAWS ══
-   A record counts as a returning visitor once its e-mail still passes the
-   shape check — the only field the door collects (round 3). A record from
-   before that round may still carry a name; it is returned as-is but nothing
-   here requires it. */
-function doorState(store) {
-  const rec = readIdentity(store);
-  if (rec && emailLooksValid(rec.email)) {
-    return {known: true, name: rec.name, email: rec.email};
+/* ═══════════════════════════════════════════════════ THE HASH AND THE GATE ══
+   SHA-256 of the normalised address. In a browser this is crypto.subtle (a
+   local digest, asynchronous); under Node it is the crypto module. Both paths
+   return a Promise so the caller is the same. When neither is available the
+   promise REJECTS, and the browser half shows an honest "this preview needs a
+   current browser" message rather than silently letting everybody through. */
+function toHex(buf) {
+  const b = new Uint8Array(buf);
+  let out = '';
+  for (let i = 0; i < b.length; i++) out += b[i].toString(16).padStart(2, '0');
+  return out;
+}
+
+function hashEmail(email) {
+  const norm = String(email == null ? '' : email).trim().toLowerCase();
+  try {
+    if (typeof require === 'function') {
+      const nodeCrypto = require('crypto');
+      if (nodeCrypto && nodeCrypto.createHash) {
+        return Promise.resolve(nodeCrypto.createHash('sha256').update(norm).digest('hex'));
+      }
+    }
+  } catch (e) { /* not a Node context — fall through to WebCrypto */ }
+  if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(norm)).then(toHex);
   }
-  return {known: false, name: null, email: null};
+  return Promise.reject(new Error('no SHA-256 available'));
+}
+
+/* True iff the address passes the shape check AND its hash is on the list.
+   `hashes` is an argument so the suite does not depend on whether the shipped
+   ALLOWED_HASHES has been populated yet; the browser calls it with one. */
+function isAllowed(email, hashes) {
+  const list = hashes || ALLOWED_HASHES;
+  if (!emailLooksValid(email)) return Promise.resolve(false);
+  return hashEmail(email).then(h => list.indexOf(h) !== -1);
+}
+
+
+/* ═════════════════════════════════════════ WHICH SCREEN THE DOOR DRAWS ══
+   Async and list-aware (W-166): a returning visitor is "known" only while
+   their stored e-mail still passes the shape check AND its hash is still on
+   the list. Taking someone off the list locks them out on their next visit —
+   the state is re-derived every time, never trusted from a stored flag. A
+   record from before the name field was dropped still works; its name is
+   carried but not required. */
+function doorState(store, hashes) {
+  const rec = readIdentity(store);
+  if (!rec || !emailLooksValid(rec.email)) {
+    return Promise.resolve({known: false, name: null, email: null});
+  }
+  return isAllowed(rec.email, hashes).then(function (ok) {
+    return ok
+      ? {known: true, name: rec.name, email: rec.email}
+      : {known: false, name: null, email: null};
+  }).catch(function () {
+    return {known: false, name: null, email: null};
+  });
 }
 
 
@@ -173,24 +209,6 @@ function entryTarget(search) {
 }
 
 
-/* ══════════════════════════════════════════════ THE INVITATION REQUEST ══ */
-function inviteRequestUrl(formId) {
-  const f = formId === undefined ? INVITE_REQUEST_FORM_ID : formId;
-  if (!f || typeof f !== 'string') return null;
-  return 'https://tally.so/r/' + f;
-}
-
-
-/* ══════════════════════════════════════════════════ THE CHECK-IN (round 3) ══
-   No prefill (see the header note on why) — a bare link to the form. The
-   e-mail is not even used to build the URL; it exists as a parameter only so
-   a caller cannot pass an invalid address through by accident. */
-function checkinUrl(email) {
-  if (!emailLooksValid(email)) return null;
-  return 'https://tally.so/r/' + CHECKIN_FORM_ID;
-}
-
-
 /* ══════════════════════════════════════════════════════════ THE BROWSER ══
    Everything above is pure. This half runs only in a page, touches the DOM and
    nothing else, and is the only part the Node suite does not execute. */
@@ -204,36 +222,20 @@ function mountDoor(doc, loc) {
 
   if (stamp) stamp.textContent = ACCESS_VERSION;
 
-  const request = $('request-invite');
-  const requestNote = $('request-note');
-  if (request) {
-    const url = inviteRequestUrl();
-    if (url) {
-      request.setAttribute('href', url);
-      if (requestNote) requestNote.hidden = true;
-    } else {
-      /* No form yet. A button that goes nowhere is worse than no button, so it
-         is withdrawn and the note beside it says why. */
-      request.hidden = true;
-      if (requestNote) requestNote.hidden = false;
-    }
-  }
-
   function draw() {
-    const state = doorState();
-    known.hidden = !state.known;
-    first.hidden = state.known;
-    if (state.known) {
-      const who = $('known-who');
-      if (who) who.textContent = state.email;
-    }
+    return doorState().then(function (state) {
+      known.hidden = !state.known;
+      first.hidden = state.known;
+      if (state.known) {
+        const who = $('known-who');
+        if (who) who.textContent = state.email;
+      }
+    }).catch(function () { /* keep the first-visit panel showing */ });
   }
 
   /* A real href, not a click handler alone: the returning visitor's control is
      an anchor, so it must survive a middle-click, a right-click and a keyboard
-     open-in-new-tab the same way every other link on the page does. A known
-     visitor already has a real Tally row from their first visit, so this one
-     skips the check-in form and goes straight to the report. */
+     open-in-new-tab the same way every other link on the page does. */
   const cont = $('continue-known');
   if (cont) cont.setAttribute('href', target);
 
@@ -243,17 +245,26 @@ function mountDoor(doc, loc) {
       ev.preventDefault();
       const mailEl = $('visitor-email');
       const err = $('form-error');
+      const notList = $('not-on-list');
       const mail = mailEl ? mailEl.value.trim() : '';
+      if (notList) notList.hidden = true;
       if (!emailLooksValid(mail)) {
         if (err) err.textContent = 'Please enter an e-mail address in the usual form.';
         if (mailEl) mailEl.focus();
         return;
       }
       if (err) err.textContent = '';
-      writeIdentity({email: mail});
-      /* First visit goes through the check-in form (round 3), not straight
-         into the report — see the header note above. */
-      loc.href = checkinUrl(mail);
+      isAllowed(mail).then(function (ok) {
+        if (ok) {
+          writeIdentity({email: mail});
+          loc.href = target;
+        } else if (notList) {
+          notList.hidden = false;
+        }
+      }).catch(function () {
+        if (err) err.textContent =
+          'This preview needs a current browser opened from its web address.';
+      });
     });
   }
 
@@ -281,8 +292,8 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    ACCESS_VERSION, IDENTITY_KEY, INVITE_REQUEST_FORM_ID, CHECKIN_FORM_ID,
+    ACCESS_VERSION, IDENTITY_KEY, ALLOWED_HASHES,
     readIdentity, writeIdentity, clearIdentity,
-    emailLooksValid, doorState, entryTarget, inviteRequestUrl, checkinUrl
+    emailLooksValid, hashEmail, isAllowed, doorState, entryTarget
   };
 }

@@ -7,30 +7,27 @@
 <meta name="robots" content="noindex">
 <meta name="description" content="VeriLiv is an invitation-only preview for radiologists.">
 
-<!-- W-165. The door between the public landing page and the report.
+<!-- W-165, rebuilt W-166. The door between the public landing page and the report.
 
-     WHAT IT IS: a courtesy screen. It states that the preview is by
-     invitation, lets an invited reader give an e-mail once, and points
-     everybody else at a request form. The address it records is the same
-     record the trial feedback layer already keeps (W-161), under the same
-     key, so a reader who came through here is already named when they report
-     a defect from a card and the panel never asks them again.
+     WHAT IT IS: a one-screen courtesy page with a real check on the front. It
+     states that the preview is by invitation, takes the e-mail the invitation
+     was sent to, and continues to the report only when that address is on a
+     short in-page list. The address it records is the same record the trial
+     feedback layer already keeps (W-161), under the same key, so a reader who
+     came through here is already named when they report a defect from a card.
 
      WHAT IT IS NOT: a lock. The site is static, the check runs in the reader's
-     own browser, and the report has its own address. The copy below therefore
-     never claims that anybody is kept out; access/tests/access.test.js § G is
-     what stops that claim from creeping back in.
+     own browser, and the report has its own address. So the list gates THIS
+     PAGE, not the report. The copy below never claims otherwise;
+     access/tests/access.test.js section G is what stops that claim creeping
+     back in.
 
-     ROUND 3 (2026-09-06): a first-time reader is sent on to a real Tally
-     check-in form before the report opens, so the developer gets an actual
-     row per new visitor rather than a client-side-only log — see the header
-     note in access.js for why, and why prefilling that form was tried and
-     dropped. A returning reader skips it and goes straight in.
+     W-166: the third-party form is gone. No off-site hop, no second e-mail
+     entry, no embedded form. The list holds SHA-256 hashes, not addresses, so
+     the invitee list is never published in clear. The page itself issues no
+     network request of any kind; crypto.subtle is a local digest.
 
-     No webfont is requested (W-009), no frame is embedded, and the page
-     itself issues no network request of any kind — every Tally address on
-     this page is a navigation the reader completes, not a request the page
-     makes for them. -->
+     No webfont is requested (W-009). -->
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%20fill='none'%20stroke='%232b4a6f'%20stroke-width='2'%3E%3Ccircle%20cx='16'%20cy='16'%20r='11'/%3E%3Cellipse%20cx='16'%20cy='16'%20rx='5'%20ry='11'/%3E%3Cline%20x1='5'%20y1='16'%20x2='27'%20y2='16'/%3E%3Cpath%20d='M7.5%209.5%20Q16%2014%2024.5%209.5%20M7.5%2022.5%20Q16%2018%2024.5%2022.5'/%3E%3C/svg%3E">
 
@@ -52,10 +49,10 @@
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   /* The browser's own [hidden] rule is a plain `display:none`, so ANY display
-     declaration of ours outranks it — .btn's `inline-block` kept the withdrawn
-     request button on screen even after access.js had hidden it, and only a
-     real render showed that. Everything the door hides, it hides through this
-     attribute, so the rule is stated once, here, and locked by the suite. */
+     declaration of ours outranks it — .btn's `inline-block` once kept a
+     withdrawn button on screen after the script had hidden it. Everything the
+     door hides, it hides through this attribute, so the rule is stated once,
+     here, and locked by the suite. */
   [hidden] { display: none !important; }
   body {
     margin: 0;
@@ -109,7 +106,7 @@
   .panel p { margin: 0 0 1rem; color: var(--ink-2); font-size: .9375rem; }
 
   label { display: block; font-weight: 600; font-size: .875rem; margin: 0 0 .3rem; }
-  input[type="text"], input[type="email"] {
+  input[type="email"] {
     width: 100%;
     padding: .6rem .7rem;
     margin: 0 0 .9rem;
@@ -149,6 +146,16 @@
   }
   .err { min-height: 1.4em; margin: 0 0 .6rem; color: #8A2B2B; font-size: .875rem; }
   .note { margin: .75rem 0 0; font-size: .875rem; color: var(--ink-2); }
+  #not-on-list {
+    margin: 1rem 0 0;
+    padding: .9rem 1rem;
+    border: 1px solid var(--frame);
+    border-radius: 3px;
+    background: #fff;
+    font-size: .9375rem;
+  }
+  #not-on-list p { margin: 0 0 .5rem; color: var(--ink); }
+  #not-on-list p:last-child { margin: 0; }
 
   .fine { margin: 1.5rem 0 0; font-size: .8125rem; color: var(--ink-2); }
   .fine + .fine { margin-top: .6rem; }
@@ -181,7 +188,7 @@
       <p class="eyebrow">Invitation-only preview</p>
       <h1>veri.Liver is not open to everyone yet.</h1>
     </div>
-    <p class="lede">Tell us your e-mail and go straight in, or ask for an invitation.</p>
+    <p class="lede">Enter the e-mail your invitation was sent to.</p>
 
     <!-- FIRST VISIT -->
     <section class="panel" id="first-visit">
@@ -191,37 +198,35 @@
         <input type="email" id="visitor-email" name="email" autocomplete="email" maxlength="254">
         <p class="err" id="form-error" role="alert"></p>
         <button class="btn" type="submit">Open veri.Liver</button>
-        <p class="note">One more screen first — you will confirm this address on a short
-        check-in page, then land straight on veri.Liver.</p>
       </form>
+
+      <!-- Shown by access.js only when the address is not on the list. -->
+      <div id="not-on-list" hidden>
+        <p>This address is not on the preview list.</p>
+        <p>If you were told about veri.Liver, write to
+        <a href="mailto:verisyn.co@gmail.com">verisyn.co@gmail.com</a> and we
+        will add you.</p>
+      </div>
+
       <noscript>
-        <p class="note">This page needs scripts to remember your address. With scripts off
-        you can still <a href="../v2/index.html?fb=open">open veri.Liver directly</a> —
-        the tool will ask who you are the first time you report something.</p>
+        <p class="note">This preview needs JavaScript, and it needs to be opened
+        from its web address rather than a local file. Please enable scripts and
+        reload.</p>
       </noscript>
     </section>
 
     <!-- RETURNING VISITOR -->
     <section class="panel" id="known-visitor" hidden>
       <h2>Welcome back</h2>
-      <p>You checked in on this device already, so there is nothing to fill in.</p>
+      <p>You entered on this device already, so there is nothing to fill in.</p>
       <p class="who" id="known-who"></p>
       <a class="btn" id="continue-known" href="#">Open veri.Liver</a>
       <button class="quiet" type="button" id="not-you">Not you?</button>
     </section>
 
-    <!-- REQUEST -->
-    <section class="panel">
-      <h2>I was not invited</h2>
-      <p>Leave your address and we will get in touch when the preview opens further.</p>
-      <a class="btn ghost" id="request-invite" href="#" target="_blank" rel="noopener">Request an invitation</a>
-      <p class="note" id="request-note" hidden>The request form is not open yet. Ask whoever
-      told you about VeriLiv to pass your address on.</p>
-    </section>
-
-    <p class="fine">A courtesy, not a lock — this page is static and everything on it runs
-    in your own browser. Your address is kept in this browser, and is sent on only when you
-    check in above or send a note from inside the tool.</p>
+    <p class="fine">A courtesy, not a lock. Your address is checked against a
+    short invitation list in this browser, and kept in this browser.
+    veri.Liver keeps its own address; this page does not protect it.</p>
   </div>
 </main>
 
