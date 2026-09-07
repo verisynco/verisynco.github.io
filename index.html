@@ -12,18 +12,21 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%20fill='none'%20stroke='%232b4a6f'%20stroke-width='2'%3E%3Ccircle%20cx='16'%20cy='16'%20r='11'/%3E%3Cellipse%20cx='16'%20cy='16'%20rx='5'%20ry='11'/%3E%3Cline%20x1='5'%20y1='16'%20x2='27'%20y2='16'/%3E%3Cpath%20d='M7.5%209.5%20Q16%2014%2024.5%209.5%20M7.5%2022.5%20Q16%2018%2024.5%2022.5'/%3E%3C/svg%3E">
 
 <!-- W-162. THIS PAGE REPLACED A BARE REDIRECT. The root used to forward straight
-     to v2/index.html; it is now a one-screen landing page for the organisation
+     to the report; it is now a one-screen landing page for the organisation
      and only forwards when the URL carries something to forward. An invitation
      opened at "/?r=xxxxx" or a deep link at "/?fb=open" still has to reach the
      report with its query intact, so the script below replaces the location
      whenever a search or a hash is present. A bare "/" falls through to the
      page. There is no <meta refresh> fallback: with a real landing page a
      visitor without JavaScript simply sees the page and follows the link, and
-     the report still never depends on a script running. -->
+     the report still never depends on a script running.
+     W-168: the forward target is the V2.1 line. V2 is frozen and bounces any
+     visitor of verisyn.co/v2/... back here, so forwarding to v2/index.html
+     would round-trip a deep link straight back to this page. -->
 <script>
   (function () {
     var q = location.search + location.hash;
-    if (q) { location.replace('v2/index.html' + q); }
+    if (q) { location.replace('v2.1/index.html' + q); }
   }());
 </script>
 

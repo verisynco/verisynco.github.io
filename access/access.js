@@ -40,8 +40,10 @@
  */
 
 /* Its own namespace. Nothing here shares a version with the report, because
-   nothing here can change what the report says. */
-const ACCESS_VERSION = '2.0';
+   nothing here can change what the report says. W-168 moves it 2.0 -> 2.1: the
+   forward target is now the V2.1 line (../v2.1/index.html), because V2.1 is the
+   published report and V2 is frozen. */
+const ACCESS_VERSION = '2.1';
 
 /* The literal, and the reason it is a literal, are in the header above. */
 const IDENTITY_KEY = 'veriliv.v2.feedback.identity';
@@ -204,13 +206,17 @@ function doorState(store, hashes) {
    what the landing page's button used to do directly. Anything else the door
    was given travels on unchanged — an old per-person invitation link (?r=…) is
    still read by the feedback layer, and dropping it here would quietly
-   un-tag every submission from an invited reader. */
+   un-tag every submission from an invited reader.
+
+   W-168: the target is the V2.1 line. The frozen V2 report now bounces any
+   visitor back to the entrance, so aiming the door at the old V2 page would
+   send a reader straight into a redirect back to where they started. */
 function entryTarget(search) {
   const pairs = String(search === undefined || search === null ? '' : search)
     .replace(/^\?/, '')
     .split('&')
     .filter(p => p && p.split('=')[0] !== 'fb');
-  return '../v2/index.html?fb=open' + (pairs.length ? '&' + pairs.join('&') : '');
+  return '../v2.1/index.html?fb=open' + (pairs.length ? '&' + pairs.join('&') : '');
 }
 
 

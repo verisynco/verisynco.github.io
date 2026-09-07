@@ -10,7 +10,15 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_APP_VERSION = '0.14.7';  /* W-161 moves this 0.14.6 -> 0.14.7: the
+const V2_APP_VERSION = '0.14.8';  /* W-168 moves this 0.14.7 -> 0.14.8: V2 is no
+   longer the published line. v2/index.html gains a redirect that bounces every
+   visitor to the site entrance (../index.html), carrying any query string, so
+   verisyn.co/v2/... reaches the current line through the front door. This is
+   the one edit the V2 freeze (CLAUDE.md § 3) opens for — a released change, so
+   this counter moves; no clinical value, threshold, calibration or staging text
+   is touched and every hash lock stands still. V2_DISCLAIMER_VERSION does not
+   move: the terms text is unchanged.
+   W-161 moves this 0.14.6 -> 0.14.7: the
    trial feedback layer is opened to every reader who has accepted the terms
    (the invite code is retired as a gate), the reader now self-declares a name
    and e-mail kept in localStorage, and the sample scenario menu is no longer

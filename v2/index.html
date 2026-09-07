@@ -3,6 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- W-168. V2 IS NO LONGER THE PUBLISHED LINE. This report is frozen
+     (CLAUDE.md § 3); the current line is V2.1, reached through the site
+     entrance. Every visit to v2/index.html is bounced to ../index.html with any
+     query string and hash kept, so a deep link (?fb=open, ?r=…) still arrives
+     intact — the entrance forwards it on to the current line. A reader with no
+     JavaScript gets the same bounce from the <noscript> refresh, minus the
+     query the static URL cannot carry. -->
+<script>
+  (function () {
+    location.replace('../index.html' + location.search + location.hash);
+  }());
+</script>
+<noscript><meta http-equiv="refresh" content="0;url=../index.html"></noscript>
 <title>VeriLiv V2 — Multi-vendor (in development)</title>
 <!-- No webfont request. The report has to work offline and from file://, and an
      attempted request is a render the reader waits on. Every type stack in
