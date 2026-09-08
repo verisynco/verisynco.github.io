@@ -20,7 +20,10 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_VENDORS_VERSION = '2.0';
+/* W-182: `ROI` is expanded where this report first writes it
+   (`docs/PLAIN-LANGUAGE.md` § 5, F8). Copy only — no profile, order, caveat set or
+   derivation changed. */
+const V2_VENDORS_VERSION = '2.1';
 
 /* This file ranks; it never invents. The cohort family and the cut-off pool are
    both read from where they are already recorded — report.js and the data layer —
@@ -76,7 +79,8 @@ const VENDOR_PROFILES = {
       'strength or in an age group other than the one selected above is not staged by the ' +
       'ladders printed here.',
       'This report applies no quality control to what was typed into it. It cannot detect a ' +
-      'failed acquisition, a mis-placed ROI, motion corruption or an invalid confidence map.'
+      'failed acquisition, a mis-placed region of interest (ROI, the outline the '
+      + 'measurement is read from), motion corruption or an invalid confidence map.'
     ],
     derivation: []
   },
@@ -106,7 +110,8 @@ const VENDOR_PROFILES = {
       'strength or in an age group other than the one selected above is not staged by the ' +
       'ladders printed here.',
       'This report applies no quality control to what was typed into it. It cannot detect a ' +
-      'failed acquisition, a mis-placed ROI, motion corruption or an invalid confidence map.'
+      'failed acquisition, a mis-placed region of interest (ROI, the outline the '
+      + 'measurement is read from), motion corruption or an invalid confidence map.'
     ],
     derivation: []
   }

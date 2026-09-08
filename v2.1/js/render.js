@@ -26,7 +26,23 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.72';  /* W-167 round 2: introStrip() drops its own
+const V21_RENDER_VERSION = '3.75';  /* W-181: four of the twelve plain-language
+   findings (docs/PLAIN-LANGUAGE.md § 5, F1/F5/F7/F11) applied to the text this
+   line prints — the abstention rows name their inputs and measurements by the
+   labels the entry cards carry and drop the engine's word for "could not
+   judge", the acquisition stamp prints each sequence's published label instead
+   of its record id, the coverage sentence states its finding before the grade
+   it rests on, and the provenance census stops saying "at build time". Wording
+   only: no clinical value, cut-off, calibration, band, evidence letter or hash
+   moved, and no engine file was opened (the five engine-side findings are a
+   separate round by the developer's call).
+   W-179: the measurement card's heading gains
+   a screen-only `?` carrying the published measurement-practice rules for that
+   measurement at the selected field strength, each with its own citation
+   (measurementPracticeHint / MEASUREMENT_RULE_DOMAIN). Presentation only — the
+   rules are the workbook's own Technical_Limitations rows, unchanged, and no
+   clinical value, cut-off, calibration, evidence letter or hash moved.
+   Was 3.73 for W-167 round 2: introStrip() drops its own
    "Start a real report" button — it duplicated the toolbar's "New Report"
    control on a second bar (developer, 2026-09-07). The strip keeps one control,
    Dismiss, and its sentence names "New Report" so the way out is still pointed
@@ -459,6 +475,7 @@ const _RN = (typeof module !== 'undefined' && module.exports)
               orderCards: rep.orderCards,
               groupCardsByDomain: rep.groupCardsByDomain,
               CONTEXT_INPUTS: rep.CONTEXT_INPUTS, buildContext: rep.buildContext,
+              LAB_INPUTS: rep.LAB_INPUTS,
               orderReferences: ven.orderReferences,
               V2_SCOPE_VERSION: sc.V2_SCOPE_VERSION,
               SCOPE_VERSION: require(p.join(CORE, 'data', 'scope.data.js')).SCOPE_VERSION,
@@ -490,6 +507,7 @@ const _RN = (typeof module !== 'undefined' && module.exports)
      IVIM_UNITS: IVIM_UNITS, IVIM_TREND_NOTE: IVIM_TREND_NOTE,
      orderCards: orderCards, groupCardsByDomain: groupCardsByDomain,
      CONTEXT_INPUTS: CONTEXT_INPUTS, buildContext: buildContext,
+     LAB_INPUTS: LAB_INPUTS,
      orderReferences: orderReferences, V2_SCOPE_VERSION: V2_SCOPE_VERSION,
      SCOPE_VERSION: SCOPE_VERSION, REFERENCES: REFERENCES,
      CUTOFFS: CUTOFFS, CALIBRATIONS: CALIBRATIONS,
@@ -1907,6 +1925,70 @@ function bmiEchoHtml(row, selection) {
     ')</p>';
 }
 
+/* ───────────────────────────────────────────── MEASUREMENT-PRACTICE HINT */
+
+/* W-179. The reader is asked for a number before anything on this page tells
+   them how the published sources say that number is taken. The guidance already
+   exists here, sourced: the 92 Technical_Limitations rows migrated verbatim from
+   the workbook, each carrying its own Ref#. Nothing below authors a rule; it
+   selects and prints them.
+
+   The selection is MECHANICAL and that is the point — a hand-picked "these five
+   matter" list would be an editorial judgment about clinical guidance sitting in
+   the presentation layer, which is exactly the kind of call § 1 refuses to make
+   silently. Included: `kind === 'pitfall'`, this card's measurement, and a
+   section of `common` or the field strength actually selected. `field-choice`
+   rows are excluded because they answer "which scanner", not "how do I measure",
+   and the reader is standing in front of one scanner.
+
+   Screen only, by mechanism: the affordance carries `.screen-only`, which
+   `@media print` hides. A native `title` is the idiom this page already uses
+   (.pbars[title], .rul[title], the BMI hint) — no script, so `file://`
+   double-click behaviour is untouched (§ 6). Its cost is real and recorded: it
+   opens for a mouse, not for touch or the keyboard, and it is plain text.
+   Developer decision, 2026-09-08 (§ 2.4), taken with that cost stated. */
+
+/* The rule table and the card table name one measurement differently: cards say
+   `adc`, the workbook's limitation sheet says `diffusion`. Declared here in ONE
+   place and bound to the engine's own TECHNIQUE_DOMAIN by render.test.js N72, so
+   a rename on either side fails a suite instead of silently emptying a tooltip
+   (the W-052 pattern). */
+const MEASUREMENT_RULE_DOMAIN = {
+  pdff: 'pdff', lic: 'iron', r2star: 'iron', t2star: 'iron',
+  mre: 'mre', t1: 't1', ct1: 't1', adc: 'diffusion'
+};
+
+function measurementPracticeHint(parameter, fieldStrength, interactions, references) {
+  const domain = MEASUREMENT_RULE_DOMAIN[parameter];
+  if (!domain) return '';
+  const field = fieldStrength || '1.5T';
+  const rows = (interactions || []).filter(function (i) {
+    return i.kind === 'pitfall' && i.parameter === domain &&
+           (i.section === 'common' || i.section === field);
+  });
+  if (!rows.length) return '';
+
+  const byId = {};
+  (references || []).forEach(function (r) { byId[r.id] = r; });
+
+  const lines = ['How the published sources say this measurement is taken (' +
+                 field + ' selected):'];
+  rows.forEach(function (r) {
+    lines.push('');
+    lines.push('• ' + r.statement);
+    /* A rule the workbook gives no Ref# says so. Back-filling one would be
+       inventing a provenance, which is the § 1.2 failure this repository names
+       rather than commits. */
+    const cites = (r.sourceRefIds || [])
+      .map(function (id) { return byId[id]; })
+      .filter(Boolean)
+      .map(function (x) { return x.citation; });
+    lines.push('  ' + (cites.length ? cites.join('; ')
+                                    : 'no citation in the source workbook'));
+  });
+  return lines.join('\n');
+}
+
 function parameterCard(row, card, selection) {
   /* W-090. Was `row.domain` — the SAME value ('iron') for lic/r2star/t2star,
      which is why they used to draw an IDENTICAL control on all three cards.
@@ -1937,6 +2019,11 @@ function parameterCard(row, card, selection) {
     selection.performed[fillGroup] === true &&
     (row.value === null || row.value === undefined));
 
+  /* W-179. Empty string where the pool holds nothing for this measurement — a
+     `?` that opens on nothing is worse than no `?` at all. */
+  const measurementHint = measurementPracticeHint(
+    row.parameter, selection.fieldStrength, _RN.INTERACTIONS, _RN.REFERENCES);
+
   return '<section class="pcard" data-param="' + esc(row.parameter) + '"' + attrs + '>' +
     '<div class="pident">' +
       /* W-080: the per-card tier tag (`third-party` / `research`) is gone. The
@@ -1944,7 +2031,9 @@ function parameterCard(row, card, selection) {
          only by the "Additional measurements" heading + its shared note and by
          the methodology sheet's provenance census (SCHEMA / LITERATURE record
          the cost). */
-      '<h4>' + esc(_RN.PARAMETER_LABELS[row.parameter]) + '</h4>' +
+      '<h4>' + esc(_RN.PARAMETER_LABELS[row.parameter]) +
+        (measurementHint ? ' <span class="hint screen-only" title="' +
+           esc(measurementHint) + '">?</span>' : '') + '</h4>' +
       /* Read from report.js:acquisitionLine, NOT rebuilt here. That function
          names a product only where the resolved scope row's vendor is GE and a
          product is recorded — the one place in this repository where a product
@@ -2219,7 +2308,7 @@ function gapListSentence(cards) {
 
 
 function censusHtml(census) {
-  return '<p class="census">Evidence pool as counted at build time: ' +
+  return '<p class="census">Evidence pool as counted when this report was produced: ' +
     esc(String(census.cutoffs)) + ' cut-offs and ' + esc(String(census.references)) +
     ' references — ' + esc(String(census.geExplicit)) + ' GE-explicit, ' +
     esc(String(census.multiVendor)) + ' multi-vendor including GE, ' +
@@ -2230,9 +2319,18 @@ function censusHtml(census) {
 function stampText(model, selection, versions) {
   const s = model.report.stamp;
   const p = _RN.PATHS[selection.path];
+  /* W-181 (F5). The footer names the sequence that was used, and it names it
+     the way v2/data/techniques.data.js publishes it. The id is the record's
+     filing key, not a sequence's name (PLAIN-LANGUAGE.md rule 5); the label
+     the reader needs is already in the same record, and this line simply
+     stopped short of reading it. An unselected unit still prints an em dash. */
   const techs = _RN.CONTROLLED_UNITS
-    .map(d => DOMAIN_LABELS[d].replace(' method', '') + ' ' +
-              (selection.techniques[d] || '—')).join(' · ');
+    .map(d => {
+      const id = selection.techniques[d];
+      const rec = id && _RN.TECHNIQUES[id];
+      return DOMAIN_LABELS[d].replace(' method', '') + ' ' +
+             ((rec && rec.label) || id || '—');
+    }).join(' · ');
   return 'VeriLiv V2 · Tool v' + versions.app + ' · Renderer v' + V21_RENDER_VERSION +
     (s ? ' · Thresholds v' + s.thresholds + ' · Cut-offs v' + s.cutoffs +
          ' (' + s.cutoffsHash.slice(0, 8) + '…)' : '') +
@@ -2276,6 +2374,17 @@ function compositeSection(composite) {
    block's (spec § 7, logic.test L9/L10). */
 function _pShort(p) {
   return (_RN.PARAMETER_LABELS[p] || p).split(' — ')[0];
+}
+/* W-181 (F1). The reader's word for an input field, whichever of the three
+   tables it lives in — the clinical-context block, the parameter catalogue or
+   the laboratory panel. Same lookup order report.js's own sentences use, and
+   the same tables: one vocabulary, read twice, never restated. */
+function inputWord(key) {
+  const ctx = (_RN.CONTEXT_INPUTS || []).filter(f => f.key === key)[0];
+  if (ctx) return ctx.label;
+  if (_RN.PARAMETER_LABELS[key]) return _RN.PARAMETER_LABELS[key];
+  const lab = (_RN.LAB_INPUTS || []).filter(f => f.key === key)[0];
+  return (lab && lab.label) || key;
 }
 function _joinWords(a) {
   if (a.length <= 1) return a.join('');
@@ -2331,8 +2440,12 @@ function summaryBlock(summary) {
                (cov.withheld.length === 1 ? ' was' : ' were') + ' withheld as not interpretable');
   }
   var coverage = parts.length ? parts.join('; ') + '.' : '';
-  coverage += (coverage ? ' ' : '') + 'On the weakest evidence grade among the ' +
-    'reliability rules applied, this summary ' + s.verb + ' rather than establishes its findings.';
+  /* W-181 (F7). The finding first, the grade it rests on after
+     (PLAIN-LANGUAGE.md rule 7). The verb is unchanged and still comes from the
+     evidence floor; only the order of the two clauses moved. */
+  coverage += (coverage ? ' ' : '') + 'This summary ' + s.verb +
+    ' its findings rather than establishing them, because the reliability ' +
+    'rules that applied rest on the weakest evidence grade.';
   raw.push(coverage);
 
   /* The mechanism line: how many sources, named once. */
@@ -3156,6 +3269,37 @@ function tableE(census) {
   return tableHead('D', 'Provenance census') + censusHtml(census);
 }
 
+/* W-176. THE BADGE EXPLAINS ITSELF, IN THE WORKBOOK'S OWN TERMS.
+
+   W-175 recovered the criterion behind `cutoff.evidenceGrade` — the letter this
+   report prints beside a ruler — from the source workbook, which declares it
+   twice on its own Instructions sheet, and recorded it in SCHEMA § 3.1 and
+   LITERATURE § 17. Those are internal documents; the reader of the page had
+   nothing. This block is that rule, on the page.
+
+   THE SECOND SENTENCE IS NOT A HEDGE, IT IS THE MEASURED GAP. The criterion
+   grades on a COUNT of studies and the workbook publishes one primary reference
+   per cut-off row and never that count, so no individual letter can be re-checked
+   from the records this report carries (LITERATURE § 17 holds the arithmetic: no
+   record carries four references while 65 of 87 are graded A). Saying so is
+   CLAUDE.md § 1.2 applied to a presentation surface — a described gap, never a
+   silence the reader mistakes for verification.
+
+   PLAIN WORDS, ON PURPOSE (developer direction, 2026-09-08). This sheet is read
+   by people who are not radiologists, so "guideline-endorsed", "cut-off row" and
+   "reference-level grade" are out; what a letter counts is in. IT DOES NOT
+   COLLAPSE, for N69's reason — three sentences hidden behind a control cost the
+   reader more attention than the sentences do. */
+function badgeKey() {
+  return tableHead('E', 'What the evidence badge means') +
+    '<p class="badgekey">The <b>Evidence A / B / C</b> badge beside a threshold ' +
+    'says how much published research stands behind it — <b>A</b>: a guideline ' +
+    'and four or more studies. <b>B</b>: two or three studies. <b>C</b>: one ' +
+    'study. The grades come from the reference workbook, which publishes this ' +
+    'rule but not the counts behind each grade, so the report quotes the letter ' +
+    'rather than re-checking it.</p>';
+}
+
 /* ═════════════════════════════════════════════ THE EVIDENCE HALF (W-015)
    The other half of what buildImpression returned. It sits on the methodology
    sheet, which is NOT optional (W-030 section 0.2), so the reasoning behind a
@@ -3184,10 +3328,22 @@ function evidenceAppendix(evidence) {
     '<li>' + esc(_RN.PARAMETER_LABELS[i.parameter] || i.parameter) +
     ' inherits the downgrade of ' +
     esc(i.from.map(f => _RN.PARAMETER_LABELS[f] || f).join(', ')) + '</li>').join('');
+  /* W-181 (F1). The sentence a reader reads names the measurement and the
+     missing input by the labels their own entry cards carry, and says what
+     happened in words: `abstained` is the engine's term, not the reader's
+     (PLAIN-LANGUAGE.md rules 1, 3, 5). The two ids do not disappear — this
+     appendix is the one sheet that may carry them (W-037) — they move into
+     the same small-print source span the fired-rules rows above already use.
+     The labels come from the tables report.js already publishes, so this is
+     the third row builder in this function reading the vocabulary the other
+     two read, not a second vocabulary of its own (W-051). */
   const abst = evidence.abstentions.map(a =>
-    '<li>' + esc(a.triggerId) + ' · ' + esc(a.interactionId) +
-    ' abstained: ' + esc(a.missing.join(' and ')) + ' not provided — ' +
-    esc(a.targets.join(', ')) + ' not assessable on this ground</li>').join('');
+    '<li>' + esc(_joinWords(a.missing.map(inputWord))) +
+    (a.missing.length === 1 ? ' was' : ' were') +
+    ' not provided, so this rule could not judge ' +
+    esc(_joinWords(a.targets.map(t => _RN.PARAMETER_LABELS[t] || t))) + '.' +
+    '<span class="src">' + esc(a.triggerId) + ' · ' + esc(a.interactionId) +
+    '</span></li>').join('');
   const gaps = evidence.gaps.map(g =>
     '<li>' + esc(_RN.PARAMETER_LABELS[g.parameter] || g.parameter) + ' — ' +
     esc(g.reason) + '</li>').join('');
@@ -3206,9 +3362,18 @@ function evidenceAppendix(evidence) {
     : '';
 
   return '<section class="evidence"><h3>Impression — the evidence behind it</h3>' +
-    '<p class="floor">Evidence floor <b>' + esc(evidence.floor) + '</b> — ' +
-    esc(evidence.floorLabel) + '. At this floor the report ' +
-    esc(evidence.verb) + ' rather than asserts more strongly.</p>' +
+    /* W-176. This letter and the ruler badge are DIFFERENT SCALES that used to
+       share one word: the badge grades a threshold's evidence, this grades the
+       weakest source behind the written impression (SCHEMA § 3.5, a study-type
+       rubric). The fix is at the source of the collision rather than a sentence
+       explaining it away — the line now says what it measures, so "Evidence"
+       carries one meaning on this sheet. `evidence.floorLabel` is unchanged in
+       the model and simply no longer printed: it said the same thing in the
+       engine's own vocabulary, and printing both is W-051's two-vocabularies
+       defect. */
+    '<p class="floor">Weakest source behind this text: <b>' + esc(evidence.floor) +
+    '</b>. At that strength the report ' + esc(evidence.verb) +
+    ' rather than asserts more strongly.</p>' +
     evBlock('Rules that fired', rows) +
     evBlock('Inherited downgrades', inherited) +
     evBlock('Rules that abstained', abst) +
@@ -3322,6 +3487,7 @@ function renderMethodology(model, profile, selection, versions, view) {
        sentence costs the reader more attention than the sentence does. The rule
        is "collapse what is long", applied honestly, not "collapse everything". */
     mgroup(tableE(model.receipts.census)) +
+    mgroup(badgeKey()) +
     mgroup(eHtml, {key: 'evidence', idx: '', bare: true, open: mo.evidence === true,
                    title: 'Impression — the evidence behind it',
                    count: eItems + (eItems === 1 ? ' entry' : ' entries')}) +
@@ -3346,11 +3512,12 @@ if (typeof module !== 'undefined' && module.exports) {
                     masthead, patientMeta, studyMeta, labsBlock,
                     compositeSection, impressionSection, summaryBlock, evidenceAppendix, reportFooter,
                     notInterpretableHtml, shortCite,
-                    tableB, tableC, tableD, tableE, measurementNotes,
+                    tableB, tableC, tableD, tableE, badgeKey, measurementNotes,
                     groupReferences, referenceHomes, referenceGroupTitle,
                     REFERENCE_GROUP_ORDER, REFERENCE_GROUP_TITLES,
                     gapReasonTable,
-                    parameterCard, stampText, buildRequestorEmail, esc, fmtTick, toolbar, introStrip, sampleLine,
+                    parameterCard, measurementPracticeHint, MEASUREMENT_RULE_DOMAIN,
+                    stampText, buildRequestorEmail, esc, fmtTick, toolbar, introStrip, sampleLine,
                     entryRoute, IDENTITY_CELLS, STUDY_CELLS,
                     cohortNudgeNeeded, PAEDIATRIC_AGE_MAX,
                     SECTIONS, SCOPE_LABELS, DOMAIN_LABELS, DOMAIN_TITLES,

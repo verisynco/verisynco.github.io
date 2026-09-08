@@ -12,7 +12,10 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_SCOPE_VERSION = '1.1';
+/* W-182: the unrecorded-availability sentence is written for a reader
+   (`docs/PLAIN-LANGUAGE.md` § 5, F9). No row, tier, mount point or resolution
+   changed; `absentReason` is untouched. */
+const V2_SCOPE_VERSION = '1.2';
 
 /* -------------------------------------------------------------- Data loading
    In the browser the data file has already run and left its consts as globals.
@@ -101,7 +104,13 @@ function resolveScope(vendor, param, _seen) {
       declared
         ? `This repository records no availability information for ${vendor}. `
           + `Whether ${param} can be produced on this scanner is unknown, not absent.`
-        : `No scope record covers ${vendor} × ${param}.`);
+        /* W-182 (F9). `scope record` is a file in this repository, the times
+           sign reads as multiplication for a relationship that is not one, and
+           the parameter key is a field name. The sentence prints on that
+           parameter's own card, which already names the measurement, so the key
+           is dropped rather than translated into a second vocabulary (W-051). */
+        : `This report holds no record of whether a ${vendor} scanner `
+          + `produces this measurement.`);
   }
 
   let quantification = row.quantification;

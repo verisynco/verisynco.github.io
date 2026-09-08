@@ -79,7 +79,13 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.12';   /* W-158: partial-ladder staging — buildScale gains
+const V2_THRESHOLDS_VERSION = '1.13';   /* W-182: the two gap sentences are written in
+   words rather than in record vocabulary (`docs/PLAIN-LANGUAGE.md` § 5, F3) — the
+   vendorClass code names give way to POLICY_WORDS, the enum `stagingWithdrawn` leaves the
+   sentence, and the `record(s)` template that never chose a plural is gone. `reasonCode`
+   is unchanged and remains the channel the report layer keys off, so no resolved value,
+   pool, flag or hash moves — RESOLVED_HASH is unchanged.
+   —— W-158: partial-ladder staging — buildScale gains
    `partial` / `resolvedBoundaries`, buildScales adds a pediatric-gated staging branch and a
    `stagingMode` field ('full' | 'partial' | null), and stage() returns a full-ladder band-index
    RANGE (loIndex / hiIndex / unbounded) for a partial scale. `complete` is unchanged. No data
@@ -331,6 +337,19 @@ const POLICIES = ['guideline', 'primary-studies'];
    old "never drawable" rule is gone with the reason for it: it was excluded
    because it crossed the vendor class THE CALLER HAD SELECTED, and no caller
    selects one any more. The pool's contents never changed — only the question. */
+/* W-182. The two policies, in the words the report already publishes for them
+   (`report.js` SCALE_WORDS). The gap sentences below print these instead of the
+   vendorClass code names they used to list, because `docs/PLAIN-LANGUAGE.md` § 2
+   governs the methodology sheet too and its Rule 5 bars a record field from a
+   line the reader reads. The words are RESTATED here rather than imported —
+   `report.js` sits above this file and the layering is one-way — and
+   `logic.test.js` X5 asserts the two copies still agree, so a rename fails a
+   suite instead of quietly producing two names for one scale (W-051 design D).
+   ⛔ This changes no record, no class and no pool: `policyClasses` below is
+   untouched and is still what the query filters on. */
+const POLICY_WORDS = {guideline: 'guideline ladder',
+                      'primary-studies': 'published primary studies'};
+
 function policyClasses(policy) {
   if (policy === 'guideline')       return ['guideline'];
   if (policy === 'primary-studies') return ['ge-explicit', 'non-ge', 'multi-vendor-incl-ge'];
@@ -432,9 +451,12 @@ function resolveBoundary(opts) {
       ageGroupOf(c.cohort) === ageGroup && c.techniqueGroup === group);
     return absent(
       anyClass.length
-        ? `no ${classes.join(' / ')} record for this boundary; ` +
-          `${anyClass.length} record(s) exist in other provenance classes`
-        : 'no record for this boundary in any provenance class',
+        ? `no value for this boundary comes from the ${POLICY_WORDS[policy]}; ` +
+          `${anyClass.length} value${anyClass.length === 1 ? '' : 's'} for it ` +
+          `${anyClass.length === 1 ? 'is' : 'are'} published elsewhere in the ` +
+          `evidence this report holds`
+        : 'no value for this boundary is published anywhere in the evidence ' +
+          'this report holds',
       anyClass,
       anyClass.length ? 'no-record-in-policy' : 'no-record-anywhere');
   }
@@ -462,8 +484,10 @@ function resolveBoundary(opts) {
     pool = pool.filter(c => c.stagingWithdrawn !== true);
     if (!pool.length) {
       return absent(
-        `${withdrawn.length} record(s) exist but are withdrawn from staging ` +
-        `(stagingWithdrawn); the report states this as a gap`,
+        `${withdrawn.length} published value` +
+        `${withdrawn.length === 1 ? '' : 's'} for this boundary ` +
+        `${withdrawn.length === 1 ? 'has' : 'have'} been withdrawn from use in ` +
+        `staging, so the report states this as a gap`,
         withdrawn, 'staging-withdrawn');
     }
   }
@@ -479,7 +503,8 @@ function resolveBoundary(opts) {
          default. The caller has to be told that a value EXISTS and why it was
          withheld, and that allowAmbiguousTechnique opts in. */
       return absent(
-        `${dropped.length} record(s) exist but carry techniqueAmbiguous; SCHEMA 4.2 ` +
+        `${dropped.length} record${dropped.length === 1 ? '' : 's'} ` +
+        `${dropped.length === 1 ? 'carries' : 'carry'} techniqueAmbiguous; SCHEMA 4.2 ` +
         `rule 7 excludes them unless the caller passes allowAmbiguousTechnique`,
         dropped, 'ambiguous-technique-excluded');
     }

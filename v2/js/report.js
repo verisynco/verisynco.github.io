@@ -15,7 +15,13 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.20';  /* W-159: `orientationRulerFor` + `card.orientationStrip` —
+const V2_REPORT_VERSION = '3.21';  /* W-182: two sentences rewritten for the reader
+   (`docs/PLAIN-LANGUAGE.md` § 5, F2 and F10) — the MAST note no longer opens on an
+   internal calibration id or closes on `null`, and the axis-provenance note no longer
+   calls the ends of the bar "drawing bounds". No clinical value, cut-off, calibration,
+   band name, evidence letter or hash moved; `READER_REASONS` and every reason CODE are
+   untouched, so nothing keys off the changed prose.
+   —— W-159: `orientationRulerFor` + `card.orientationStrip` —
    the three pediatric-adapted MRE stiffness values (CUT-0005/0065/0066, all stagingWithdrawn)
    drawn as a verdict-less orientation strip on the pediatric MRE card. No `stage()` call, no
    band assigned, no engine change, no `v2/data/` file opened. `pediatricScopeLineActive` is
@@ -775,9 +781,13 @@ function bandNote(zoneModel) {
     parts.push('the bands are shaded in the order the published ladder names ' +
                'them, not by a severity grading of their own');
   }
+  /* W-182 (F10). "drawing bounds" named what the code does with the number
+     rather than what the number is. The distinction the sentence draws — that
+     the ends of the bar are not published values — is exactly right and is
+     kept word for word. */
   if (zoneModel.axisSource === 'derived-from-ladder') {
-    parts.push('the two ends of the scale are drawing bounds derived from the ' +
-               'ladder itself, not published limits');
+    parts.push('the two ends of the scale were set to fit the published ' +
+               'boundaries themselves, and are not published limits');
   }
   if (zoneModel.axisSource === 'v1-ported-widened') {
     parts.push('the scale was widened past its usual drawing bounds to keep every ' +
@@ -1945,9 +1955,15 @@ function buildComposite(report, labs, reliability) {
      of one run-on paragraph, and spells PPV/NPV out in words on first use, for
      a reader who does not already know the abbreviation. */
   const note = {
-    mast: 'MAST is not computed here: CAL-0007 records that the workbook ' +
-      'publishes MAST\u2019s two thresholds and never its coefficients, so the ' +
-      'expression is null and stays null. Use a validated calculator.',
+    /* W-182 (PLAIN-LANGUAGE.md § 5, F2). The sentence used to open with an
+       internal calibration id and close on `null` — a filing number and a
+       programming term, Rule 5 and Rule 3. What the id was carrying is the part
+       that matters, and it survives in "but never": the emptiness is what the
+       source publishes, not an oversight in this report. The id is not relocated,
+       because no sheet prints it to a reader. */
+    mast: 'MAST is not calculated here. The reference workbook publishes ' +
+      'MAST\u2019s two thresholds but never the coefficients the score is built ' +
+      'from, so this report does not compute it. Use a validated calculator.',
     strength: 'MEFIB\u2019s published strength (Jung 2021, PMID 33214165): ' +
       'rule-in PPV (positive predictive value) 97.1%; rule-out NPV (negative ' +
       'predictive value) 83.2% in the derivation cohort and 59.4% in the ' +
