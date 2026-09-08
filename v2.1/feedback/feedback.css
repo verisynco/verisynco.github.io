@@ -1,0 +1,373 @@
+/* VeriLiv V2 — TRIAL FEEDBACK LAYER, STYLES  (W-071)
+ * ---------------------------------------------------------------------------
+ * NO NEW PALETTE VALUE IS DECLARED HERE, and the suite fails on a single
+ * literal colour. W-009 measured this design system and eleven WCAG contrast
+ * pairs are asserted from its tokens in v2/tests/render.test.js; a second
+ * palette declared beside it would contest a tested one silently, which
+ * CLAUDE.md § 7 forbids. Every colour, space and size below reads a token that
+ * v2/css/styles.css already declares on :root.
+ *
+ * The whole layer leaves the paper. The report prints as it did before this
+ * file existed.
+ * ---------------------------------------------------------------------------
+ */
+
+.fb-root {
+  position: fixed;
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-4);
+  font-family: var(--sans);
+}
+
+/* THE PINNED TAB, FILLED RATHER THAN OUTLINED. Drawn in the sheet's own accent
+   it was hard to find against a page this light, and a control nobody notices
+   collects nothing. MEASURED from the tokens themselves: paper on accent is
+   8.84:1, past AA and past AAA, and the button's own edge against the page
+   background is 7.72:1 -- far past the 3:1 that WCAG 1.4.11 asks of a control's
+   boundary. `G8` recomputes both from v2/css/styles.css, so a palette edit that
+   breaks the pair fails the suite instead of shipping. */
+.fb-tab {
+  font: inherit;
+  font-size: var(--t-band);
+  font-weight: 600;
+  letter-spacing: .01em;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--s-4) var(--s-6);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--paper);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .22);
+  cursor: pointer;
+}
+
+.fb-tab:hover { filter: brightness(1.12); }
+
+/* THE CARD CONTROL. A tablet has no hover, and the trial will be opened on
+   tablets, so this is never revealed by pointing at anything -- it is drawn
+   from the start, at the size a finger needs.
+
+   W-107 MOVED THE HOST FROM .pident TO .pverdict (feedback.js decorateCards)
+   so the button would sit in the card's short column rather than stretch its
+   tall one, and this rule keeps it there, in the column's own flow, directly
+   under the chip and ".vfrom". A W-118 FIRST TRY PINNED IT INSTEAD TO A FIXED
+   OFFSET FROM THE CARD'S TOP -- reasoning that .pverdict is vertically
+   centred in its grid row (styles.css, W-097's own fix for the dead space a
+   taller ruler left beside it), so a button living inside that flow lands at
+   a different height on every card. True, but the fixed offset traded one
+   defect for a worse one: on a short row, .pverdict's centred slack leaves
+   LESS room above the chip than the constant offset assumed, and the button
+   landed on top of the chip it was supposed to sit under (reported against
+   the rendered page). Flow does not have that failure mode -- the button
+   always renders after the chip, however tall the chip's own box turns out
+   to be. What flow does still owe the reader is a straight edge: `.pverdict`
+   is text-align:right on every card that carries the button, so the button
+   lines its edge up with ".vfrom" above it -- already right-aligned -- and
+   the two read as one edge going down the page rather than the chip and the
+   button disagreeing on which side they belong to. Scoped with `:has()` to a
+   card that actually has the button, so a card without one (every mode this
+   layer is not active in, the printed report included) is untouched.
+
+   W-085 DREW IT IN THE ACCENT, AND THE COLOUR THAT WAS REJECTED IS THE POINT.
+   It shipped in --muted on a --hair edge, which is the state the tab above was
+   already moved OUT of for the same reason: a control nobody notices collects
+   nothing. What it may not become is warm. The one red this design system
+   declares means a CLINICAL red flag -- V1 paints the pediatric MRE warning
+   with it, v1/css/styles.css:110 -- and on a parameter card colour ALREADY
+   means severity, five steps of it. A warm
+   control here would be read as a statement about the patient rather than
+   about the tool, which is the opposite of what it is for. The accent means
+   chrome on this page, and the feedback layer's own tab already claims it, so
+   the layer now speaks in one colour. `G15` asserts no clinical token reaches
+   this file, so the rejection is enforced rather than remembered.
+
+   OUTLINED AT REST, FILLED ONLY ON HOVER AND FOCUS. A filled control would
+   out-weigh the verdict chip it now sits beneath, and the verdict is the
+   reason the card exists. The glyph carries the recognition instead of the
+   fill. */
+.pcard .pverdict:has(.fb-flag) { text-align: right; }
+.pcard .fb-flag {
+  font: inherit;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: auto;
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-5);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* The pennant inherits the button. It is never given a colour of its own --
+   that is what makes one rule above enough to keep this control monochrome. */
+.pcard .fb-flag svg { flex: none; }
+
+/* A keyboard user is given what a pointer is given. The tab above has hover
+   alone because it is already filled and has nowhere further to go; this one is
+   outlined, so the filled state is the whole of its feedback. */
+.pcard .fb-flag:hover,
+.pcard .fb-flag:focus-visible { background: var(--accent); color: var(--paper); }
+
+/* W-173 — THE PANEL IS A NAVY CARD, AND THE NAVY STOPS AT THE FORM.
+   Drawn in the accent so the panel reads as a piece of the report's own chrome
+   rather than a browser widget parked on the sheet, and so its edge is findable
+   against a page this light. The pair is the one the tab above already uses and
+   `G8a`/`G8b` already recompute from the tokens -- paper on accent, 8.84:1 --
+   so this introduces no contrast claim of its own.
+
+   WHERE THE NAVY STOPS IS THE DECISION. The form inside the frame is Tally's:
+   MEASURED on 2026-09-07 in a real headless browser, its body background is
+   already transparent and its text is rgb(55, 53, 47) -- dark ink, set in
+   Tally's own form designer, unreachable from this repository. A navy ground
+   behind it would be dark-on-dark the moment that theme moved, and nothing here
+   would see it happen. So `.fb-frame` and `.fb-identity` below carry their own
+   paper ground: the shell is navy, the form area is paper, and the layer never
+   depends on a colour it cannot read. `G18` is what keeps that from eroding.
+
+   PORTRAIT 9:16, AND THE RATIO IS WHAT YIELDS. The ratio alone would run the
+   panel off the bottom of a short window, and the panel shares its column with
+   the tab that opens it -- so the clamp subtracts the tab's own 44px touch
+   target, the column gap and the two offsets, and on a short screen the panel
+   simply stops being 9:16 (developer's call, 2026-09-07).
+
+   W-173 ROUND 3 WITHDRAWS THE FIXED RATIO ALTOGETHER (developer's call, after
+   seeing it): 9:16 is a shape, not a measure of what is in the panel, and the
+   half-scaled form does not fill it -- the ratio's own leftover was drawn as
+   empty white under the last question. The panel is now sized by its contents
+   and clamped to the window: the header block, the frame's own measured height
+   and the footer, or as much of that as the window has room for. Nothing
+   declares an aspect ratio any more.
+
+   THE WIDTH IS HALF THE REPORT SHEET'S. `.shell` is `max-width: 720px`
+   (styles.css), so the panel is 360px: it reads as a column beside the report
+   rather than a second document competing with it. */
+.fb-panel {
+  width: min(360px, calc(100vw - 2 * var(--s-5)));
+  max-height: calc(100vh - 44px - var(--s-4) - 2 * var(--s-5));
+  display: flex;
+  flex-direction: column;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+
+/* No hairline under the head: on the navy ground the report's near-white rule
+   is invisible, and the shell's real division is the paper edge where the form
+   area begins. One edge, drawn by the thing it separates. */
+.fb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-5);
+}
+
+.fb-title {
+  margin: 0;
+  font-size: var(--t-value);
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--paper);
+}
+
+.fb-close {
+  font: inherit;
+  font-size: var(--t-body);
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--paper);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+.fb-close:hover, .fb-close:focus-visible {
+  background: var(--paper);
+  color: var(--accent);
+}
+
+/* THE ONE QUESTION THE CARD ITSELF RAISES. It sits above the privacy sentence
+   and below the title because it is the reason the panel opened: the reader
+   should meet it before the form loads, not after scrolling past it. Drawn in
+   ink rather than in the muted register the notice uses -- the notice is a
+   condition, this is the thing being asked. */
+/* W-173 SETS THE SHELL AT A SCREEN SIZE, AND THAT IS THE DEFECT IT FIXES.
+   Every line of this panel used to be set on the report's PRINT scale --
+   `--t-micro` is 8px, which is right for a field label on A4 and far too small
+   beside the framed form, whose questions MEASURE 18px and whose options
+   measure 16px. Tally's scale is set in Tally and cannot be reached from here,
+   so the panel's own words move up to meet it rather than the other way round.
+   `G20` sweeps the shell for the print size so this cannot quietly return. */
+.fb-panel .fb-prompt {
+  margin: 0;
+  padding: var(--s-4) var(--s-5);
+  font-size: var(--t-name);
+  line-height: 1.5;
+  color: var(--paper);
+}
+
+/* Said again where the typing happens, not only in the terms gate. */
+.fb-panel .fb-notice {
+  margin: 0;
+  padding: 0 var(--s-5) var(--s-5);
+  font-size: var(--t-band);
+  line-height: 1.5;
+  color: var(--paper);
+}
+
+/* The frame is what makes the shell safe (see .fb-panel): the third party's
+   page is transparent, so the paper ground under it is ours. `min-height: 0`
+   rather than a floor -- the panel's height is clamped to the window, and a
+   floor taller than the room left would push the frame past the panel's edge.
+
+   W-173 ROUND 2 -- THE FRAME IS SCALED, BECAUSE ITS TYPE IS NOT OURS TO SET.
+   MEASURED at the developer's own 110% zoom: the form's questions render at
+   18px and its options at 16px against a report whose body text is 10.5px, so
+   the panel reads as a louder document than the sheet it sits on. Those sizes
+   are set in Tally's form designer and no stylesheet here can cross an origin
+   -- W-173 round 1 could only move the panel's OWN words, which is why the
+   framed form stayed large. A transform is the one lever left, and it is a
+   presentation lever only: nothing about the form, its fields or its
+   submission changes.
+
+   The wrapper is the box the panel lays out; the frame inside is drawn at
+   1/0.65 of it and scaled from its top-left corner, so the form gets that much
+   more room and renders that much smaller. Scaling the frame WITHOUT the
+   wrapper would shrink the drawing and leave the layout box full-size, which
+   overflows the panel and leaves a dead band down the right.
+
+   0.65 RATHER THAN THE 0.5 OF ROUND 2, on the developer's call once both were
+   seen: half took the questions to 9px and the options to 8px, BELOW the
+   report's own smallest body text (10.5px), so the panel's chrome ended up
+   louder than the form it frames. 0.65 puts them at 11.7px and 10.4px --
+   the report's own --t-name and --t-body, which is what "close to the report"
+   actually measures out as.
+
+   THE WRAPPER'S HEIGHT IS THE FORM'S OWN MEASURED HEIGHT, and the first two
+   numbers tried here were both wrong for the same reason. Tally's page carries
+   a FULL-VIEWPORT container, so `document.scrollHeight` reports the height of
+   the window it was measured in and never the height of the form -- which is
+   how a 700px box was justified and then drew a wide white band under the
+   Submit button (reported against the render, W-040 again). The honest measure
+   is the bottom of the last real control: the Submit row ends at 548px, at
+   BOTH 480px and 554px of frame width, so the form is 548px tall and its
+   height does not move with this panel's width. 563px of content (the row plus
+   its own trailing space) at 0.65 is 366px, so the box is 370px. `flex` still
+   lets it shrink whenever the panel is clamped to a short window, and anything
+   that outgrows it scrolls rather than being cut. */
+.fb-framewrap {
+  flex: 1 1 auto;
+  position: relative;
+  height: 370px;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--paper);
+}
+.fb-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 153.85%;
+  height: 153.85%;
+  transform: scale(.65);
+  transform-origin: 0 0;
+  background: var(--paper);
+  border: 0;
+}
+
+/* W-161. The reporter names themselves once. Same visual register as the panel
+   body — ink prompt, muted helper, the shared spacing and type scales — so it
+   reads as part of the panel, not a second dialog. */
+/* The identity step is the same "form area" as the frame and is drawn the same
+   way: our own controls, but on paper, so the two states of the panel do not
+   change ground under the reader. */
+.fb-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  background: var(--paper);
+}
+.fb-identity .fb-prompt {
+  padding: 0;
+  border-bottom: 0;
+  font-size: var(--t-body);
+  color: var(--muted);
+}
+.fb-idrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+.fb-idrow input {
+  font: inherit;
+  font-size: var(--t-name);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hair2);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.fb-identity [data-fb-identity-submit] { align-self: flex-start; }
+
+/* A quiet line under the frame — where the report is edited, not a control that
+   competes with it. Muted, underlined on interaction only. */
+/* Below the frame, so back on the navy: the underline alone carries the
+   interaction, because the colour it used to darken to is the ground's own. */
+.fb-idedit {
+  margin: 0;
+  padding: var(--s-4) var(--s-5);
+  font-size: var(--t-body);
+  color: var(--paper);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.fb-idedit:hover, .fb-idedit:focus-visible { color: var(--paper); text-decoration: underline; }
+
+/* WCAG 2.2 AA, Focus Not Obscured (Minimum). A pinned panel that covers the
+   control a keyboard user has just reached is a failure of the criterion, and
+   the honest fix is to move the panel rather than to hope the overlap never
+   happens. The attribute is set by the layer when focus lands behind it. */
+.fb-panel[data-fb-yield="true"] {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.fb-root :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .fb-root { right: var(--s-4); bottom: var(--s-4); left: var(--s-4); }
+  .fb-panel { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-root, .fb-panel, .fb-tab, .fb-flag { transition: none !important; }
+}
+
+/* The report prints as it did before this file existed. */
+@media print {
+  .fb-root, .pcard .fb-flag { display: none !important; }
+}
