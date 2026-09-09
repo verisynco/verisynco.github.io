@@ -26,7 +26,21 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.77';  /* W-181: four of the twelve plain-language
+const V21_RENDER_VERSION = '3.80';  /* W-187: the sample toolbar's scenario
+   menu marks the loaded case, so it stops naming the first entry whatever is on
+   screen. The key is handed in by app.js, which owns the registry; the renderer
+   reads no scenario list of its own. Screen-only, sample mode only.
+   —— W-186: every Tier-2 entry box (native
+   T1, cT1, ADC, IVIM) gains the method subtitle the Tier-1 purpose rows have
+   carried since W-063b, shortened from the technique labels in
+   `v2/data/techniques.data.js` with the product and vendor sequence names taken
+   out. Screen-only entry affordance: no clinical value, cut-off, band or hash
+   moves, and nothing reaches the printed sheet.
+   —— W-140: `withdrawnCaveatHtml` — one grey
+   line under the gap sentence, quoting the publication's own limit on the value
+   this report is holding back, with its citation. This line prints it; V2's
+   frozen renderer (W-164) deliberately does not.
+   —— W-181: four of the twelve plain-language
    findings (docs/PLAIN-LANGUAGE.md § 5, F1/F5/F7/F11) applied to the text this
    line prints — the abstention rows name their inputs and measurements by the
    labels the entry cards carry and drop the engine's word for "could not
@@ -1086,7 +1100,40 @@ function performedAlsoOpen(selection, performed) {
    whose parameter can ever render (quantification !== 'none'). Checking one
    patches selection.performed[group] AND, in app.js, raises selection.scope to
    the tier that parameter needs; the render side only draws the control. */
-const TIER2_LABELS = {t1: 'Native T1', ct1: 'cT1', adc: 'ADC'};
+/* W-186. Each Tier-2 box carries the same method subtitle the Tier-1 purpose
+   rows have had since W-063b, for the opposite reason: a Tier-1 box names a
+   PURPOSE and the subtitle supplies the method, while a Tier-2 box names a
+   method whose abbreviation the subtitle expands. Every `sub` is a shortened
+   form of a label this repository already publishes in
+   `v2/data/techniques.data.js` (TECHNIQUE_GROUPS / TECHNIQUES), with the
+   product and vendor sequence names removed (developer decision, 2026-09-09:
+   technical naming, no brand) — 'third-party post-processing' is the merged
+   section's own note wording (SECTIONS[1].note), not a second vocabulary.
+   A subtitle states what is measured and never what it means: native T1 does
+   not stage at all (W-135) and cT1 / ADC stage only where a published cut-off
+   exists, which the section's shared note already says once. */
+const TIER2_LABELS = {
+  t1:  {label: 'Native T1',
+        sub: 'T1 relaxation time — inversion- or saturation-recovery mapping'},
+  ct1: {label: 'cT1',
+        sub: 'Iron-corrected T1 — third-party post-processing'},
+  adc: {label: 'ADC',
+        sub: 'Apparent diffusion coefficient — mono-exponential DWI'}
+};
+/* IVIM is appended to the same block without being a TIER2_GROUPS entry (see
+   tier2Block below), so its subtitle is held beside it rather than in the map
+   the partition test reads. */
+const IVIM_ENTRY_LABEL = {label: 'IVIM',
+  sub: 'Intravoxel incoherent motion — bi-exponential DWI (D, D*, f)'};
+
+/* The one place a Tier-2 row is drawn, so the Tier-1 markup is matched here
+   rather than copied into two call sites. */
+function tier2RowHtml(group, entry, checked) {
+  return '<label class="perf-row"><input type="checkbox" data-performed-group="' +
+    esc(group) + '"' + (checked ? ' checked' : '') + '>' +
+    '<span class="perf-text"><span class="perf-label">' + esc(entry.label) + '</span>' +
+    '<span class="perf-sub">' + esc(entry.sub) + '</span></span></label>';
+}
 /* W-080. The entry checkbox order mirrors the report's card order in the merged
    "Additional measurements" section (native T1, then ADC, then the third-party
    cT1), so the panel and the report read the same left to right. This is a
@@ -1101,20 +1148,14 @@ function tier2Block(model, selection) {
     const p = _RN.GROUP_PARAMETERS[g][0];
     const r = byParam[p];
     return !r || !r.scope || r.scope.quantification !== 'none';
-  }).map(g =>
-    '<label class="perf-row"><input type="checkbox" data-performed-group="' +
-    esc(g) + '"' + (performed[g] === true ? ' checked' : '') + '>' +
-    '<span>' + esc(TIER2_LABELS[g]) + '</span></label>').join('');
+  }).map(g => tier2RowHtml(g, TIER2_LABELS[g], performed[g] === true)).join('');
   /* W-081. IVIM sits in this same block, labelled "IVIM" (developer decision,
      2026-08-30). It is NOT a TIER2_GROUPS entry — that array partitions
      GROUP_PARAMETERS (entry.test.js A3) and IVIM has no report row — so it is
      appended here directly. The checkbox uses the same `data-performed-group`
      attribute, so app.js's generic handler sets `selection.performed.ivim`;
      `ivim` is not in TIER2_GROUPS, so it never touches `selection.scope`. */
-  const ivimRow =
-    '<label class="perf-row"><input type="checkbox" data-performed-group="ivim"' +
-    (performed.ivim === true ? ' checked' : '') + '>' +
-    '<span>IVIM</span></label>';
+  const ivimRow = tier2RowHtml('ivim', IVIM_ENTRY_LABEL, performed.ivim === true);
   if (!rows && !ivimRow) return '';
   return '<div class="labs-head ctx-head screen-only"><span class="t">' +
     'Additional measurements</span></div>' +
@@ -1826,6 +1867,32 @@ function sourceCaveatHtml(card) {
     '</p>').join('');
 }
 
+/* W-140. The mirror of sourceCaveatHtml, and the label is the whole difference:
+   that block qualifies a threshold this card DREW, this one explains a value the
+   report is HOLDING BACK. The card above it already says the number was withheld;
+   without this line it never says why, and a reader is left to guess between a
+   broken tool and a deliberate refusal.
+
+   The sentence is the publication's, quoted, with its citation — never a summary
+   written here, because the whole point is that the reason is somebody else's
+   published limit rather than this project's judgement. It shares the grey
+   `nointerp` register with its sibling for the reason W-038 gives: both are the
+   report speaking about the strength of what it just said, and a second visual
+   register would contest a measured palette (W-009). It prints on paper: it is
+   evidence, not a screen affordance. */
+function withdrawnCaveatHtml(card) {
+  const caveats = card.withdrawnCaveats || [];
+  if (!caveats.length) return '';
+  return caveats.map(c =>
+    '<p class="nointerp caveat"><b>The source’s own limit on the value held ' +
+    'back.</b> ' +
+    '“' + esc(c.statement) + '”' +
+    (c.refIds && c.refIds.length
+      ? '<span class="src">' + esc(c.refIds.map(shortCite).join('; ')) + '</span>'
+      : '') +
+    '</p>').join('');
+}
+
 /* THE VALUE AREA HAS TWO STATES, AND THE DIFFERENCE IS THE POINT (W-033).
 
    A LIC this report COMPUTED prints as a read-only readout. It used to print
@@ -2141,6 +2208,10 @@ function parameterCard(row, card, selection) {
       notInterpretableHtml(card) +
       sourceCaveatHtml(card) +
       (card.gap ? '<p class="gap">' + esc(card.gap) + '</p>' : '') +
+      /* W-140 — directly beneath the sentence it explains: the gap states that a
+         value was held back, this states the published limit it was held back
+         on. */
+      withdrawnCaveatHtml(card) +
       (card.noData ? '<p class="gap">No data available for this measurement.</p>' : '') +
       /* W-158 — the partial-ladder scope line: WHY the top of the pediatric iron
          bar is grey. Reuses `.scopegap` (W-157's slot for a cohort scope
@@ -2800,15 +2871,22 @@ function tbIcon(name) {
    under the row, rendered only when there is a word to say. NO PAGE COUNT in any
    label — no test here can count a PDF's pages, so a number would be a claim
    nothing locks (§ 1.2). */
-function toolbar(view, ready, dev, scenarios) {
+function toolbar(view, ready, dev, scenarios, selectedKey) {
   const sample = !!(view && view.mode === 'sample');
   /* SAMPLE mode only — there is nothing to switch between until a scenario is
      already loaded, so "New Report" (which leaves sample mode) makes the menu
      disappear with it in the same render, with no separate state to forget. */
+  /* W-187. Every render rebuilds this bar from nothing, so an unmarked <select>
+     comes back showing its FIRST option whatever is actually loaded — the
+     report changed and the control said "Fully worked study". The mark goes on
+     the option, not on the select: app.js owns the registry and hands in the
+     key it resolved, so the renderer stays pure and a key naming no scenario
+     marks nothing rather than guessing at one. */
   const menu = (sample && dev && Array.isArray(scenarios) && scenarios.length)
     ? '<label class="tb-scenario">Scenario ' +
       '<select data-sample-scenario>' +
-      scenarios.map(s => '<option value="' + esc(s.key) + '">' +
+      scenarios.map(s => '<option value="' + esc(s.key) + '"' +
+                          (s.key === selectedKey ? ' selected' : '') + '>' +
                           esc(s.label) + '</option>').join('') +
       '</select></label>'
     : '';

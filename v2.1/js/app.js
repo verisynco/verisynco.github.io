@@ -183,6 +183,13 @@ function sampleScenarioList() {
    looking like a sample. Which SCENARIO was loaded is stateless the same way:
    a reload returns to the default case, never to whichever one was picked. */
 let viewMode = 'sample';
+/* W-187. Which scenario is loaded, so the toolbar's menu can show it. The
+   report is rebuilt from nothing on every render, and a <select> whose options
+   carry no mark comes back on its first entry — the reader saw one case and a
+   control naming another. This is presentation state, held beside `viewMode`
+   and reset with it; the note above still holds, because nothing writes it to
+   sessionStorage and a reload returns to the default case. */
+let sampleKey = DEFAULT_SAMPLE_KEY;
 let selection = applySelection(createSelection(), caseByKey(DEFAULT_SAMPLE_KEY));
 
 /* W-146. Whether the "Calculate BMI" popup is open — a screen-only concern,
@@ -235,7 +242,12 @@ function closeBmiPopup() {
 
 function enterSample(key) {
   viewMode = 'sample';
-  selection = applySelection(createSelection(), caseByKey(key));
+  /* The key STORED is the one caseByKey() resolved, never the argument: an
+     unknown key falls back to the default case, and the menu must name the
+     scenario that actually loaded rather than the one that was asked for. */
+  const loaded = caseByKey(key);
+  sampleKey = loaded.key;
+  selection = applySelection(createSelection(), loaded);
   removed = {};
   bmiPopupOpen = false;
   renderSelectionScreen();
@@ -245,6 +257,7 @@ function enterSample(key) {
    an unlocked sample is a live-looking report full of invented numbers. */
 function exitSample() {
   viewMode = 'live';
+  sampleKey = DEFAULT_SAMPLE_KEY;
   selection = createSelection();
   removed = {};
   bmiPopupOpen = false;
@@ -507,7 +520,7 @@ function renderSelectionScreen(ackTs) {
     const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen,
                   introDismissed: introDismissed, methodOpen: methodOpen};
     currentRoute = entryRoute(null, selection, view);
-    app.innerHTML = toolbar({mode: viewMode}, false, sampleMenuAllowed(), sampleScenarioList()) +
+    app.innerHTML = toolbar({mode: viewMode}, false, sampleMenuAllowed(), sampleScenarioList(), sampleKey) +
       introStrip(view) +
       '<div class="page" id="clinical">' +
       masthead(profileForPath('other')) + patientMeta(selection, view) +
@@ -521,7 +534,7 @@ function renderSelectionScreen(ackTs) {
     const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen,
                   introDismissed: introDismissed, methodOpen: methodOpen};
     currentRoute = entryRoute(model, selection, view);
-    app.innerHTML = toolbar({mode: viewMode}, true, sampleMenuAllowed(), sampleScenarioList()) +
+    app.innerHTML = toolbar({mode: viewMode}, true, sampleMenuAllowed(), sampleScenarioList(), sampleKey) +
       introStrip(view) +
       renderReport(model, profile, selection,
                    {app: V21_APP_VERSION,

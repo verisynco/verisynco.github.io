@@ -15,7 +15,12 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.21';  /* W-182: two sentences rewritten for the reader
+const V2_REPORT_VERSION = '3.22';  /* W-140: `withdrawnCaveatsOf` +
+   `card.withdrawnCaveats` — the publication's own limit on a value the staging
+   path withheld, carried to the card so the reader is told WHY the number is not
+   printed. Model-side only; the sentence is the record's, unchanged. No clinical
+   value, cut-off, calibration, band name, evidence letter or hash moved.
+   —— W-182: two sentences rewritten for the reader
    (`docs/PLAIN-LANGUAGE.md` § 5, F2 and F10) — the MAST note no longer opens on an
    internal calibration id or closes on `null`, and the axis-provenance note no longer
    calls the ends of the bar "drawing bounds". No clinical value, cut-off, calibration,
@@ -857,6 +862,54 @@ function useCaveatsOf(row) {
   return out;
 }
 
+/* W-140 - the limit the publication states on a value this report is HOLDING
+   BACK. Deliberately not folded into useCaveatsOf: that one qualifies a threshold
+   the card DREW, this one explains a boundary the staging path refused, and one
+   block carrying both would lend a drawn threshold the doubt of a withdrawn one.
+
+   It walks every policy rather than `row.drawable`, because a withdrawn row draws
+   nothing - which is exactly why W-135's sourced sentence reached the record, the
+   schema rule and the hash, and never reached a reader (W-135 closing note).
+
+   Only `staging-withdrawn` boundaries are read. A record excluded for any other
+   reason - the other policy class, another field strength - was never eligible
+   here rather than withheld, and its publication's own limit says nothing about
+   this row.
+
+   Deduped by STATEMENT, not by cutoffId: the four native T1 records repeat one
+   sentence from REF-018, and four identical paragraphs teach a reader nothing.
+   Every record the sentence came from travels with it in `cutoffIds`, so the
+   dedupe never hides which values were held back. */
+function withdrawnCaveatsOf(row) {
+  if (!row.scales) return [];
+  const byStatement = new Map();
+  const out = [];
+  for (const policy of Object.keys(row.scales)) {
+    for (const b of row.scales[policy].boundaries) {
+      if (b.reasonCode !== 'staging-withdrawn') continue;
+      for (const src of (b.excluded || [])) {
+        if (!src.useCaveat) continue;
+        let entry = byStatement.get(src.useCaveat.statement);
+        if (!entry) {
+          entry = {
+            statement: src.useCaveat.statement,
+            refIds: (src.useCaveat.refIds || []).slice(),
+            kind: src.useCaveat.kind,
+            quoteSource: src.useCaveat.quoteSource,
+            cutoffIds: []
+          };
+          byStatement.set(src.useCaveat.statement, entry);
+          out.push(entry);
+        }
+        if (entry.cutoffIds.indexOf(src.cutoffId) === -1) {
+          entry.cutoffIds.push(src.cutoffId);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 function refYear(refId) {
   const r = _R.REFERENCES.filter(x => x.id === refId)[0];
   return r && typeof r.year === 'number' ? r.year : 0;
@@ -1540,7 +1593,13 @@ function buildCards(report, profile) {
       /* W-038 — the limit a drawn record's own publication states on it. NOT an
          abstention: the chip, the rulers and the staging above are untouched,
          and the reader is told how far the number its source says it carries. */
-      useCaveats: row.scales ? useCaveatsOf(row) : []
+      useCaveats: row.scales ? useCaveatsOf(row) : [],
+      /* W-140 - the publication's own limit on a value this report is holding
+         back. Empty wherever nothing was withdrawn, and empty where a withdrawal
+         carries no published sentence (the pediatric MRE records of W-157): this
+         block reports what a publication wrote, and writing one where none exists
+         is the invention 1.2 forbids. */
+      withdrawnCaveats: withdrawnCaveatsOf(row)
     };
   });
 }
