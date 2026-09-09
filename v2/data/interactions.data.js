@@ -108,6 +108,8 @@ const INTERACTIONS = [
     preferredField: null,
     statement: 'ROI placement: use ≥3 ROIs across right + left lobe, avoid vessels/artifacts, average ≥1 cm² each.',
     sourceRefIds: ['REF-038'],
+    unsupportedRefIds: ['REF-038'],
+    citationNote: 'W-183: the sheet gives this PDFF row Ref#38, and Reeder 2023 is an IRON guideline whose ROI instruction belongs to a different measurement. Its three-ROI sentence is the signal-intensity-ratio procedure for iron - three 1-2-cm-diameter ROIs in the liver AND two in the right and left paraspinal muscles, on the same section, read as a liver-to-muscle ratio. Fixed-string counts in the full text: "lobe" 0, "1 cm" 0, "Couinaud" 1. Its only R2*-map ROI note defers to Campo 2017 (AJR 2017;209:592-603, PMID 28705058), held here as a read file but not as a reference record; that paper evaluates 2, 4 and 9 ROIs and never 3, and recommends one large ROI per Couinaud segment, so it does not carry this sentence either. The rule keeps the workbook wording and records that REF-038 does not support it (LITERATURE.md § 20).',
     cited: true,
     source: {sheet: 'Technical_Limitations', row: 9}
   },

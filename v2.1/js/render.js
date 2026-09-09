@@ -26,7 +26,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.75';  /* W-181: four of the twelve plain-language
+const V21_RENDER_VERSION = '3.77';  /* W-181: four of the twelve plain-language
    findings (docs/PLAIN-LANGUAGE.md § 5, F1/F5/F7/F11) applied to the text this
    line prints — the abstention rows name their inputs and measurements by the
    labels the entry cards carry and drop the engine's word for "could not
@@ -487,6 +487,7 @@ const _RN = (typeof module !== 'undefined' && module.exports)
               CALIBRATIONS: require(p.join(CORE, 'data', 'calibrations.data.js')).CALIBRATIONS,
               REFERENCE_RANGES: require(p.join(CORE, 'data', 'ranges.data.js')).REFERENCE_RANGES,
               INTERACTIONS: require(p.join(CORE, 'data', 'interactions.data.js')).INTERACTIONS,
+              PRACTICES: require(p.join(CORE, 'data', 'practices.data.js')).PRACTICES,
               CARD_DOMAIN_ORDER: rep.CARD_DOMAIN_ORDER};
     })()
   : {DOMAIN_OF: DOMAIN_OF, CONTROLLED_UNITS: CONTROLLED_UNITS,
@@ -512,6 +513,7 @@ const _RN = (typeof module !== 'undefined' && module.exports)
      SCOPE_VERSION: SCOPE_VERSION, REFERENCES: REFERENCES,
      CUTOFFS: CUTOFFS, CALIBRATIONS: CALIBRATIONS,
      REFERENCE_RANGES: REFERENCE_RANGES, INTERACTIONS: INTERACTIONS,
+     PRACTICES: PRACTICES,
      CARD_DOMAIN_ORDER: CARD_DOMAIN_ORDER};
 
 /* ─────────────────────────────────────────────────────────────────── LABELS */
@@ -1958,7 +1960,7 @@ const MEASUREMENT_RULE_DOMAIN = {
   mre: 'mre', t1: 't1', ct1: 't1', adc: 'diffusion'
 };
 
-function measurementPracticeHint(parameter, fieldStrength, interactions, references) {
+function measurementPracticeHint(parameter, fieldStrength, interactions, references, practiceRecords) {
   const domain = MEASUREMENT_RULE_DOMAIN[parameter];
   if (!domain) return '';
   const field = fieldStrength || '1.5T';
@@ -1966,26 +1968,87 @@ function measurementPracticeHint(parameter, fieldStrength, interactions, referen
     return i.kind === 'pitfall' && i.parameter === domain &&
            (i.section === 'common' || i.section === field);
   });
-  if (!rows.length) return '';
+  const practicesForDomain = (practiceRecords || []).filter(function (p) {
+    return p.parameter === domain;
+  });
+  if (!rows.length && !practicesForDomain.length) return '';
 
   const byId = {};
   (references || []).forEach(function (r) { byId[r.id] = r; });
 
-  const lines = ['How the published sources say this measurement is taken (' +
-                 field + ' selected):'];
+  const lines = [];
+  if (rows.length) {
+    lines.push('How the published sources say this measurement is taken (' +
+               field + ' selected):');
+  }
   rows.forEach(function (r) {
     lines.push('');
     lines.push('• ' + r.statement);
     /* A rule the workbook gives no Ref# says so. Back-filling one would be
        inventing a provenance, which is the § 1.2 failure this repository names
        rather than commits. */
+    /* W-183. A citation this repository read and found NOT to carry the rule is
+       recorded in the data layer (`unsupportedRefIds`, SCHEMA.md § 8.7) and was
+       being printed here as though it carried it. Both halves are shown: the
+       workbook's claim stays, and the reading stands beside it. */
+    const rejected = r.unsupportedRefIds || [];
     const cites = (r.sourceRefIds || [])
-      .map(function (id) { return byId[id]; })
-      .filter(Boolean)
-      .map(function (x) { return x.citation; });
+      .map(function (id) { return {id: id, ref: byId[id]}; })
+      .filter(function (x) { return Boolean(x.ref); })
+      .map(function (x) {
+        return x.ref.citation + (rejected.indexOf(x.id) !== -1
+          ? ' — read in full, and it does not contain this rule'
+          : '');
+      });
     lines.push('  ' + (cites.length ? cites.join('; ')
                                     : 'no citation in the source workbook'));
+    const noneStands = (r.sourceRefIds || []).length > 0 &&
+      (r.sourceRefIds || []).every(function (id) { return rejected.indexOf(id) !== -1; });
+    if (noneStands) {
+      /* The rule is not dropped and the gap is not left silent (§ 1.2): the
+         reader is told the sentence is still worth reading and that nothing
+         held here was found to state it. */
+      lines.push('  No publication held here has been found to state this rule.');
+    }
   });
+
+  /* W-180. The rules above are imperatives; several of the publications behind
+     them also set the practice out at length, and those descriptions are held
+     as PRACTICES — our own words, each carrying the publication and the place
+     inside it. Selection is by MEASUREMENT, exactly as the rules above are: a
+     new record appears here with no code change (render.test.js N74).
+
+     Two things are said by MECHANISM rather than by wording chosen per record,
+     because both are places this could quietly start over-claiming:
+       · a `method-text` source is never announced as a figure — REF-038 carries
+         this product's most-quoted ROI rules and has no figure showing them
+         (LITERATURE.md § 18.2), so 'as the figure shows' would have been wrong
+         for exactly the rule anyone would describe first;
+       · a record that is the REASON for a practice rather than the practice is
+         labelled as such, so an explanted-liver study never reads as a
+         procedure to repeat in a patient. */
+  const kindLead = {
+    'placement': '',
+    'sampling-rationale': 'Why more than one region: ',
+    'roi-precision': 'How much the choice of region moves the number: '
+  };
+  const practices = (practiceRecords || []).filter(function (p) {
+    return p.parameter === domain;
+  });
+  if (practices.length) {
+    lines.push('');
+    lines.push('How the publications themselves describe taking this measurement:');
+    practices.forEach(function (p) {
+      lines.push('');
+      lines.push('• ' + (kindLead[p.practiceKind] || '') + p.description);
+      const ref = byId[p.refId];
+      const cite = ref ? ref.citation : p.refId;
+      lines.push('  ' + (p.sourceKind === 'method-text'
+        ? 'Stated in the text, not in a figure — ' + p.locator
+        : 'Shown in ' + p.locator) + '. ' + cite);
+    });
+  }
+
   return lines.join('\n');
 }
 
@@ -2022,7 +2085,8 @@ function parameterCard(row, card, selection) {
   /* W-179. Empty string where the pool holds nothing for this measurement — a
      `?` that opens on nothing is worse than no `?` at all. */
   const measurementHint = measurementPracticeHint(
-    row.parameter, selection.fieldStrength, _RN.INTERACTIONS, _RN.REFERENCES);
+    row.parameter, selection.fieldStrength, _RN.INTERACTIONS, _RN.REFERENCES,
+    _RN.PRACTICES);
 
   return '<section class="pcard" data-param="' + esc(row.parameter) + '"' + attrs + '>' +
     '<div class="pident">' +
