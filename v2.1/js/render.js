@@ -26,7 +26,14 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.83';  /* W-194: the MEFIB block is drawn as a
+const V21_RENDER_VERSION = '3.84';  /* W-195: the MEFIB composite moves next to
+   the Fibrosis (MRE) card (emitted by sectionsHtml right after that domain
+   group, not as a trailing block), and its pending shape is now conditional:
+   not rendered at all when fibrosis was not performed; faded on screen and
+   collapsed to one .print-only line when a FIB-4/MRE input is still missing;
+   unchanged (full weight, both surfaces) when a reliability rule withheld the
+   MRE stiffness. No clinical value, cut-off, band or hash moves.
+   W-194: the MEFIB block is drawn as a
    schematic — two input nodes (MRE stiffness, FIB-4), each carrying its own
    met/not-met mark, joined into one verdict node — instead of two loose chips
    above a bar. `compositeSection` reads the SAME `composite.lines` /
@@ -2417,18 +2424,22 @@ function domainGroupHtml(g, build) {
    they move, with their domain grouping intact, into the merged `additional`
    section (additionalSectionHtml). A domain with no card in this section prints
    no heading, as before (domainGroupHtml's own rule). */
-function groupedCardsHtml(pairs, build) {
+/* W-195. `afterDomain(domain)` — optional HTML placed right after a domain
+   group's box. Used to print the MEFIB composite immediately after the Fibrosis
+   (MRE) group; returns '' for every other domain and when absent. */
+function groupedCardsHtml(pairs, build, afterDomain) {
   return _RN.groupCardsByDomain(pairs)
     .filter(g => _RN.TIER2_GROUPS.indexOf(g.domain) === -1)
-    .map(g => domainGroupHtml(g, build)).join('');
+    .map(g => domainGroupHtml(g, build) + (afterDomain ? afterDomain(g.domain) : ''))
+    .join('');
 }
 
-function sectionHtml(section, pairs, counter, build) {
+function sectionHtml(section, pairs, counter, build, afterDomain) {
   if (!pairs.length) return '';
   return '<section class="psection" id="section-' + esc(section.id) + '">' +
     (section.title ? '<h2>' + esc(section.title) + '</h2>' : '') +
     (section.grouped
-      ? groupedCardsHtml(pairs, build)
+      ? groupedCardsHtml(pairs, build, afterDomain)
       : pairs.map(build).join('')) +
     '</section>';
 }
@@ -2631,31 +2642,78 @@ function mefibNodeHtml(l) {
       (l.met ? 'met' : 'not met') + ' — ' + esc(l.test) + '</span>' +
   '</div>';
 }
-function compositeSection(composite) {
+/* W-195. Placement + conditional visibility. sectionsHtml now emits this right
+   after the Fibrosis (MRE) domain group rather than as a trailing block — it IS
+   the holistic fibrosis read, assembled from that card's stiffness and the FIB-4
+   on its blood panel. The discriminator for the pending shapes is
+   `selection.performed.fibrosis` and `reliability.byParameter.mre.interpretable`,
+   both already in the model; no engine file is opened.
+
+     B1  fibrosis not performed        → not rendered at all (screen + print).
+                                          Removes the old "MRE has not been
+                                          entered" block on non-elastography studies.
+     B2  fibrosis performed, an input  → screen: the whole block, faded (.is-dim);
+         missing, MRE not withheld        print: one line, the rest .screen-only.
+     B3  MRE stiffness withheld by a   → unchanged: full weight, both surfaces. A
+         reliability rule                 clinical abstention with a reason, not a
+                                          you-forgot-the-bloods gap.
+
+   A computed verdict renders the W-194 schematic, unchanged. */
+function compositeSection(composite, selection, reliability) {
   if (!composite) return '';
-  /* W-194. The pending sentence is report.js's and unchanged. Where it is the
-     FIB-4 half that could not be computed, point the reader at where that
-     number is now entered. Screen AND print: a printed pending MEFIB is still
-     a real instruction to whoever reads the sheet. */
-  const fib4Hint = composite.pending &&
-    composite.pending.indexOf('FIB-4 could not be computed') !== -1
-    ? '<p class="gap-hint">Open the blood-test panel on the Fibrosis card and ' +
-      'enter AST, ALT and platelets to compute FIB-4.</p>'
-    : '';
-  const body = composite.pending
-    ? '<p class="gap">' + esc(composite.pending) + '</p>' + fib4Hint
-    : '<div class="mefib-schematic">' +
-        '<div class="ms-inputs">' + composite.lines.map(mefibNodeHtml).join('') + '</div>' +
-        '<div class="ms-join" aria-hidden="true"></div>' +
-        '<div class="ms-verdict">' + verdictChip(composite.verdict) + '</div>' +
-      '</div>';
-  return '<section class="composite"><div class="section-head"><h3>' +
-    esc(composite.name) + '</h3><span class="rule"></span></div>' +
-    '<p class="cintro">' + esc(composite.intro) + '</p>' +
-    body +
-    '<p class="cnote"><b>MAST</b> ' + esc(composite.note.mast) + '</p>' +
-    '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) +
-    '</p></section>';
+
+  const fibrosisPerformed = !!(selection && selection.performed &&
+                               selection.performed.fibrosis === true);
+  const mreWithheld = !!(reliability && reliability.byParameter &&
+                         reliability.byParameter.mre &&
+                         reliability.byParameter.mre.interpretable === false);
+
+  const head = '<div class="section-head"><h3>' + esc(composite.name) +
+    '</h3><span class="rule"></span></div>';
+  const intro = '<p class="cintro">' + esc(composite.intro) + '</p>';
+  const notes = '<p class="cnote"><b>MAST</b> ' + esc(composite.note.mast) + '</p>' +
+    '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) + '</p>';
+
+  if (composite.pending) {
+    /* B1 — no axis to give a holistic read of, so no gap to state either. */
+    if (!fibrosisPerformed) return '';
+
+    /* report.js authors the pending sentence; these two distinctive substrings
+       are the same ones the FIB-4 recovery hint has keyed on since W-194.
+       render.test.js N79 guards that the engine still writes them. */
+    const needFib4 = composite.pending.indexOf('FIB-4 could not be computed') !== -1;
+    const needMre = composite.pending.indexOf('MRE has not been entered') !== -1;
+
+    /* B3 — a reliability rule withheld the stiffness the rule reads directly.
+       Full weight, both surfaces: it is a real abstention, not a missing input. */
+    if (mreWithheld) {
+      return '<section class="composite">' + head + intro +
+        '<p class="gap">' + esc(composite.pending) + '</p>' + notes + '</section>';
+    }
+
+    /* B2 — screen: the whole block, faded; print: one line naming the missing
+       half. */
+    const fib4Hint = needFib4
+      ? '<p class="gap-hint">Open the blood-test panel on the Fibrosis card and ' +
+        'enter AST, ALT and platelets to compute FIB-4.</p>'
+      : '';
+    const missing = needMre && !needFib4 ? 'MRE stiffness not entered'
+      : needFib4 && !needMre ? 'FIB-4 not entered'
+      : 'inputs incomplete';
+    return '<section class="composite is-dim">' +
+      '<div class="cpending-screen screen-only">' + head + intro +
+        '<p class="gap">' + esc(composite.pending) + '</p>' + fib4Hint + notes + '</div>' +
+      '<p class="print-only cgap-print">MEFIB — not computed: ' + missing + '.</p>' +
+    '</section>';
+  }
+
+  /* Computed verdict — the W-194 schematic, unchanged. */
+  return '<section class="composite">' + head + intro +
+    '<div class="mefib-schematic">' +
+      '<div class="ms-inputs">' + composite.lines.map(mefibNodeHtml).join('') + '</div>' +
+      '<div class="ms-join" aria-hidden="true"></div>' +
+      '<div class="ms-verdict">' + verdictChip(composite.verdict) + '</div>' +
+    '</div>' + notes + '</section>';
 }
 
 /* W-098. The closing "Summary" block: the published composite verdicts, then
@@ -2919,6 +2977,14 @@ function sectionsHtml(model, selection, view) {
   /* The indication no longer orders anything (W-061); `orderCards` lists. */
   const ordered = _RN.orderCards(model.report, model.cards);
   const build = p => parameterCard(p.row, p.card, selection, model, view);
+  /* W-195. The MEFIB composite prints immediately after the Fibrosis (MRE)
+     domain group — it is the holistic fibrosis read, not a trailing block after
+     every domain. Emitted once, where the mre group closes; if fibrosis was not
+     performed there is no mre group and compositeSection is never reached (it
+     also guards that case itself). */
+  const afterDomain = d => d === 'mre'
+    ? compositeSection(model.composite, selection, model.reliability)
+    : '';
   let html = '';
   for (const section of SECTIONS) {
     /* W-080. The merged `additional` section has no single `mount`: its rows are
@@ -2929,7 +2995,7 @@ function sectionsHtml(model, selection, view) {
       continue;
     }
     const pairs = ordered.filter(p => p.row.mountPoint === section.mount);
-    html += sectionHtml(section, pairs, counter, build);
+    html += sectionHtml(section, pairs, counter, build, afterDomain);
   }
   return html;
 }
@@ -3155,7 +3221,8 @@ function renderClinicalSheets(model, profile, selection, versions, view) {
     studyMeta(selection, profile) +
     labsBlock(selection, model) +
     sectionsHtml(model, selection, view) +
-    compositeSection(model.composite) +
+    /* W-195. The MEFIB composite moved INTO sectionsHtml, right after the
+       Fibrosis (MRE) domain group — it is no longer a trailing block here. */
     impressionSection(model.impression && model.impression.clinical) +
     (sample ? sampleLine() : '') +
     reportFooter(model, selection, versions) +

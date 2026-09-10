@@ -1167,6 +1167,15 @@ svg.ruler.slim { opacity: .8; }
 .composite .cintro { font-size: 11px; color: var(--ink-2); margin: 0 0 var(--s-3); }
 .composite .cnote, .impression .flags { font-size: 10px; color: var(--muted); }
 .composite .cnote b { color: var(--ink-2); }
+/* W-195. A pending MEFIB block whose FIB-4 (or MRE) input is not in yet: the
+   whole section is faded on screen while it waits, and collapses to the single
+   .cgap-print line on paper (see render.js compositeSection). Screen only — the
+   opacity is moot in print, where only the one line remains. Not colour:
+   DESIGN-DIRECTION § 2.3. */
+@media screen {
+  .composite.is-dim { opacity: .55; }
+}
+.composite .cgap-print { font-size: 10px; color: var(--muted); margin: var(--s-2) 0 0; }
 .impression h3 { margin: var(--s-5) 0 var(--s-2); font-size: 12px;
                  padding-top: var(--s-3); border-top: 2px solid var(--accent); }
 /* W-112. Sub-heads splitting the impression into the readings that carry weight
@@ -1210,10 +1219,16 @@ svg.ruler.slim { opacity: .8; }
 .mtab .d-cites { font-family: var(--mono); font-size: 8.5px; color: var(--muted); }
 .counted { font-size: 10.5px; }
 
+/* W-195. Mirror of .screen-only: hidden on screen, revealed in @media print
+   below. Carries the one-line stand-in for a pending MEFIB block whose full
+   text is .screen-only. */
+.print-only { display: none; }
+
 @media print {
   /* Every control the reader used to build the report leaves the paper. The
      methodology sheet does NOT: there is no rule here that can remove it. */
   .screen-only, .tier-offer, .method { display: none !important; }
+  .print-only { display: block; }
   /* W-033. The empty override box is a control, and an empty box on paper reads
      as a form nobody filled in. The readout and its calibration line are the
      report's own statement and stay -- no rule here may hide either. */
