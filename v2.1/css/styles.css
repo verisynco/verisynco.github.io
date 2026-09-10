@@ -1092,16 +1092,76 @@ svg.ruler.slim { opacity: .8; }
 .bmi-computed { display: block; font-size: 9px; color: var(--muted); margin-top: var(--s-1); }
 .pval-warn { font-size: 9px; color: var(--muted); margin: var(--s-1) 0 0; }
 .labs-prov, .labs-pending { font-size: 9.5px; color: var(--muted); margin: var(--s-3) 0 0; }
+
+/* W-194. THE PER-CARD BLOOD-TEST SUB-PANEL. Full-width below .pfacts, set off
+   from the card's imaging measurement by a top rule and its own tinted head.
+   The collapse is @media-screen only (below); @media print never sees it, so
+   paper always carries the panel — the W-164 safety argument. */
+.pcard-blood { grid-column: 1 / -1; margin-top: var(--s-4);
+  border-top: 1px solid var(--frame); }
+.pcard-blood .bp-toggle { display: flex; align-items: baseline; gap: var(--s-2);
+  padding: var(--s-3) 0 0; font-size: 10.5px; cursor: pointer; }
+.pcard-blood .bp-toggle input { margin: 0; }
+.pcard-blood .bp-body { padding: var(--s-3) 0 0; }
+.pcard-blood .bp-lead { margin: 0 0 var(--s-3); font-size: 9.5px; color: var(--muted); }
+/* auto-fill so the LIC panel's two cells do not leave three empty tracks the
+   way the inherited repeat(5, 1fr) would; the MRE panel's five still fit one
+   row on the sheet. */
+.pcard-blood .bp-grid { margin: 0;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+.pcard-blood .bp-derived { margin: var(--s-3) 0 0; font-family: var(--mono);
+  font-size: 10px; }
+.pcard-blood .bp-from { color: var(--faint); }
+.pcard-blood .bp-prov { margin: var(--s-1) 0 0; font-size: 9px; color: var(--muted); }
+/* tsat and the AST/ALT ratio trigger no rule — faded, not hidden. */
+.pcard-blood .labs-muted,
+.pcard-blood .labs-muted label,
+.pcard-blood .labs-muted .u { color: var(--faint); }
+
+/* W-194. The collapse, and ONLY on screen. A closed panel hides its body; the
+   checkbox stays (it is how the reader opens it) and is `.screen-only` so it
+   never prints. `@media print` sees none of this — paper carries every panel
+   open, the same guard the methodology collapse (W-164) and the fill wash
+   (W-149) already use. */
+@media screen {
+  .pcard-blood:not(.bp-open) .bp-body { display: none; }
+}
+@media print {
+  /* A panel nobody entered a value into is dead space on paper. */
+  .pcard-blood.bp-empty { display: none !important; }
+}
 .tier-offer { border: 1px dashed var(--hair); border-radius: 6px; padding: var(--s-4) var(--s-5);
   margin: var(--s-4) 0; }
 .tier-offer h3 { margin: 0 0 var(--s-3); font-size: 11px; }
 .tier-offer .tier { display: block; font-size: 11px; }
-.composite .chips { display: flex; gap: var(--s-4); flex-wrap: wrap; }
-.composite .chip { border: 1px solid var(--hair); border-radius: 5px; padding: var(--s-3) var(--s-4);
-  font-size: 10.5px; }
-.composite .chip.met { border-color: var(--accent); background: var(--accent-tint); }
-.composite .chip .from, .composite .chip .test { display: block; font-family: var(--mono);
+/* W-194. The MEFIB block as a schematic: the contributing readings as nodes on
+   the left, joined into the one verdict node on the right. Met / not-met is
+   carried by the ring glyph in the markup AND by the connector line style here
+   (solid vs dashed) — two channels, neither of them colour (DESIGN-DIRECTION
+   § 2.3; the ui-ux-pro-max pass's blue/red node colour was rejected on that
+   rule). */
+.composite .mefib-schematic { display: flex; align-items: center; gap: 0;
+  margin: var(--s-3) 0 0; }
+.composite .ms-inputs { flex: 1 1 auto; display: flex; flex-direction: column;
+  gap: var(--s-3); }
+.composite .ms-node { position: relative; border: 1px solid var(--hair);
+  border-radius: 5px; padding: var(--s-3) var(--s-4); font-size: 10.5px; }
+.composite .ms-name { font-weight: 700; }
+.composite .ms-val { font-family: var(--mono); }
+.composite .ms-from, .composite .ms-test { display: block; font-family: var(--mono);
   font-size: 8px; color: var(--faint); }
+.composite .ms-mark { margin-right: .4em; }
+/* the connector each node reaches toward the join bar: solid when that half's
+   condition is met, dashed when it is not. */
+.composite .ms-node::after { content: ""; position: absolute; left: 100%;
+  top: 50%; width: var(--s-5); border-top: 1px solid var(--frame); }
+.composite .ms-unmet::after { border-top-style: dashed; }
+.composite .ms-join { flex: 0 0 var(--s-6); align-self: stretch;
+  border-left: 1px solid var(--frame); margin: var(--s-4) 0; }
+.composite .ms-verdict { flex: 0 0 auto; }
+/* W-194. The recovery hint under a pending MEFIB — same register as the gap
+   sentence it follows, one step in from it. */
+.composite .gap-hint { font-size: 10px; color: var(--muted); margin: var(--s-2) 0 0; }
 /* W-113. The plain-language sentence explaining what the rule does, printed
    before the verdict — normal ink, not muted, since it is read first. */
 .composite .cintro { font-size: 11px; color: var(--ink-2); margin: 0 0 var(--s-3); }
@@ -1446,7 +1506,13 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
   .labs-head{ padding:var(--s-1) var(--s-4); }
   .labs-pending,.labs-prov{ margin:var(--s-1) 0 0; }
   .composite .section-head{ margin-bottom:var(--s-1); }
-  .composite .chip{ padding:var(--s-1) var(--s-3); }
+  /* W-194. On paper the schematic stacks — two input nodes, the join, then the
+     verdict — so it never has to fit A4 width three-across. */
+  .composite .mefib-schematic{ flex-direction:column; align-items:stretch; gap:var(--s-1); }
+  .composite .ms-node{ padding:var(--s-1) var(--s-3); }
+  .composite .ms-node::after{ display:none; }
+  .composite .ms-join{ align-self:center; border-left:none;
+    border-top:1px solid var(--frame); flex-basis:var(--s-4); width:var(--s-6); margin:var(--s-1) 0; }
   .impression .flags li{ line-height:1.25; }
   .impression h3{ margin:var(--s-3) 0 var(--s-1); }
   .composite .cintro{ margin:0 0 var(--s-1); }
@@ -1835,6 +1901,14 @@ body[data-mode="sample"] .evidence { background: transparent; }
      select then wraps its label and scrolls its options like any narrow one. */
   .pcard > * { min-width: 0; }
   .pcard select { max-width: 100%; width: 100%; }
+
+  /* W-194. The MEFIB schematic stacks at phone width: input nodes, the join,
+     then the verdict — the same shape it prints in. */
+  .composite .mefib-schematic { flex-direction: column; align-items: stretch; }
+  .composite .ms-node::after { display: none; }
+  .composite .ms-join { align-self: center; border-left: none;
+    border-top: 1px solid var(--frame); flex-basis: var(--s-4); width: var(--s-6);
+    margin: var(--s-2) 0; }
 
   /* The impression and its closing Summary drop the centred ~80% measure —
      in a phone-width column that only strands text between two thin gutters. */

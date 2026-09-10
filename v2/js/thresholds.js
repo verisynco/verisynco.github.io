@@ -79,7 +79,11 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.13';   /* W-182: the two gap sentences are written in
+const V2_THRESHOLDS_VERSION = '1.14';   /* W-043: resolveCalibration's `multi` pick now
+   reads `derivation.vendorClass` (as `own` and `geDerived` already do), so a guideline-reduced
+   but genuinely multi-vendor calibration (CAL-0004, Hernando 2022) resolves at rung 4
+   ("ge-included-not-separable") instead of rung 5 ("no-vendor-neutral-evidence") on both the
+   3.0T iron paths. W-182: the two gap sentences are written in
    words rather than in record vocabulary (`docs/PLAIN-LANGUAGE.md` § 5, F3) — the
    vendorClass code names give way to POLICY_WORDS, the enum `stagingWithdrawn` leaves the
    sentence, and the `record(s)` template that never chose a plural is gone. `reasonCode`
@@ -918,7 +922,16 @@ function resolveCalibration(sel) {
 
   const own = pick(c => c.vendorClass === primary
                      || (c.derivation && c.derivation.vendorClass === primary));
-  const multi = pick(c => c.vendorClass === 'multi-vendor-incl-ge');
+  /* W-043 — read `derivation.vendorClass` here too, exactly as `own` and
+     `geDerived` already do. § 5.5 reduces a guideline-endorsed calibration's
+     top-level vendorClass to `guideline`, and `derivation` is the field that
+     preserves where the number was actually measured. CAL-0004 (Hernando 2022)
+     is a pooled three-vendor calibration whose top-level class is `guideline`;
+     without this it fell through to `no-vendor-neutral-evidence`, which is
+     false — a grade-A three-vendor calibration IS vendor-neutral evidence,
+     "GE included, not separable". */
+  const multi = pick(c => c.vendorClass === 'multi-vendor-incl-ge'
+                     || (c.derivation && c.derivation.vendorClass === 'multi-vendor-incl-ge'));
   const geDerived = pick(c => c.vendorClass === 'ge-explicit'
                      || (c.derivation && c.derivation.vendorClass === 'ge-explicit'));
 

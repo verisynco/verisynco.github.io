@@ -74,7 +74,7 @@
  */
 
 const CALIBRATIONS_REV = 'xlsx-v1';
-const CALIBRATIONS_VERSION = '1.4';   /* W-069: CAL-0004 rewritten from REF-015 Table 3 (affine, 0.0472 -> 0.01349); CAL-0001 citation rejected, value unchanged */
+const CALIBRATIONS_VERSION = '1.5';   /* W-043: CAL-0004.derivation.vendorClass corrected ge-explicit -> multi-vendor-incl-ge (REF-015 is a pooled three-vendor study in its own Methods); fieldNote added recording the 2.89T sibling relation the tool does not separately apply. No coefficient moved. W-069: CAL-0004 rewritten from REF-015 Table 3 (affine, 0.0472 -> 0.01349); CAL-0001 citation rejected, value unchanged */
 
 /* SHA-256 over the canonical serialisation of every record. See
    v2/tests/logic.test.js. Covers vendorClass, technique and evidenceGrade for
@@ -260,18 +260,31 @@ const CALIBRATIONS = [
     vendorClassAmbiguous: false,
     derivation: {
       refId: 'REF-015',
-      vendorClass: 'ge-explicit',
+      vendorClass: 'multi-vendor-incl-ge',
       note: 'W-069 rewrote this record from REF-015 Table 3. W-056: ESGAR/SAR 2023 (REF-038) ' +
             'does NOT carry a coefficient of its own and refers its calibrations to Table S2 ' +
             'and to Hernando et al (LITERATURE.md 9.18.3), which IS REF-015 - so the two ' +
             'cited sources agree and the reduction to `guideline` still hides where the ' +
-            'measurement was made, which `derivation` preserves. ⛔ QUEUED, NOT FIXED HERE: ' +
-            'this vendorClass reads ge-explicit and REF-015 is MULTI-VENDOR in its own words ' +
-            '("clinical MRI systems from three vendors (GE Healthcare, Philips Healthcare, ' +
-            'and Siemens Healthineers)", LITERATURE.md 9.20.4). Correcting it moves the ' +
-            'no-vendor-neutral-evidence flag the Other path prints, so it is a decision with ' +
-            'its own blast radius and outside W-069 approval to move twelve VALUES.'
+            'measurement was made, which `derivation` preserves. W-043, 2026-09-10: this was ' +
+            'ge-explicit and it was WRONG. REF-015 Materials and Methods reads "1.5-T and ' +
+            '3.0-T clinical MRI systems from three vendors (GE Healthcare, Philips ' +
+            'Healthcare, and Siemens Healthineers)", and the calibrations were pooled ' +
+            '"across centers and vendors" (LITERATURE.md § 9.20.4). Corrected to ' +
+            'multi-vendor-incl-ge. The engine now reads this through the `multi` branch of ' +
+            'resolveCalibration, so the 3.0T Other iron path returns CAL-0004 at rung 4 ' +
+            '("ge-included-not-separable") rather than rung 5 ("no-vendor-neutral-evidence"): ' +
+            'a grade-A three-vendor calibration IS vendor-neutral evidence. No coefficient ' +
+            'moved.'
     },
+    fieldNote: 'REF-015 publishes THREE relations by field strength — 1.5T: LIC = -0.16 + ' +
+      '0.02603 x R2*; 2.89T: LIC = -0.03 + 0.01400 x R2*; 3.0T (this record): LIC = -0.03 + ' +
+      '0.01349 x R2*. 2.89T is the true B0 of Siemens MAGNETOM "3T" systems; GE and Philips ' +
+      '"3T" run ~2.99-3.0T. The 2.89T slope is ~3.8% above the 3.0T slope, WITHIN this ' +
+      'calibration\'s own 95% CI. VeriLiv takes field strength as one nominal choice ' +
+      '("3.0T"), not a measured B0, and does not stratify nominal-3T by vendor B0: the tool ' +
+      'serves the 3.0T relation (the more conservative, lower-slope one) for all nominal-3T ' +
+      'iron. A B0-aware entry flow is a deferred scope decision (W-043 scientific decision, ' +
+      'LITERATURE.md § 9.20.4a).',
     evidenceGrade: 'A',
     population: 'Multicentre iron overload, n=207, three vendors, 1.5T and 3.0T (Hernando 2022)',
     provenance: 'transcribed',

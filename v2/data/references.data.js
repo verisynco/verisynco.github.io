@@ -355,7 +355,7 @@ const REFERENCES = [
     pmid: '37121437',
     pmidWorkbook: '37121437',
     pmidProvenance: 'workbook',
-    citation: 'Chen J, Yin M, Talwalkar JA, et al.; NAFLD IPD-MA collaborators. J Hepatol 2023;79:1237-46',
+    citation: 'Liang JX, Ampuero J, Niu H, et al.; LITMUS Consortium Investigators. J Hepatol 2023;79:592-604',
     title: 'Individual patient data meta-analysis to determine cut-offs and confounders of NAFLD-fibrosis staging with MRE',
     year: 2023,
     journal: 'J Hepatol',
@@ -370,7 +370,19 @@ const REFERENCES = [
     techniques: ['mre-2d-gre-60hz'],
     techniqueNote: null,
     modalityRaw: 'MRE',
-    source: {sheet: 'References', row: 17}
+    source: {sheet: 'References', row: 17},
+    pmidVerified: true,
+    dataQualityFlags: ['citation-corrected'],
+    dataQualityNote: 'W-043, 2026-09-10 (LITERATURE.md § 9.21.1): the workbook citation string ' +
+      '"Chen J, Yin M, Talwalkar JA, et al.; NAFLD IPD-MA collaborators. J Hepatol 2023;79:1237-46" ' +
+      'is wrong on the first author, the collaborator name and the volume/pages. PMID 37121437 is ' +
+      'correct; its full text (reference/papers/fulltext/PMID-37121437.txt) is J Hepatol ' +
+      '2023;79(3):592-604, first author Jia-xu Liang (Liang JX), with Ampuero J and Niu H next, ' +
+      'and the group byline is "LITMUS Consortium Investigators". "Chen J, Yin M, Talwalkar JA" is ' +
+      'a real but different Mayo MRE group (it appears in this paper only as its reference [28]). ' +
+      'This overturns the VERIFICATION-2026-08-25.md line that had confirmed the old string; the ' +
+      'W-136 branch reviewer flagged it. citation corrected against the full text; pmid and ' +
+      'pmidProvenance unchanged. The workbook string is quoted here.'
   },
   {
     id: 'REF-015',
@@ -378,7 +390,7 @@ const REFERENCES = [
     pmid: '36194113',
     pmidWorkbook: '36194113',
     pmidProvenance: 'workbook',
-    citation: 'Serai SD, Hernando D, Reeder SB, et al. Radiology 2022;306:e213256',
+    citation: 'Hernando D, Zhao R, et al. Radiology 2022;306(2):e213256',
     title: 'Multicenter reproducibility of liver iron quantification with 1.5T and 3.0T MRI',
     year: 2022,
     journal: 'Radiology',
@@ -387,13 +399,26 @@ const REFERENCES = [
     studyType: 'Multicenter validation',
     evidenceGrade: 'A',
     vendorRaw: 'EXPLICIT GE Signa 1.5T + Discovery MR750 3T + Signa Premier',
-    vendorClass: 'ge-explicit',
+    vendorClass: 'multi-vendor-incl-ge',
     vendorClassAmbiguous: false,
-    vendorClassNote: null,
+    vendorClassNote: 'W-043, 2026-09-10 (LITERATURE.md § 9.20.4): the workbook string names only the ' +
+      'GE subset, but the full text (reference/papers/fulltext/PMID-36194113.txt) Materials and ' +
+      'Methods reads "1.5-T and 3.0-T clinical MRI systems from three vendors (GE Healthcare, ' +
+      'Philips Healthcare, and Siemens Healthineers) participated in this study", and the ' +
+      'calibrations were pooled "across centers and vendors". The class is corrected to ' +
+      'multi-vendor-incl-ge; the workbook string is preserved verbatim above (R-45).',
+    vendorProvenance: 'literature-corrected',
     techniques: ['iron-r2star-gre'],
     techniqueNote: null,
     modalityRaw: 'R2*/LIC both fields',
-    source: {sheet: 'References', row: 18}
+    source: {sheet: 'References', row: 18},
+    pmidVerified: true,
+    dataQualityFlags: ['citation-corrected'],
+    dataQualityNote: 'W-043, 2026-09-10 (LITERATURE.md § 9.20.4): the workbook citation named ' +
+      '"Serai SD" as first author. PMID 36194113 is correct; its full text byline is Diego ' +
+      'Hernando, Ruiyang Zhao, et al. (Radiology 2022;306(2):e213256) — the repository already ' +
+      'refers to this record as "Hernando 2022" everywhere except the citation string. citation ' +
+      'corrected against the full text; pmid and pmidProvenance unchanged.'
   },
   {
     id: 'REF-016',
@@ -497,9 +522,9 @@ const REFERENCES = [
     pmid: '30032383',
     pmidWorkbook: '30032383',
     pmidProvenance: 'workbook',
-    citation: 'McKay A, Wilman HR, Curzen R, et al. Abdom Radiol 2018;43:2447-56',
+    citation: 'Mojtahed A, Kelly CJ, Herlihy AH, et al. Abdom Radiol 2019;44:72-84',
     title: 'Reference range of liver corrected T1 values in a population at low risk for fatty liver disease — UK Biobank sub-study',
-    year: 2018,
+    year: 2019,
     journal: 'Abdom Radiol',
     fieldStrength: '1.5T',
     fieldStrengthRaw: '1.5T',
@@ -513,7 +538,19 @@ const REFERENCES = [
     techniqueNote: null,
     modalityRaw: 'cT1 reference range',
     source: {sheet: 'References', row: 23},
-    transferabilityNote: '(LMS-standardised to 3T)'
+    transferabilityNote: '(LMS-standardised to 3T)',
+    pmidVerified: true,
+    dataQualityFlags: ['citation-corrected'],
+    dataQualityNote: 'W-043, 2026-09-10 (LITERATURE.md § 9.13.2): the workbook citation string ' +
+      '"McKay A, Wilman HR, Curzen R, et al. Abdom Radiol 2018;43:2447-56" resolves to no ' +
+      'publication — a Europe PMC search for that journal / volume 43 / page 2447 returns zero ' +
+      'hits. PMID 30032383 is correct; its full text (reference/papers/fulltext/PMID-30032383.txt, ' +
+      'PMC6348264, open access) identifies the paper as Mojtahed A, Kelly CJ, Herlihy AH, Kin S, ' +
+      'Wilman HR, McKay A, et al. Abdom Radiol (NY) 2019;44(1):72-84 — first author, year, volume ' +
+      'and pages all differ from the workbook string while the title matches and McKay is the ' +
+      'sixth author. citation and year are corrected against the full text; pmid and ' +
+      'pmidProvenance are unchanged because the identifier was always right. The workbook string ' +
+      'is quoted here.'
   },
   {
     id: 'REF-021',
@@ -682,9 +719,15 @@ const REFERENCES = [
     studyType: 'Primary validation',
     evidenceGrade: 'B',
     vendorRaw: 'Multi-vendor 1.5T',
-    vendorClass: 'multi-vendor-incl-ge',
-    vendorClassAmbiguous: true,
-    vendorClassNote: 'Bare "Multi-vendor 1.5T". Compare Ref#26/28 "Multi-vendor 1.5T (incl. GE)" — the omitted parenthetical is the only difference and is decisive. Whether it was omitted because GE was absent or by inattention is not recorded.',
+    vendorClass: 'non-ge',
+    vendorClassAmbiguous: false,
+    vendorClassNote: 'W-043, 2026-09-10: the workbook string "Multi-vendor 1.5T" is contradicted by ' +
+      'the full text (reference/papers/fulltext/PMID-17663420.txt), whose Materials and Methods ' +
+      'names one scanner — "a 1.5-T superconducting MR system (MAGNETOM Maestro Class Symphony, ' +
+      'Siemens Medical Systems, Erlangen, Germany)" — with Siemens post-processing (Syngo2004A) and ' +
+      'a Siemens co-author. No GE hardware appears anywhere. Corrected to non-ge; the workbook ' +
+      'string is preserved verbatim above (R-45).',
+    vendorProvenance: 'literature-corrected',
     techniques: ['dwi-adc'],
     techniqueNote: null,
     modalityRaw: 'ADC HCV',
@@ -728,9 +771,14 @@ const REFERENCES = [
     studyType: 'Model derivation',
     evidenceGrade: 'B',
     vendorRaw: 'Multi-vendor 1.5T',
-    vendorClass: 'multi-vendor-incl-ge',
-    vendorClassAmbiguous: true,
-    vendorClassNote: 'Same bare "Multi-vendor 1.5T" as Ref#27. A 2001/2002 DCE model-derivation paper; GE participation is plausible but unrecorded.',
+    vendorClass: 'non-ge',
+    vendorClassAmbiguous: false,
+    vendorClassNote: 'W-043, 2026-09-10: the workbook string "Multi-vendor 1.5T" is contradicted by ' +
+      'the full text (reference/papers/fulltext/PMID-11754452.txt) — a rabbit-model DCE study whose ' +
+      'perfusion imaging "was performed on a 1.5 T" Philips scanner ("Gyroscan NT Intera T15; ' +
+      'Philips Medical Systems"). One scanner, no GE hardware. Corrected to non-ge; the workbook ' +
+      'string is preserved verbatim above (R-45).',
+    vendorProvenance: 'literature-corrected',
     techniques: ['not-applicable'],
     techniqueNote: 'DCE dual-input kinetic model; the schema models no DCE technique vocabulary.',
     modalityRaw: 'DCE dual-input model',
@@ -781,9 +829,14 @@ const REFERENCES = [
     studyType: 'Primary validation',
     evidenceGrade: 'B',
     vendorRaw: 'Multi-vendor 3T',
-    vendorClass: 'multi-vendor-incl-ge',
-    vendorClassAmbiguous: true,
-    vendorClassNote: 'Bare "Multi-vendor 3T". Compare Ref#11/19 "Multi-vendor 3T incl. GE" — same omission, same unanswerable question.',
+    vendorClass: 'non-ge',
+    vendorClassAmbiguous: false,
+    vendorClassNote: 'W-043, 2026-09-10: the workbook string "Multi-vendor 3T" is contradicted by ' +
+      'the full text (reference/papers/fulltext/PMID-28002045.txt): "Imaging was performed using a ' +
+      '3.0T scanner (Achieva, Philips Healthcare, Best, Netherlands) using a 16 channel body coil ' +
+      '(SENSE XL-Torso, Philips Healthcare)". One Philips scanner, no GE hardware. Corrected to ' +
+      'non-ge; the workbook string is preserved verbatim above (R-45).',
+    vendorProvenance: 'literature-corrected',
     techniques: ['not-applicable'],
     techniqueNote: 'DCE hepatic-arterial-fraction method; no technique vocabulary in this schema.',
     modalityRaw: 'DCE HAF',
@@ -912,7 +965,7 @@ const REFERENCES = [
     vendorRaw: 'Multi-vendor',
     vendorClass: 'multi-vendor-incl-ge',
     vendorClassAmbiguous: true,
-    vendorClassNote: 'Bare "Multi-vendor", and a systematic review is NOT a consensus document, so § 3.3 does not fire. Whether GE hardware contributed is not recorded.',
+    vendorClassNote: 'Bare "Multi-vendor", and a systematic review is NOT a consensus document, so § 3.3 does not fire. W-043, 2026-09-10: the full text (reference/papers/fulltext/PMID-30445016.txt) was read — a diagnostic-accuracy systematic review that tabulates no scanner or vendor inventory across its pooled studies; vendor names appear only in the authors\' conflict-of-interest disclosures. The class stays multi-vendor-incl-ge and ambiguous: a large multi-study review plausibly includes GE hardware, but the review does not record it.',
     techniques: ['not-applicable'],
     techniqueNote: 'Systematic review of a categorical algorithm; defines no continuous boundary.',
     modalityRaw: 'LI-RADS validation',

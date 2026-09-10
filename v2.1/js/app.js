@@ -174,7 +174,7 @@ function sampleMenuAllowed() {
 }
 
 function sampleScenarioList() {
-  return SAMPLE_CASES.map(c => ({key: c.key, label: c.label}));
+  return SAMPLE_CASES.map(c => ({key: c.key, label: c.label, group: c.group}));
 }
 
 /* STATELESS BY DECISION. The mode is never written to sessionStorage: a reload
@@ -217,6 +217,20 @@ function toggleMethodBlock(key) {
   methodOpen[key] = methodOpen[key] !== true;
 }
 
+/* W-194. WHICH PARAMETER CARDS HAVE THEIR BLOOD-TEST SUB-PANEL OPEN. Same shape
+   and same reasons as methodOpen above: a screen-only flag, keyed by card so
+   the Fibrosis and Iron panels toggle independently, owned here and threaded
+   down in the `view` object, never part of `selection`. The blood inputs
+   themselves live in selection.values exactly as they always did — this only
+   decides whether they are shown on screen; @media print draws the panel
+   regardless (styles.css). NOT PERSISTED: a reload opens the panels closed
+   again, matching bmiPopupOpen / methodOpen. */
+let bloodPanelOpen = {};
+function toggleBloodPanel(key) {
+  bloodPanelOpen[key] = bloodPanelOpen[key] !== true;
+  renderSelectionScreen();
+}
+
 /* W-167. WHETHER THE READER HAS DISMISSED THE INTRODUCTION STRIP. Same shape and
    same reasons as methodOpen above: a screen-only flag, owned here, threaded
    down in the view object, never part of `selection`.
@@ -237,6 +251,7 @@ function toggleBmiPopup() {
 }
 function closeBmiPopup() {
   bmiPopupOpen = false;
+  bloodPanelOpen = {};
   renderSelectionScreen();
 }
 
@@ -250,6 +265,7 @@ function enterSample(key) {
   selection = applySelection(createSelection(), loaded);
   removed = {};
   bmiPopupOpen = false;
+  bloodPanelOpen = {};
   renderSelectionScreen();
 }
 
@@ -261,6 +277,7 @@ function exitSample() {
   selection = createSelection();
   removed = {};
   bmiPopupOpen = false;
+  bloodPanelOpen = {};
   renderSelectionScreen();
 }
 
@@ -281,6 +298,7 @@ function newReport() {
   selection = createSelection();
   removed = {};
   bmiPopupOpen = false;
+  bloodPanelOpen = {};
   renderSelectionScreen();
 }
 
@@ -518,7 +536,8 @@ function renderSelectionScreen(ackTs) {
        report a reader might take for a finished one. */
     document.body.classList.remove('path-chosen');
     const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen,
-                  introDismissed: introDismissed, methodOpen: methodOpen};
+                  introDismissed: introDismissed, methodOpen: methodOpen,
+                  bloodPanelOpen: bloodPanelOpen};
     currentRoute = entryRoute(null, selection, view);
     app.innerHTML = toolbar({mode: viewMode}, false, sampleMenuAllowed(), sampleScenarioList(), sampleKey) +
       introStrip(view) +
@@ -532,7 +551,8 @@ function renderSelectionScreen(ackTs) {
     const profile = profileForPath(selection.path);
     const model = buildModel(report, profile, selection);
     const view = {mode: viewMode, bmiPopupOpen: bmiPopupOpen,
-                  introDismissed: introDismissed, methodOpen: methodOpen};
+                  introDismissed: introDismissed, methodOpen: methodOpen,
+                  bloodPanelOpen: bloodPanelOpen};
     currentRoute = entryRoute(model, selection, view);
     app.innerHTML = toolbar({mode: viewMode}, true, sampleMenuAllowed(), sampleScenarioList(), sampleKey) +
       introStrip(view) +
@@ -583,6 +603,13 @@ function wireSelectionScreen() {
     el.addEventListener('click', toggleBmiPopup));
   app.querySelectorAll('button[data-action="close-bmi-calc"]').forEach(el =>
     el.addEventListener('click', closeBmiPopup));
+  /* W-194. The per-card blood-test sub-panel toggle — a checkbox, keyed by card
+     (data-blood-panel) so the Fibrosis and Iron panels are independent. Drawn
+     only in the card's screen-only markup (render.js), so a listener on an
+     absent element is never called — the same shape as the bmi-calc binding
+     above. Bound on `change`, like the `data-performed-group` checkboxes. */
+  app.querySelectorAll('input[data-blood-panel]').forEach(el =>
+    el.addEventListener('change', () => toggleBloodPanel(el.getAttribute('data-blood-panel'))));
   /* W-017 round 2, ungated in W-129. "Send e-mail" opens the clinician's OWN
      mail client on a `mailto:` draft — it opens no network request of any
      kind, so the report never leaves the browser (feedback.test.js E12 locks

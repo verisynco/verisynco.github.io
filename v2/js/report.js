@@ -2296,7 +2296,20 @@ function markInterpretability(cards, reliability) {
     card.notInterpretableReasons = [];
     if (card.interpretable || !r) continue;
 
-    const seen = new Set();
+    /* W-190: `seen` now maps a key to the REASON OBJECT already pushed for it,
+       not merely to the fact that one was pushed. The sentence still prints
+       once -- two triggers reading ONE workbook sentence (BMI > 35 and
+       T2* < 12 ms are both INT-0033) still collapse to one paragraph -- but
+       every trigger that shares the key contributes its own `highlight`
+       phrase into that ONE reason's `highlights` array, deduped by phrase.
+       Before this, the second and further triggers were dropped entirely and
+       the phrase naming what THEY matched never reached the page. */
+    const seen = new Map();
+    function addHighlights(reason, phrases) {
+      for (const h of (phrases || [])) {
+        if (reason.highlights.indexOf(h) === -1) reason.highlights.push(h);
+      }
+    }
     for (const m of r.modifiers) {
       if (m.effect !== 'fails' && m.effect !== 'uninterpretable') continue;
       /* Keyed by the INTERACTION, not the trigger: two triggers can be two
@@ -2304,12 +2317,14 @@ function markInterpretability(cards, reliability) {
          T2* < 12 ms are both INT-0033), and printing that sentence twice tells
          the reader nothing the first printing did not. */
       const key = m.interactionId || m.statement || m.triggerId;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      card.notInterpretableReasons.push({
-        statement: m.statement, refIds: (m.refIds || []).slice(),
-        effect: m.effect, inheritedFrom: null
-      });
+      let reason = seen.get(key);
+      if (!reason) {
+        reason = {statement: m.statement, refIds: (m.refIds || []).slice(),
+                  effect: m.effect, inheritedFrom: null, highlights: []};
+        seen.set(key, reason);
+        card.notInterpretableReasons.push(reason);
+      }
+      addHighlights(reason, m.highlight);
     }
     /* An inherited downgrade prints the rule that fired on the SOURCE parameter,
        named as inherited. Without the source's own sentence the reader is told a
@@ -2318,12 +2333,14 @@ function markInterpretability(cards, reliability) {
     for (const inh of r.inherited) {
       const m = byTrigger.get(inh.triggerId);
       const key = inh.interactionId || (m && m.statement) || inh.triggerId;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      card.notInterpretableReasons.push({
-        statement: m ? m.statement : null, refIds: m ? (m.refIds || []).slice() : [],
-        effect: m ? m.effect : null, inheritedFrom: inh.from
-      });
+      let reason = seen.get(key);
+      if (!reason) {
+        reason = {statement: m ? m.statement : null, refIds: m ? (m.refIds || []).slice() : [],
+                  effect: m ? m.effect : null, inheritedFrom: inh.from, highlights: []};
+        seen.set(key, reason);
+        card.notInterpretableReasons.push(reason);
+      }
+      addHighlights(reason, m && m.highlight);
     }
   }
   return cards;
@@ -2561,7 +2578,8 @@ function buildImpression(model) {
     rules: rel.fired.map(m => ({
       triggerId: m.triggerId, interactionId: m.interactionId, effect: m.effect,
       statement: m.statement, refIds: m.refIds, magnitude: m.magnitude, note: m.note,
-      sourceQuote: m.sourceQuote, sourceRefId: m.sourceRefId, sourceKind: m.sourceKind
+      sourceQuote: m.sourceQuote, sourceRefId: m.sourceRefId, sourceKind: m.sourceKind,
+      highlight: m.highlight
     })),
     inherited: Object.keys(rel.byParameter)
       .map(p => ({parameter: p, from: rel.byParameter[p].inherited}))

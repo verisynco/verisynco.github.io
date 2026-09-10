@@ -329,9 +329,9 @@ const PROTOCOLS = {
     },
     'REF-015': {
       refId: 'REF-015',
-      study: 'Serai SD / Reeder Multicenter (2022)',
-      scanner: 'GE Signa 3T + Signa Premier + 1.5T Signa',
-      vendorClass: 'ge-explicit',
+      study: 'Hernando D et al. Multicenter (2022)',
+      scanner: 'Multi-vendor: GE Signa/Discovery MR750/Premier + Philips + Siemens, 1.5T + 3T',
+      vendorClass: 'multi-vendor-incl-ge',
       coil: 'AIR anterior + spine',
       sequence: 'IDEAL-IQ (6-echo confounder-corrected)',
       techniques: ['iron-r2star-gre'],
@@ -343,7 +343,7 @@ const PROTOCOLS = {
       breathing: 'Breath-hold',
       reconSoftware: 'Confounder-corrected R2* + LIC calibration',
       population: 'Multicenter iron overload (n=207)',
-      keyResult: '3T LIC = 0.0472 × R2*; 1.5T = 0.0254 × R2*',
+      keyResult: '3T LIC = -0.03 + 0.01349 × R2*; 1.5T = -0.16 + 0.02603 × R2*; 2.89T = -0.03 + 0.01400 × R2* (W-043: was the pre-W-069 0.0472 / 0.0254)',
       source: {sheet: 'GE_Protocols_3T', row: 11}
     },
     'REF-018': {

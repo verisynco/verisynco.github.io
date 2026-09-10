@@ -200,7 +200,12 @@ function applyReliability(input) {
       magnitude: t.magnitude, note: t.note, inheritedFrom: null,
       sourceQuote: t.sourceQuote || null,
       sourceRefId: t.sourceRefId || null,
-      sourceKind: t.sourceKind || null
+      sourceKind: t.sourceKind || null,
+      /* W-190: the literal clause of the statement (or sourceQuote) that THIS
+         trigger's own condition names — never authored here, carried through
+         from the row exactly like magnitude/note. Copied as-is so an absent
+         highlight on a row stays absent (`[]`), not invented. */
+      highlight: (t.highlight || []).slice()
     };
     fired.push(modifier);
     /* A modifier attaches to a target only when the target HAS a value, or

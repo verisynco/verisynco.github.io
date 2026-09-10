@@ -26,7 +26,35 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.80';  /* W-187: the sample toolbar's scenario
+const V21_RENDER_VERSION = '3.83';  /* W-194: the MEFIB block is drawn as a
+   schematic — two input nodes (MRE stiffness, FIB-4), each carrying its own
+   met/not-met mark, joined into one verdict node — instead of two loose chips
+   above a bar. `compositeSection` reads the SAME `composite.lines` /
+   `composite.verdict` the chips did; nothing new is computed and no engine
+   file is opened. The met/not-met state is a class + a filled/open ring glyph
+   + a solid/dashed connector (styles.css), never colour (DESIGN-DIRECTION
+   § 2.3). The `pending` sentence is unchanged; where it is FIB-4 that is
+   missing, a hint points at the blood-test panel on the Fibrosis card.
+   W-194 also moved the "Laboratory (supporting)" grid off the top of the sheet
+   and into the card each blood value firms up (bloodPanelHtml): AST/ALT/
+   platelets/ALT-ULN/GGT on the Fibrosis (MRE) card, ferritin on the LIC card.
+   No clinical value, cut-off, band or hash moves.
+   W-190: bolds the matched clause inside a
+   reliability warning's quoted sentence (boldPhrases, notInterpretableHtml,
+   the evidence-appendix rule rows) — a reader can now see WHICH clinical
+   condition fired without re-reading the trigger id.
+   W-188: the sample toolbar's scenario
+   menu groups its <option>s under <optgroup>s (SAMPLE_GROUP_ORDER, below
+   toolbar()) — the registry is growing from 7 to 21 entries and a flat list
+   stops being scannable. Groups render in a fixed order, never registry
+   order; a scenario carrying no group, or a group outside the five, lands in
+   a trailing "Other" optgroup rather than vanishing. The W-187 mark (the
+   `selected` attribute on the loaded scenario's <option>) is unchanged by
+   the regrouping — it stays on the <option>, never on <select> or
+   <optgroup>. v2's frozen renderer (W-164) keeps the flat menu;
+   v2/tests/render.test.js asserts that asymmetry on purpose. Screen-only:
+   no clinical value, cut-off, band or hash moves.
+   —— W-187: the sample toolbar's scenario
    menu marks the loaded case, so it stops naming the first entry whatever is on
    screen. The key is handed in by app.js, which owns the registry; the renderer
    reads no scenario list of its own. Screen-only, sample mode only.
@@ -1240,41 +1268,18 @@ function bmiCalcCellHtml(context, uiState) {
    the MRE card itself is not on — the same finding W-141 already used for
    the etiologyCohort selector. See render.js's ascitesCellHtml() and
    report.js buildLabs() for where the fields live now. */
-function labsBlock(labs, selection, model) {
-  if (!labs) return '';
-  /* W-149 — an empty laboratory cell gets the fill wash: ast/alt/platelets feed
-     FIB-4, altUln feeds INT-0035, ggt the reliability rules. Screen-only and
-     live-only via the CSS guard, exactly like the parameter-card inputs. */
-  const grid = labs.inputs.map(f =>
-    '<div class="' + lcClass(f.value === null) + '"><label>' + esc(f.label) + '</label><div class="r2">' +
-    '<input type="number" inputmode="decimal" step="any" data-value="' + esc(f.key) + '"' +
-    (f.value === null ? ' data-fill="needed"' : '') + ' value="' +
-    (f.value === null ? '' : esc(String(f.value))) + '"><span class="u">' +
-    esc(f.unit) + '</span></div></div>').join('');
-
+/* W-194. This block used to also carry the "Laboratory (supporting)" grid: the
+   five blood inputs, the FIB-4 / AST-ALT chip, the FIB-4 provenance pointer and
+   the "not computed" pending line, sitting at the top of the sheet above every
+   imaging card, which read as a required foundational input when it is
+   supporting data. Each blood value now lives inside the card whose reading it
+   firms up (bloodPanelHtml, below): AST / ALT / platelets / ALT-ULN / GGT in the
+   Fibrosis (MRE) card's blood sub-panel, ferritin in the LIC card's. What stays
+   here is what always belonged together: the screen-only "which groups were
+   performed" and "additional measurements" checkbox blocks, still inside the
+   `.labs` box, still `id="labs"`. */
+function labsBlock(selection, model) {
   return '<section class="labs" id="labs">' +
-    '<div class="labs-head"><span class="t">Laboratory (supporting)</span>' +
-    '<span class="derived">FIB-4 <b>' +
-      (labs.fib4.value === null ? '\u2014' : esc(labs.fib4.value.toFixed(2))) +
-    '</b> \u00b7 AST/ALT <b>' +
-      (labs.aar.value === null ? '\u2014' : esc(String(labs.aar.value))) +
-    '</b></span></div>' +
-    /* W-144. `labs-fib` widens the grid from 5 columns to 4 only when
-       altUln/ggt are actually spliced into labs.inputs (report.js
-       buildLabs()) \u2014 without it, this grid is byte-identical to the
-       original 5-field/5-column layout. */
-    '<div class="labs-grid' + (labs.hasFibrosisLabs ? ' labs-fib' : '') + '">' + grid + '</div>' +
-    /* W-130. The full expression + provenance sentence moved to the
-       methodology sheet (tableB, "How these numbers were formed") -- this
-       is now a one-line pointer, not the formula itself. The number stays
-       right here in the header chip above; only the derivation's ACCOUNT
-       of it relocated -- the same "fact stays on the card, reason goes to
-       the methodology sheet" rule the parameter cards already follow
-       (§ 5.4). */
-    (labs.fib4.value !== null
-      ? '<p class="labs-prov">FIB-4 formula and provenance — see ' +
-        'Methodology, “How these numbers were formed”.</p>' : '') +
-    (labs.pending ? '<p class="labs-pending">' + esc(labs.pending) + '</p>' : '') +
     performedBlock(selection) +
     tier2Block(model, selection) +
     '</section>';
@@ -1812,6 +1817,24 @@ function rowGapHtml(row) {
    ⛔ FOUR FACTS NEVER LEAVE THIS CARD (decision § 2.3): card.gap, row.gate,
       row.scope.note and card.disagreement. Their REASONS belong to the
       methodology sheet; the facts do not. */
+/* W-190. `text` is HTML-escaped exactly like a bare `esc()` call would leave it;
+   each phrase in `phrases` is escaped the same way and, where it occurs, wrapped
+   in <b>. The phrases never come from here -- they are the record's own
+   `highlight` field (R-53 in schema.test.js proves each one is verbatim in the
+   text it is drawn from), so this function only marks where they landed. A
+   phrase absent from `text` (should not happen, given R-53) simply matches
+   nothing and changes nothing. */
+function boldPhrases(text, phrases) {
+  let out = esc(text || '');
+  (phrases || []).forEach(function (p) {
+    if (!p) return;
+    const escaped = esc(p);
+    const pattern = escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(pattern, 'g'), '<b>' + escaped + '</b>');
+  });
+  return out;
+}
+
 /* The short form of a reference, for the one place a citation now appears on the
    clinical page: the withheld-reading line. Built from the record's OWN fields --
    the citation string up to its first comma, and the year -- never a label typed
@@ -1840,7 +1863,7 @@ function notInterpretableHtml(card) {
       ? ' — inherited from ' + esc(_RN.PARAMETER_LABELS[x.inheritedFrom] ||
                                         x.inheritedFrom)
       : '') + '.</b> ' +
-    esc(x.statement || card.notInterpretableReason || '') +
+    boldPhrases(x.statement || card.notInterpretableReason || '', x.highlights) +
     (x.refIds && x.refIds.length
       ? '<span class="src">' + esc(x.refIds.map(shortCite).join('; ')) + '</span>'
       : '') +
@@ -2119,7 +2142,108 @@ function measurementPracticeHint(parameter, fieldStrength, interactions, referen
   return lines.join('\n');
 }
 
-function parameterCard(row, card, selection) {
+/* W-194. THE PER-CARD BLOOD-TEST SUB-PANEL. The blood values that firm up a
+   card's own reading, drawn inside that card and set off from its imaging
+   measurement. Only two cards take one:
+     - the Fibrosis (MRE) card: AST / ALT / platelets feed FIB-4 (the MEFIB
+       rule's other half), ALT-ULN / GGT feed the MRE stiffness reliability
+       rules;
+     - the LIC card: ferritin feeds the iron-overload reliability rules.
+   Every input is read from model.labs.inputs BY KEY, the same list report.js
+   authored; FIB-4 and the AST/ALT ratio are model.labs.fib4 / model.labs.aar,
+   also report.js's. Nothing new is computed here.
+
+   SCREEN: a checkbox opens the panel; closed by default, even when the group is
+   performed (developer decision). `view.bloodPanelOpen[<param>]` is a screen-
+   only flag owned by app.js, never on `selection`.
+   PRINT: the panel's values always render. The `bp-open` gate is an `@media
+   screen` rule (styles.css); `@media print` never sees it, the same W-164 safety
+   argument the methodology collapse uses. A panel with no value entered is
+   marked `bp-empty` and dropped on paper, mirroring `.ivim-empty`. */
+const BLOOD_PANEL = {
+  mre: {keys: ['ast', 'alt', 'plt', 'altUln', 'ggt'],
+        toggle: 'Add blood tests (FIB-4)',
+        lead: 'These blood values are not staged on their own. They feed the ' +
+              'FIB-4 score used by the MEFIB rule below and the reliability ' +
+              'checks on the MRE stiffness.'},
+  lic: {keys: ['ferritin', 'tsat'],
+        toggle: 'Add blood test (ferritin)',
+        lead: 'Serum ferritin is not staged on its own. It feeds the ' +
+              'reliability checks on the iron measurement.'}
+};
+/* tsat and the AST/ALT ratio trigger no rule, so they are shown faded, the same
+   "collected, stages nothing" signal the outlined band register carries
+   (DESIGN-DIRECTION 2.3). */
+const BLOOD_PANEL_MUTED_KEYS = ['tsat'];
+
+/* W-194. No `data-fill="needed"` wash here, unlike the parameter-card value
+   inputs: this panel is opt-in (the reader chose to open it), so a "you must
+   fill this" wash would re-create exactly the required-foundation pressure the
+   relocation removes. An empty cell still collapses on paper (`lc-empty`). */
+function bloodCellHtml(cell, muted) {
+  return '<div class="' + lcClass(cell.value === null) +
+    (muted ? ' labs-muted' : '') + '"><label>' + esc(cell.label) +
+    '</label><div class="r2"><input type="number" inputmode="decimal" ' +
+    'step="any" data-value="' + esc(cell.key) + '" value="' +
+    (cell.value === null ? '' : esc(String(cell.value))) + '"><span class="u">' +
+    esc(cell.unit) + '</span></div></div>';
+}
+
+function bloodPanelHtml(row, selection, model, view) {
+  const spec = BLOOD_PANEL[row.parameter];
+  if (!spec || !model || !model.labs || !model.labs.inputs) return '';
+  const byKey = {};
+  model.labs.inputs.forEach(function (c) { byKey[c.key] = c; });
+  const cells = spec.keys.map(function (k) { return byKey[k]; }).filter(Boolean);
+  if (!cells.length) return '';
+  const open = !!(view && view.bloodPanelOpen && view.bloodPanelOpen[row.parameter]);
+  const labs = model.labs;
+  const anyValue = cells.some(function (c) {
+    return c.value !== null && c.value !== undefined;
+  });
+
+  const grid = cells.map(function (c) {
+    return bloodCellHtml(c, BLOOD_PANEL_MUTED_KEYS.indexOf(c.key) !== -1);
+  }).join('');
+
+  let fib4Html = '';
+  if (row.parameter === 'mre' && labs.fib4) {
+    const age = selection && typeof selection.age === 'number' ? selection.age : null;
+    const named = function (k) {
+      const c = byKey[k];
+      return c && c.value !== null && c.value !== undefined
+        ? esc(c.label) + ' ' + esc(String(c.value)) : null;
+    };
+    const parts = [age !== null ? 'age ' + esc(String(age)) : null,
+                   named('ast'), named('alt'), named('plt')].filter(Boolean);
+    fib4Html =
+      '<p class="bp-derived">FIB-4 <b>' +
+        (labs.fib4.value === null ? '—' : esc(labs.fib4.value.toFixed(2))) + '</b>' +
+        (labs.fib4.value !== null && parts.length
+          ? ' <span class="bp-from">◄ ' + parts.join(' · ') + '</span>' : '') +
+        (labs.aar && labs.aar.value !== null
+          ? ' <span class="bp-aar labs-muted">· AST/ALT ' +
+            esc(String(labs.aar.value)) + '</span>' : '') +
+      '</p>' +
+      (labs.fib4.value !== null
+        ? '<p class="bp-prov">FIB-4 formula and provenance — see Methodology, ' +
+          '“How these numbers were formed”.</p>' : '');
+  }
+
+  return '<div class="pcard-blood' + (open ? ' bp-open' : '') +
+      (anyValue ? '' : ' bp-empty') + '">' +
+    '<label class="bp-toggle screen-only"><input type="checkbox" data-blood-panel="' +
+      esc(row.parameter) + '"' + (open ? ' checked' : '') + '>' +
+      '<span>' + esc(spec.toggle) + '</span></label>' +
+    '<div class="bp-body">' +
+      '<p class="bp-lead">' + esc(spec.lead) + '</p>' +
+      '<div class="labs-grid bp-grid">' + grid + '</div>' +
+      fib4Html +
+    '</div>' +
+  '</div>';
+}
+
+function parameterCard(row, card, selection, model, view) {
   /* W-090. Was `row.domain` — the SAME value ('iron') for lic/r2star/t2star,
      which is why they used to draw an IDENTICAL control on all three cards.
      `row.controlKey` is that value for every other parameter and the
@@ -2221,6 +2345,10 @@ function parameterCard(row, card, selection) {
       rowGapHtml(row) +
       bmiEchoHtml(row, selection) +
     '</div>' +
+    /* W-194. The card's blood-test sub-panel, when this parameter is one that
+       takes one (mre / lic). Full-width, below .pfacts, set off from the
+       imaging measurement above it. Returns '' for every other card. */
+    bloodPanelHtml(row, selection, model, view) +
     '</section>';
 }
 
@@ -2479,19 +2607,52 @@ function stampText(model, selection, versions) {
    comes from: a one-sentence plain-language intro before the verdict, and the
    footnote split into two LABELLED parts (MAST / rule strength) instead of one
    run-on paragraph — each still just prose, no new fact. */
+/* W-194. One contributing reading as a node in the schematic: its value, where
+   it came from, and its threshold test carrying a met / not-met mark. `l` is a
+   `composite.lines` entry from report.js, read verbatim. The met / not-met
+   state is a class plus a filled / open ring plus (in styles.css) a solid /
+   dashed connector — never colour (DESIGN-DIRECTION § 2.3; the ui-ux-pro-max
+   pass's blue/red node colour was rejected on the same rule). */
+function mefibNodeHtml(l) {
+  /* W-194 moved the FIB-4 inputs out of the old top-of-page laboratory block
+     and onto the Fibrosis card; report.js still authors the origin string, so
+     the one now-stale phrase is corrected here — a presentation label, not a
+     clinical value, and no engine file is opened for it. */
+  const from = String(l.origin).replace(
+    'from the laboratory block',
+    'from the blood-test panel on the Fibrosis card');
+  return '<div class="ms-node ' + (l.met ? 'ms-met' : 'ms-unmet') + '">' +
+    '<span class="ms-name">' + esc(l.label) + '</span>' +
+    '<span class="ms-val">' + esc(String(l.value)) +
+      (l.unit ? ' ' + esc(l.unit) : '') + '</span>' +
+    '<span class="ms-from">' + esc(from) + '</span>' +
+    '<span class="ms-test"><span class="ms-mark" aria-hidden="true">' +
+      (l.met ? '●' : '○') + '</span>' +
+      (l.met ? 'met' : 'not met') + ' — ' + esc(l.test) + '</span>' +
+  '</div>';
+}
 function compositeSection(composite) {
   if (!composite) return '';
-  const lines = composite.lines.map(l =>
-    '<span class="chip' + (l.met ? ' met' : '') + '"><b>' + esc(l.label) + '</b> ' +
-    esc(String(l.value)) + (l.unit ? ' ' + esc(l.unit) : '') +
-    '<span class="from">' + esc(l.origin) + '</span>' +
-    '<span class="test">' + esc(l.test) + '</span></span>').join('');
+  /* W-194. The pending sentence is report.js's and unchanged. Where it is the
+     FIB-4 half that could not be computed, point the reader at where that
+     number is now entered. Screen AND print: a printed pending MEFIB is still
+     a real instruction to whoever reads the sheet. */
+  const fib4Hint = composite.pending &&
+    composite.pending.indexOf('FIB-4 could not be computed') !== -1
+    ? '<p class="gap-hint">Open the blood-test panel on the Fibrosis card and ' +
+      'enter AST, ALT and platelets to compute FIB-4.</p>'
+    : '';
+  const body = composite.pending
+    ? '<p class="gap">' + esc(composite.pending) + '</p>' + fib4Hint
+    : '<div class="mefib-schematic">' +
+        '<div class="ms-inputs">' + composite.lines.map(mefibNodeHtml).join('') + '</div>' +
+        '<div class="ms-join" aria-hidden="true"></div>' +
+        '<div class="ms-verdict">' + verdictChip(composite.verdict) + '</div>' +
+      '</div>';
   return '<section class="composite"><div class="section-head"><h3>' +
     esc(composite.name) + '</h3><span class="rule"></span></div>' +
     '<p class="cintro">' + esc(composite.intro) + '</p>' +
-    (composite.pending
-      ? '<p class="gap">' + esc(composite.pending) + '</p>'
-      : '<div class="chips">' + lines + '</div>' + verdictChip(composite.verdict)) +
+    body +
     '<p class="cnote"><b>MAST</b> ' + esc(composite.note.mast) + '</p>' +
     '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) +
     '</p></section>';
@@ -2749,7 +2910,7 @@ function buildRequestorEmail(model, selection, versions) {
    hand cannot become the appendix nobody prints, which the report surface
    decision named as its largest risk (W-030 § 0.2). */
 
-function sectionsHtml(model, selection) {
+function sectionsHtml(model, selection, view) {
   const counter = {n: 0};
   const indication = selection.indication || 'non-specific';
   /* The order is the MODEL's, read here and not re-derived: severity class first,
@@ -2757,7 +2918,7 @@ function sectionsHtml(model, selection) {
      file could not be asserted without rendering (plan D5). */
   /* The indication no longer orders anything (W-061); `orderCards` lists. */
   const ordered = _RN.orderCards(model.report, model.cards);
-  const build = p => parameterCard(p.row, p.card, selection);
+  const build = p => parameterCard(p.row, p.card, selection, model, view);
   let html = '';
   for (const section of SECTIONS) {
     /* W-080. The merged `additional` section has no single `mount`: its rows are
@@ -2871,6 +3032,20 @@ function tbIcon(name) {
    under the row, rendered only when there is a word to say. NO PAGE COUNT in any
    label — no test here can count a PDF's pages, so a number would be a claim
    nothing locks (§ 1.2). */
+/* W-188. Fixed display order for the sample-scenario menu's <optgroup>s —
+   NOT the order scenarios happen to appear in the registry. A group with no
+   scenarios in this render is simply skipped (no empty <optgroup>); a
+   scenario whose `group` is missing or names none of these five still has
+   to appear, so it falls into a trailing "Other" group rather than
+   vanishing from the picker. */
+const SAMPLE_GROUP_ORDER = [
+  {key: 'steatosis', label: 'Steatosis'},
+  {key: 'iron', label: 'Iron'},
+  {key: 'fibrosis', label: 'Fibrosis'},
+  {key: 'differential', label: 'Differential pairs'},
+  {key: 'technical', label: 'Technique and scanner'}
+];
+
 function toolbar(view, ready, dev, scenarios, selectedKey) {
   const sample = !!(view && view.mode === 'sample');
   /* SAMPLE mode only — there is nothing to switch between until a scenario is
@@ -2882,13 +3057,33 @@ function toolbar(view, ready, dev, scenarios, selectedKey) {
      the option, not on the select: app.js owns the registry and hands in the
      key it resolved, so the renderer stays pure and a key naming no scenario
      marks nothing rather than guessing at one. */
+  /* W-188. Groups are drawn in SAMPLE_GROUP_ORDER's fixed order, never
+     registry order, each scenario keeping its own within-group registry
+     order. A scenario whose `group` matches none of the five (missing,
+     misspelled, or simply not yet grouped) lands in a trailing "Other"
+     optgroup rather than disappearing from the menu; a group with no
+     scenarios this render emits no <optgroup> at all. */
+  const optionHtml = s => '<option value="' + esc(s.key) + '"' +
+                           (s.key === selectedKey ? ' selected' : '') + '>' +
+                           esc(s.label) + '</option>';
   const menu = (sample && dev && Array.isArray(scenarios) && scenarios.length)
-    ? '<label class="tb-scenario">Scenario ' +
-      '<select data-sample-scenario>' +
-      scenarios.map(s => '<option value="' + esc(s.key) + '"' +
-                          (s.key === selectedKey ? ' selected' : '') + '>' +
-                          esc(s.label) + '</option>').join('') +
-      '</select></label>'
+    ? (() => {
+        const remaining = scenarios.slice();
+        let groupsHtml = '';
+        for (const g of SAMPLE_GROUP_ORDER) {
+          const inGroup = remaining.filter(s => s.group === g.key);
+          if (!inGroup.length) continue;
+          groupsHtml += '<optgroup label="' + esc(g.label) + '">' +
+            inGroup.map(optionHtml).join('') + '</optgroup>';
+          for (const s of inGroup) remaining.splice(remaining.indexOf(s), 1);
+        }
+        if (remaining.length) {
+          groupsHtml += '<optgroup label="Other">' +
+            remaining.map(optionHtml).join('') + '</optgroup>';
+        }
+        return '<label class="tb-scenario">Scenario ' +
+          '<select data-sample-scenario>' + groupsHtml + '</select></label>';
+      })()
     : '';
   /* W-152 round 2 (developer, 2026-09-02): a live, ready report carries NO
      caption. The dashed-line note (W-128) and the "Email opens the print
@@ -2958,8 +3153,8 @@ function renderClinicalSheets(model, profile, selection, versions, view) {
     masthead(profile) +
     patientMeta(selection, view) +
     studyMeta(selection, profile) +
-    labsBlock(model.labs, selection, model) +
-    sectionsHtml(model, selection) +
+    labsBlock(selection, model) +
+    sectionsHtml(model, selection, view) +
     compositeSection(model.composite) +
     impressionSection(model.impression && model.impression.clinical) +
     (sample ? sampleLine() : '') +
@@ -3017,17 +3212,10 @@ function entryRoute(model, selection, uiState) {
   }
   if (!model || !model.report) return route;
 
-  /* The laboratory grid, in the order its own record list declares — the
-     same list labsBlock draws from, so the route cannot name a field the
-     sheet does not render.
-     W-144: altUln/ggt no longer have a route entry of their own here — they
-     are spliced into `model.labs.inputs` itself (report.js buildLabs()) when
-     shown, so the loop right below already stops for them in the right
-     place, in the right order, for free. ascites moved into the MRE row's
-     own route entry, below. */
-  if (model.labs && model.labs.inputs) {
-    for (const f of model.labs.inputs) route.push({attr: 'data-value', key: f.key});
-  }
+  /* W-194. The laboratory grid no longer stops here. Each blood input is now a
+     Tab stop of the card whose blood sub-panel shows it (bloodPanelHtml), added
+     in the per-row loop below, and only when that panel is open on screen — the
+     same "no route stop without a field" rule W-046 set. */
 
   const preset = _RN.defaultTechniques(selection.path);
   for (const row of model.report.rows) {
@@ -3046,6 +3234,18 @@ function entryRoute(model, selection, uiState) {
        loop, is the only thing that decides whether it exists on the page). */
     if (row.parameter === 'mre') {
       route.push({attr: 'data-value', key: 'ascites'});
+    }
+    /* W-194. The card's blood-test sub-panel inputs — a Tab stop only when the
+       panel is open on screen (W-046), in model.labs.inputs order for the keys
+       this card's panel shows. bloodPanelHtml renders the same keys under the
+       same open flag, so the route cannot name a field the panel does not draw. */
+    if (BLOOD_PANEL[row.parameter] && uiState && uiState.bloodPanelOpen &&
+        uiState.bloodPanelOpen[row.parameter] && model.labs && model.labs.inputs) {
+      const present = {};
+      model.labs.inputs.forEach(function (c) { present[c.key] = true; });
+      for (const k of BLOOD_PANEL[row.parameter].keys) {
+        if (present[k]) route.push({attr: 'data-value', key: k});
+      }
     }
     /* The same condition parameterCard uses to decide whether it draws one. A
        second rule here would let the route point at a control that is not on
@@ -3458,7 +3658,7 @@ function evidenceAppendix(evidence) {
      FACT that a reading was withheld and never the paper behind it. Absent on
      every workbook-sourced rule, which is thirteen of the fourteen. */
   const rows = evidence.rules.map(r =>
-    '<li><b>' + esc(r.effect) + '</b> · ' + esc(r.statement) +
+    '<li><b>' + esc(r.effect) + '</b> · ' + boldPhrases(r.statement, r.highlight) +
     (r.magnitude ? ' <i>' + esc(r.magnitude) + '</i>' : '') +
     (r.sourceQuote
       ? '<div class="quote">“' + esc(r.sourceQuote) + '” <span class="src">' +

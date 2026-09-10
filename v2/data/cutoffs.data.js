@@ -31,7 +31,13 @@
  */
 
 const CUTOFFS_REV = 'xlsx-v1';
-const CUTOFFS_VERSION = '1.14';   /* W-157: CUT-0005 / CUT-0065 / CUT-0066 (pediatric
+const CUTOFFS_VERSION = '1.15';   /* W-043: CUT-0014 / CUT-0016 (PDFF S2|S3, 22.1%) citation
+   channel corrected — workbook cited REF-009, where 22.1 is a coincidental ex-vivo steatosis
+   mean; the boundary is Tang 2013's (EXT-002), the same fix W-069 applied to CUT-0013 /
+   CUT-0015. The value 22.1% is UNCHANGED. Their performance pair 84 / 90 / 0.94 is withdrawn
+   (a boundary-row best no cited paper publishes). CUT-0081 / CUT-0082 vendorClass follows
+   REF-027 to non-ge (mechanical § 5.5 reduction). No staging value moved. Previous:
+   W-157: CUT-0005 / CUT-0065 / CUT-0066 (pediatric
    MRE, grade C, adapted-from-adult, "adapt with caution" in the workbook's own words) gain
    stagingWithdrawn — the W-135 mechanism: a record that exists but is withdrawn from the
    staging path, stated as a gap and never a number a caller can ask back. value, valueRaw,
@@ -51,7 +57,7 @@ const CUTOFFS_VERSION = '1.14';   /* W-157: CUT-0005 / CUT-0065 / CUT-0066 (pedi
 /* SHA-256 over the canonical serialisation of every record. See v2/tests/schema.test.js.
    W-050 added the 15th canonical element — whether a record's own citation is accepted
    or rejected. The record SHAPE moved and no value did (SCHEMA § 5.1.1). */
-const CUTOFFS_HASH = 'c60dea7123c3de2e5d11c2567ec94a27cc6c2a7d716bed9436ab84931fdf4bab';
+const CUTOFFS_HASH = '6905254bdc095cb676ced31da399333a13f3eb92efdbbffc050b3f08c28cb86c';
 
 const CUTOFFS = [
   {
@@ -154,25 +160,26 @@ const CUTOFFS = [
     fieldStrength: '1.5T',
     cohort: 'adult-nafld',
     value: 22.1,
-    valueRaw: '17–22.1%',
+    valueRaw: '17.4–22.1%',
     unit: '%',
     operator: '>=',
     sourceRefIds: ['REF-005', 'REF-009'],
-    externalRefIds: [],
-    citationProvenance: 'workbook',
+    externalRefIds: ['EXT-002'],
+    citationProvenance: 'literature-corrected',
+    workbookCitationRejected: true,
     vendorClass: 'ge-explicit',
     vendorClassAmbiguous: false,
     technique: 'pdff-cse-mri',
     techniqueGroup: 'pdff-quantitative',
     evidenceGrade: 'A',
-    sensitivity: 84,
-    specificity: 90,
-    auc: 0.94,
-    performanceScope: 'boundary-row',
-    performanceRefIds: ['REF-005', 'REF-009'],
-    population: 'Idilman + Bannas ex vivo n=39',
+    sensitivity: null,
+    specificity: null,
+    auc: null,
+    performanceScope: null,
+    performanceRefIds: [],
+    population: 'Adult NAFLD, n=77 (Tang 2013)',
     provenance: 'transcribed',
-    note: 'Idilman in vivo + Bannas ex vivo (bias 0.22% ± 1.99%). Both cited studies are GE, so this edge is ge-explicit at both field strengths.',
+    note: 'Tang 2013 (EXT-002) is the paper that publishes this boundary: "A 22.1% MR imaging-PDFF threshold provided 68% raw sensitivity ... 91% raw specificity" (LITERATURE.md § 9.21.1). The workbook citation REF-009 (Bannas 2015) does NOT carry it — "22.1" occurs there twice, both as an ex-vivo liver\'s mean steatosis ("22.1 ± 3.5"), a coincidence of digits; REF-005 (Idilman 2013) does not publish it either. The value 22.1% is unchanged: it is Tang\'s S2|S3 rung, and Tang\'s published ladder is 6.4 / 17.4 / 22.1 (the S1|S2 rung 17.4% is CUT-0013 / CUT-0015). The performance pair 84 / 90 / 0.94 is WITHDRAWN rather than replaced — it was a boundary-row best that no cited paper publishes, and Tang\'s own figures for this threshold (68% raw sensitivity, 91% raw specificity) cannot be attached because R-14 binds performanceRefIds to workbook references and EXT-002 is external. Widening the performance channel is queued as W-193. Mirrors W-069\'s treatment of the neighbouring rung CUT-0013.',
     source: {sheet: 'PDFF', cell: 'C12'}
   },
   {
@@ -215,25 +222,26 @@ const CUTOFFS = [
     fieldStrength: '3.0T',
     cohort: 'adult-nafld',
     value: 22.1,
-    valueRaw: '17–22.1%',
+    valueRaw: '17.4–22.1%',
     unit: '%',
     operator: '>=',
     sourceRefIds: ['REF-005', 'REF-009'],
-    externalRefIds: [],
-    citationProvenance: 'workbook',
+    externalRefIds: ['EXT-002'],
+    citationProvenance: 'literature-corrected',
+    workbookCitationRejected: true,
     vendorClass: 'ge-explicit',
     vendorClassAmbiguous: false,
     technique: 'pdff-cse-mri',
     techniqueGroup: 'pdff-quantitative',
     evidenceGrade: 'A',
-    sensitivity: 84,
-    specificity: 90,
-    auc: 0.94,
-    performanceScope: 'boundary-row',
-    performanceRefIds: ['REF-005', 'REF-009'],
-    population: 'Idilman + Bannas ex vivo n=39',
+    sensitivity: null,
+    specificity: null,
+    auc: null,
+    performanceScope: null,
+    performanceRefIds: [],
+    population: 'Adult NAFLD, n=77 (Tang 2013)',
     provenance: 'transcribed',
-    note: 'Idilman in vivo + Bannas ex vivo (bias 0.22% ± 1.99%). Both cited studies are GE, so this edge is ge-explicit at both field strengths.',
+    note: 'The 3.0 T sibling of CUT-0014. Tang 2013 (EXT-002) publishes this boundary: "A 22.1% MR imaging-PDFF threshold provided 68% raw sensitivity ... 91% raw specificity" (LITERATURE.md § 9.21.1). The workbook citation REF-009 (Bannas 2015) does NOT carry it — its two "22.1" hits are an ex-vivo liver\'s mean steatosis; REF-005 (Idilman 2013) does not publish it either. The value 22.1% is unchanged (Tang\'s ladder 6.4 / 17.4 / 22.1). Tang measured at 1.5 T and 3.0 T; the 3.0 T sibling carries the same boundary because the published threshold is a fat fraction, which is field-independent. The performance pair 84 / 90 / 0.94 is WITHDRAWN — a boundary-row best no cited paper publishes; Tang\'s own 68 / 91 cannot attach here (R-14 binds performanceRefIds to workbook references, EXT-002 is external). Widening that channel is queued as W-193. Mirrors W-069\'s treatment of CUT-0015.',
     source: {sheet: 'PDFF', cell: 'D12'}
   },
   {
@@ -2764,8 +2772,9 @@ const CUTOFFS = [
     stagingWithdrawnReason: 'no-transferable-cutoff-published',
     dataQualityFlags: ['staging-withdrawn'],
     dataQualityNote: 'W-135, 2026-08-31 (LITERATURE.md § 12.18): withdrawn from the staging path. No guideline stages liver fibrosis by raw ADC; the only pooled analysis (2017 Abdom Radiol SR+MA, PMID 27678393) reports AUCs and explicitly declines to pool an ADC cut-off because raw ADC does not transfer across b-value, field strength or vendor; healthy liver ADC ~1.24 x10^-3 mm^2/s (LITERATURE.md § 12.16) overlaps these values. value, valueRaw, operator, direction and sourceRefIds are unchanged — the number is not asserted wrong, its use as a transferable staging boundary is withdrawn (CLAUDE.md § 2.1, § 2.5).',
-    vendorClass: 'multi-vendor-incl-ge',
-    vendorClassAmbiguous: true,
+    vendorClass: 'non-ge',
+    vendorClassAmbiguous: false,
+    vendorClassNote: 'W-043, 2026-09-10: follows REF-027 (its only source), whose vendor class was corrected against the full text from multi-vendor-incl-ge to non-ge — a single Siemens MAGNETOM Maestro Class Symphony, no GE hardware. Mechanical consequence of the § 5.5 reduction (R-13), not an independent finding.',
     technique: 'dwi-adc',
     techniqueGroup: 'dwi-adc-monoexp',
     evidenceGrade: 'B',
@@ -2799,8 +2808,9 @@ const CUTOFFS = [
     stagingWithdrawnReason: 'no-transferable-cutoff-published',
     dataQualityFlags: ['staging-withdrawn'],
     dataQualityNote: 'W-135, 2026-08-31 (LITERATURE.md § 12.18): withdrawn from the staging path. No guideline stages liver fibrosis by raw ADC; the only pooled analysis (2017 Abdom Radiol SR+MA, PMID 27678393) reports AUCs and explicitly declines to pool an ADC cut-off because raw ADC does not transfer across b-value, field strength or vendor; healthy liver ADC ~1.24 x10^-3 mm^2/s (LITERATURE.md § 12.16) overlaps these values. value, valueRaw, operator, direction and sourceRefIds are unchanged — the number is not asserted wrong, its use as a transferable staging boundary is withdrawn (CLAUDE.md § 2.1, § 2.5).',
-    vendorClass: 'multi-vendor-incl-ge',
-    vendorClassAmbiguous: true,
+    vendorClass: 'non-ge',
+    vendorClassAmbiguous: false,
+    vendorClassNote: 'W-043, 2026-09-10: follows REF-027 (its only source), whose vendor class was corrected against the full text from multi-vendor-incl-ge to non-ge — a single Siemens MAGNETOM Maestro Class Symphony, no GE hardware. Mechanical consequence of the § 5.5 reduction (R-13), not an independent finding.',
     technique: 'dwi-adc',
     techniqueGroup: 'dwi-adc-monoexp',
     evidenceGrade: 'B',
