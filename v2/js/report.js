@@ -1969,6 +1969,10 @@ function buildLabs(selection) {
 
   return {
     inputs: inputs, fib4: fib4, aar: aar, hasFibrosisLabs: hasFibrosisLabs,
+    /* W-207. AST is already parsed here; buildMast() reads it from this one
+       place rather than re-reaching into `selection.values`, so there is a
+       single parser for every laboratory number the report uses. */
+    ast: {value: ast},
     /* Named, not blank: an empty grid reads as "nothing abnormal". */
     pending: missing.length
       ? 'FIB-4 is not computed: ' + missing.join(', ') + ' ' +
@@ -2020,9 +2024,15 @@ function buildComposite(report, labs, reliability) {
        that matters, and it survives in "but never": the emptiness is what the
        source publishes, not an oversight in this report. The id is not relocated,
        because no sheet prints it to a reader. */
-    mast: 'MAST is not calculated here. The reference workbook publishes ' +
-      'MAST\u2019s two thresholds but never the coefficients the score is built ' +
-      'from, so this report does not compute it. Use a validated calculator.',
+    /* W-207. The sentence used to explain a deliberate emptiness: the reference
+       workbook publishes MAST's two thresholds and never its coefficients, so
+       the score could not be computed and the reader was sent to a validated
+       calculator. The coefficients have since been transcribed from the paper
+       the workbook cites, so the emptiness is gone and the sentence's job with
+       it. What it does now is stop a reader who is looking at one composite over
+       this axis from concluding it is the only one. */
+    mast: 'MAST, the other published MRI composite over this axis, is computed ' +
+      'in its own block below, from the fat fraction, the stiffness and AST.',
     strength: 'MEFIB\u2019s published strength (Jung 2021, PMID 33214165): ' +
       'rule-in PPV (positive predictive value) 97.1%; rule-out NPV (negative ' +
       'predictive value) 83.2% in the derivation cohort and 59.4% in the ' +
@@ -2085,6 +2095,149 @@ function buildComposite(report, labs, reliability) {
        test: 'FIB-4 >= ' + cal.coefficients.fib4, met: c2}
     ]
   };
+}
+
+/* ────────────────────────────────────────────────────────── COMPOSITE — MAST
+   W-207. A SIBLING of buildComposite(), not an extension of it. MEFIB and MAST
+   share exactly one reading — the MRE stiffness — and nothing else: different
+   inputs, a different eligibility rule, a different backing record, and two
+   refusals that read differently to a clinician. Folding the two published rules
+   into one function would make each one's abstention harder to find.
+
+   Every number below is READ. The two boundaries come from CUT-0069 / CUT-0070
+   and the four coefficients from CAL-0007, for the reason buildComposite() reads
+   3.3 and 1.6 out of CAL-0006 instead of restating them: a constant restated in
+   the engine is a second copy that can drift from the record the report cites.
+
+   The cohort gate is `adult` only. MAST was derived and validated in adult
+   MASLD/NAFLD patients, and answering a pediatric study with an adult cohort's
+   boundary is what CLAUDE.md § 1.3 forbids by name. `indication` is deliberately
+   NOT a gate: that axis states which literature to put in front, not what the
+   patient has — its own default says nobody stated why the study was done — and
+   a computed clinical score must not depend on a presentation preference. The
+   derivation population is printed beside the verdict instead. */
+function buildMast(report, labs, reliability, selection) {
+  const cal = calibrationRecord('CAL-0007');
+  const cut = id => _R.CUTOFFS.filter(c => c.id === id)[0] || null;
+  const ruleIn = cut('CUT-0069'), ruleOut = cut('CUT-0070');
+
+  const rowOf = p => (report && report.rows ? report.rows.filter(r => r.parameter === p)[0] : null) || null;
+  const pdffRow = rowOf('pdff'), mreRow = rowOf('mre');
+  const pdff = pdffRow ? numberOr(pdffRow.value) : null;
+  const mre = mreRow ? numberOr(mreRow.value) : null;
+  const ast = labs && labs.ast ? numberOr(labs.ast.value) : null;
+
+  /* W-113's discipline: one plain sentence saying what the rule does, before the
+     verdict, for a reader who has not read the paper it comes from. */
+  const intro = 'MAST combines the MRI fat fraction, the MRE stiffness and AST ' +
+    'into a single published score for fibrotic steatohepatitis — one number ' +
+    'read against two published operating points, not a new measurement.';
+  const note = {
+    formula: 'The reference workbook publishes MAST’s two operating points and ' +
+      'never the coefficients behind them; the coefficients used here are ' +
+      'transcribed from the paper the workbook cites (Noureddin 2022).',
+    population: 'Derived and validated in adults with NAFLD (now MASLD): 103 ' +
+      'patients in the derivation cohort and 244 in the validation cohort.'
+  };
+  const shell = extra => {
+    /* The record is named "MAST score formula" — a filing label for a data row,
+       not a heading for a reader. The block is headed with what the reader is
+       looking at: the score. */
+    const base = {id: cal ? cal.id : 'CAL-0007', name: 'MAST score',
+                  intro: intro, note: note, score: null, verdict: null,
+                  boundary: null, lines: []};
+    for (const k in extra) base[k] = extra[k];
+    return base;
+  };
+
+  if (!cal || !cal.coefficients || !ruleIn || !ruleOut) {
+    return shell({pending: 'MAST is not stated: the record that carries its ' +
+      'formula or one of its two published operating points is not available ' +
+      'to this report.'});
+  }
+
+  /* Refusal 1 — the cohort. Named before the inputs are even looked at, because
+     a pediatric study does not become eligible by entering more numbers. */
+  const cohort = (selection && selection.cohort) || null;
+  if (cohort !== 'adult') {
+    return shell({pending: 'MAST is not stated for this study: it was derived ' +
+      'and validated in adults, and this report is set to a pediatric cohort. ' +
+      'No adult boundary is applied to a child.'});
+  }
+
+  /* Refusal 2 — a reliability rule withdrew a reading the score depends on.
+     The W-015 MEFIB argument, applied to both of MAST's measurements: computing
+     the score anyway would restate as a composite exactly the claim the card
+     above refuses to make. */
+  const withheld = p => !!(reliability && reliability.byParameter &&
+                           reliability.byParameter[p] &&
+                           reliability.byParameter[p].interpretable === false);
+  const withheldNames = ['pdff', 'mre'].filter(withheld)
+    .map(p => p === 'pdff' ? 'the PDFF fat fraction' : 'the MRE stiffness');
+  if (withheldNames.length) {
+    return shell({pending: 'MAST is not computed: ' + withheldNames.join(' and ') +
+      ' ' + (withheldNames.length === 1 ? 'is' : 'are') + ' not interpretable on ' +
+      'this study, and the score reads ' +
+      (withheldNames.length === 1 ? 'it' : 'them') + ' directly. Nothing is ' +
+      'scored from a measurement this report has withheld.'});
+  }
+
+  /* Refusal 3 — a missing input, named. An empty grid reads as "nothing
+     abnormal"; a named absence does not. */
+  const missing = [];
+  if (pdff === null) missing.push('the PDFF fat fraction');
+  if (mre === null) missing.push('the MRE stiffness');
+  if (ast === null) missing.push('AST');
+  if (missing.length) {
+    return shell({pending: 'MAST is not computed: ' + missing.join(', ') + ' ' +
+      (missing.length === 1 ? 'has' : 'have') + ' not been entered. The score ' +
+      'reads all three, and nothing is assumed for a missing one.'});
+  }
+  /* Refusal 3b — the score takes the logarithm of two of its three inputs, so a
+     zero or negative reading has no score rather than a wrong one. */
+  if (mre <= 0 || ast <= 0) {
+    return shell({pending: 'MAST is not computed: the score reads the logarithm ' +
+      'of the stiffness and of AST, and one of them is not a positive number.'});
+  }
+
+  const k = cal.coefficients;
+  const log = k.logBase === 10 ? Math.log10 : Math.log;
+  const logit = k.intercept + k.logMre * log(mre) + k.pdff * pdff + k.logAst * log(ast);
+  const score = k.transform === 'logistic' ? 1 / (1 + Math.exp(-logit)) : logit;
+
+  /* THREE states, and the middle one is a state. The paper reports two operating
+     points and calls the span between them a grey zone; collapsing it would turn
+     "not ruled in" into "ruled out", which is the reading it exists to prevent —
+     the same argument CAL-0006 makes for MEFIB. */
+  const verdict = score >= ruleIn.value
+    ? {band: 'POSITIVE', tag: 'Rule-in fibrotic steatohepatitis', sev: 'high'}
+    : score <= ruleOut.value
+      ? {band: 'NEGATIVE', tag: 'Rule-out fibrotic steatohepatitis', sev: 'ok'}
+      : {band: 'INDETERMINATE',
+         tag: 'Neither rules in nor rules out — the published indeterminate zone',
+         sev: 'mid'};
+  const boundary = verdict.band === 'POSITIVE'
+    ? {id: ruleIn.id, operator: ruleIn.operator, value: ruleIn.value,
+       label: ruleIn.boundaryLabel}
+    : verdict.band === 'NEGATIVE'
+      ? {id: ruleOut.id, operator: ruleOut.operator, value: ruleOut.value,
+         label: ruleOut.boundaryLabel}
+      : {id: null, operator: null, value: null,
+         label: 'between ' + ruleOut.boundaryLabel + ' and ' + ruleIn.boundaryLabel};
+
+  return shell({
+    score: score, verdict: verdict, boundary: boundary, pending: null,
+    /* The three contributing values as labelled facts that say WHERE each came
+       from, exactly as MEFIB's two do. */
+    lines: [
+      {label: 'MRI-PDFF', value: Math.round(pdff * 10) / 10, unit: '%',
+       origin: 'from the Steatosis card above'},
+      {label: 'MRE stiffness', value: Math.round(mre * 100) / 100, unit: 'kPa',
+       origin: 'from the Fibrosis card above'},
+      {label: 'AST', value: ast, unit: 'U/L',
+       origin: 'from the blood-test panel on the Fibrosis card'}
+    ]
+  });
 }
 
 /* ───────────────────────────────────────────── CONSIDERATIONS — THE SUMMARY (W-098)
@@ -2707,7 +2860,7 @@ if (typeof module !== 'undefined' && module.exports) {
                     orderCards, groupCardsByDomain, severityClass, LAB_INPUTS,
                     CONTEXT_INPUTS, buildContext,
                     buildReport, buildRow, buildCoverage, buildCards, buildReceipts,
-                    buildLabs, buildComposite, buildConsiderations, buildHistory,
+                    buildLabs, buildComposite, buildMast, buildConsiderations, buildHistory,
                     buildImpression, readerReason,
                     READER_REASONS, rankedReasons,
                     buildReliability, evidenceFloor, markInterpretability,

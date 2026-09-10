@@ -26,7 +26,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.85';  /* W-196: the fill-state wash (W-134 /
+const V21_RENDER_VERSION = '3.86';  /* W-207: MAST prints its own block after MEFIB — the same schematic, with contribution nodes instead of condition nodes, the score and the boundary it crossed, and no performance figure. W-196: the fill-state wash (W-134 /
    W-149) reaches the per-card blood-test sub-panel, gated on the panel being
    OPEN — an empty, rule-carrying blood input looks like every other field
    waiting for a number once the reader has ticked the panel's checkbox, and
@@ -2685,7 +2685,11 @@ function compositeSection(composite, selection, reliability) {
   const head = '<div class="section-head"><h3>' + esc(composite.name) +
     '</h3><span class="rule"></span></div>';
   const intro = '<p class="cintro">' + esc(composite.intro) + '</p>';
-  const notes = '<p class="cnote"><b>MAST</b> ' + esc(composite.note.mast) + '</p>' +
+  /* W-207. The label read `MAST` while the sentence after it also opened on the
+     word, so the line painted as "MAST MAST — …". The label now names the
+     paragraph's job (there is a second composite over this axis) and the
+     sentence keeps the name. Seen in a real render, not in the source (W-040). */
+  const notes = '<p class="cnote"><b>Also on this axis</b> ' + esc(composite.note.mast) + '</p>' +
     '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) + '</p>';
 
   if (composite.pending) {
@@ -2728,6 +2732,68 @@ function compositeSection(composite, selection, reliability) {
       '<div class="ms-join" aria-hidden="true"></div>' +
       '<div class="ms-verdict">' + verdictChip(composite.verdict) + '</div>' +
     '</div>' + notes + '</section>';
+}
+
+/* W-207. MAST's own block, printed immediately after MEFIB's — two published
+   composites over the same axis, read together. It reuses the W-194 schematic
+   with one difference that matters: MEFIB's nodes are CONDITIONS, each met or
+   not met, while MAST's three are CONTRIBUTIONS to a single number. Drawing a
+   filled or empty ring beside a fat fraction would claim a pass/fail the score
+   does not make, so `mastNodeHtml` prints the value and its origin and stops.
+
+   Visibility follows the same shapes W-195 settled for MEFIB, for the same
+   reason: a gap is stated where it is actionable, and left unprinted where the
+   whole axis was never worked up. */
+function mastNodeHtml(l) {
+  return '<div class="ms-node ms-plain">' +
+    '<span class="ms-name">' + esc(l.label) + '</span>' +
+    '<span class="ms-val">' + esc(String(l.value)) +
+      (l.unit ? ' ' + esc(l.unit) : '') + '</span>' +
+    '<span class="ms-from">' + esc(l.origin) + '</span>' +
+  '</div>';
+}
+function mastSection(mast, selection) {
+  if (!mast) return '';
+  const fibrosisPerformed = !!(selection && selection.performed &&
+                               selection.performed.fibrosis === true);
+
+  const head = '<div class="section-head"><h3>' + esc(mast.name) +
+    '</h3><span class="rule"></span></div>';
+  const intro = '<p class="cintro">' + esc(mast.intro) + '</p>';
+  /* Both note halves print on both surfaces: one says where the coefficients
+     came from, the other names the population the score was derived in, and a
+     score read without its population is the thing this repository refuses to
+     print. Neither carries a performance figure — the two cut-off records hold
+     none that can honestly be attached to one operating point
+     (LITERATURE.md § 9.14.2). */
+  const notes = '<p class="cnote"><b>Where the formula comes from</b> ' +
+      esc(mast.note.formula) + '</p>' +
+    '<p class="cnote"><b>Derivation population</b> ' + esc(mast.note.population) + '</p>';
+
+  if (mast.pending) {
+    /* No fibrosis axis at all — nothing to give a holistic read of, so no gap
+       to state either (the W-195 B1 shape). */
+    if (!fibrosisPerformed) return '';
+    return '<section class="composite is-dim">' +
+      '<div class="cpending-screen screen-only">' + head + intro +
+        '<p class="gap">' + esc(mast.pending) + '</p>' + notes + '</div>' +
+      '<p class="print-only cgap-print">MAST — not computed.</p>' +
+    '</section>';
+  }
+
+  const v = s => '<span class="v">' + esc(String(s)) + '</span>';
+  const scoreText = 'Score ' + v(mast.score.toFixed(3));
+  const crossed = mast.boundary && mast.boundary.value !== null
+    ? scoreText + ' — ' + v(mast.boundary.operator + ' ' + mast.boundary.value) +
+      ', the published ' + esc(mast.boundary.label) + '.'
+    : scoreText + ' — ' + esc(mast.boundary ? mast.boundary.label : '') + '.';
+  return '<section class="composite">' + head + intro +
+    '<div class="mefib-schematic">' +
+      '<div class="ms-inputs">' + mast.lines.map(mastNodeHtml).join('') + '</div>' +
+      '<div class="ms-join" aria-hidden="true"></div>' +
+      '<div class="ms-verdict">' + verdictChip(mast.verdict) + '</div>' +
+    '</div>' +
+    '<p class="mast-score">' + crossed + '</p>' + notes + '</section>';
 }
 
 /* W-098. The closing "Summary" block: the published composite verdicts, then
@@ -2997,7 +3063,9 @@ function sectionsHtml(model, selection, view) {
      performed there is no mre group and compositeSection is never reached (it
      also guards that case itself). */
   const afterDomain = d => d === 'mre'
-    ? compositeSection(model.composite, selection, model.reliability)
+    ? compositeSection(model.composite, selection, model.reliability) +
+      /* W-207. MAST follows MEFIB in the same place and under the same gate. */
+      mastSection(model.mast, selection)
     : '';
   let html = '';
   for (const section of SECTIONS) {
@@ -3933,7 +4001,7 @@ function renderReport(model, profile, selection, versions, view) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {renderReport, renderClinicalSheets, renderMethodology,
                     masthead, patientMeta, studyMeta, labsBlock,
-                    compositeSection, impressionSection, summaryBlock, evidenceAppendix, reportFooter,
+                    compositeSection, mastSection, impressionSection, summaryBlock, evidenceAppendix, reportFooter,
                     notInterpretableHtml, shortCite,
                     tableB, tableC, tableD, tableE, badgeKey, measurementNotes,
                     groupReferences, referenceHomes, referenceGroupTitle,

@@ -1147,7 +1147,12 @@ svg.ruler.slim { opacity: .8; }
 .composite .ms-node { position: relative; border: 1px solid var(--hair);
   border-radius: 5px; padding: var(--s-3) var(--s-4); font-size: 10.5px; }
 .composite .ms-name { font-weight: 700; }
-.composite .ms-val { font-family: var(--mono); }
+/* W-207. The name and the value are adjacent inline spans with no whitespace
+   between them in the markup, so they painted as one word — "MRE stiffness3.4
+   kPa", "FIB-41.86". Separated here rather than by adding a space to the
+   markup, so the fix reaches every schematic node, MEFIB's as well as MAST's,
+   from one declaration. Found in a real render, not in the source (W-040). */
+.composite .ms-val { font-family: var(--mono); margin-left: .5em; }
 .composite .ms-from, .composite .ms-test { display: block; font-family: var(--mono);
   font-size: 8px; color: var(--faint); }
 .composite .ms-mark { margin-right: .4em; }
@@ -1156,6 +1161,10 @@ svg.ruler.slim { opacity: .8; }
 .composite .ms-node::after { content: ""; position: absolute; left: 100%;
   top: 50%; width: var(--s-5); border-top: 1px solid var(--frame); }
 .composite .ms-unmet::after { border-top-style: dashed; }
+/* W-207. MAST's three nodes are CONTRIBUTIONS, not conditions: there is no
+   met/not-met to draw, so the connector is the plain solid one and no ring is
+   printed. The class exists to say that absence is deliberate. */
+.composite .ms-plain::after { border-top-style: solid; }
 .composite .ms-join { flex: 0 0 var(--s-6); align-self: stretch;
   border-left: 1px solid var(--frame); margin: var(--s-4) 0; }
 .composite .ms-verdict { flex: 0 0 auto; }
@@ -1165,6 +1174,14 @@ svg.ruler.slim { opacity: .8; }
 /* W-113. The plain-language sentence explaining what the rule does, printed
    before the verdict — normal ink, not muted, since it is read first. */
 .composite .cintro { font-size: 11px; color: var(--ink-2); margin: 0 0 var(--s-3); }
+/* W-207. The score itself and the boundary it crossed, between the schematic
+   and the two notes. Normal ink, monospace figure: it is the number the verdict
+   above was read from, so it is read, not skimmed. */
+/* the figures take the data face, the sentence around them does not — the
+   monospace stack is for columns of numbers, not for prose (W-009). */
+.composite .mast-score { font-size: 10.5px; color: var(--ink-2);
+  margin: var(--s-3) 0 0; }
+.composite .mast-score .v { font-family: var(--mono); font-weight: 700; }
 .composite .cnote, .impression .flags { font-size: 10px; color: var(--muted); }
 .composite .cnote b { color: var(--ink-2); }
 /* W-195. A pending MEFIB block whose FIB-4 (or MRE) input is not in yet: the

@@ -74,13 +74,13 @@
  */
 
 const CALIBRATIONS_REV = 'xlsx-v1';
-const CALIBRATIONS_VERSION = '1.5';   /* W-043: CAL-0004.derivation.vendorClass corrected ge-explicit -> multi-vendor-incl-ge (REF-015 is a pooled three-vendor study in its own Methods); fieldNote added recording the 2.89T sibling relation the tool does not separately apply. No coefficient moved. W-069: CAL-0004 rewritten from REF-015 Table 3 (affine, 0.0472 -> 0.01349); CAL-0001 citation rejected, value unchanged */
+const CALIBRATIONS_VERSION = '1.6';   /* W-207: CAL-0007 stops being a deliberate empty record — the MAST coefficients are transcribed from REF-025's full text, which is the condition the record itself set. kind not-published -> formula, provenance not-published -> transcribed; log base and transform recorded as fields because the paper states neither (LITERATURE.md § 9.14.3). No threshold moved; the flag formula-not-in-workbook stays, because the workbook still does not publish them. W-043: CAL-0004.derivation.vendorClass corrected ge-explicit -> multi-vendor-incl-ge (REF-015 is a pooled three-vendor study in its own Methods); fieldNote added recording the 2.89T sibling relation the tool does not separately apply. No coefficient moved. W-069: CAL-0004 rewritten from REF-015 Table 3 (affine, 0.0472 -> 0.01349); CAL-0001 citation rejected, value unchanged */
 
 /* SHA-256 over the canonical serialisation of every record. See
    v2/tests/logic.test.js. Covers vendorClass, technique and evidenceGrade for
    the same reason CUTOFFS_HASH does: a re-classification changes what a report
    may SAY about a number exactly as a value change does. */
-const CALIBRATIONS_HASH = '23e90adfa2628250d5cade57b6943e6e5af5c859682b8e04629e8355f469db79';
+const CALIBRATIONS_HASH = '041ecf7781b2cf0c06f3de7bb33e9af4716aaaab4336d0e4b4e46399a53e1677';
 
 /* `kind` vocabulary — what shape the formula has, and therefore how
    v2/js/thresholds.js may evaluate it.
@@ -89,7 +89,8 @@ const CALIBRATIONS_HASH = '23e90adfa2628250d5cade57b6943e6e5af5c859682b8e04629e8
      linear-affine   out = intercept + slope * in         (.intercept, .slope)
      power-law       out = a * in^b                       (coefficients.a, .b)
      compound-rule   a conjunction of thresholds; not evaluable as arithmetic
-     formula         a named clinical formula over lab values
+     formula         a named clinical formula over lab values, and since W-207
+                     over measurements too (MAST reads PDFF and MRE alongside AST)
      not-published   the workbook uses the quantity but publishes no formula.
                      A DELIBERATE record: the gap is documented, not hidden.
 
@@ -394,11 +395,25 @@ const CALIBRATIONS = [
 
   {
     id: 'CAL-0007',
-    kind: 'not-published',
+    kind: 'formula',
     parameter: 'mast',
     name: 'MAST score formula',
-    expression: null,
-    coefficients: null,
+    expression: 'MAST = 1 / (1 + exp(-L)), where '
+          + 'L = -12.17 + 7.07 x log10(MRE kPa) + 0.037 x PDFF % + 3.55 x log10(AST U/L)',
+    coefficients: {
+      intercept: -12.17,
+      logMre: 7.07,
+      pdff: 0.037,
+      logAst: 3.55,
+      /* W-207. NEITHER of these two is stated by the paper, and neither is
+         assumed here — both were settled against the paper's own Table 1 cohort
+         medians, and the arithmetic is in `LITERATURE.md § 24` and locked by
+         `v2/tests/logic.test.js` section Y. They are recorded as fields rather
+         than baked into the engine so that a future reader can see WHICH
+         reading of "log" this record commits to. */
+      logBase: 10,
+      transform: 'logistic'
+    },
     inputQuantity: 'pdff+mre+ast',
     inputUnit: '%, kPa, U/L',
     outputUnit: 'ratio',
@@ -417,20 +432,27 @@ const CALIBRATIONS = [
     },
     evidenceGrade: 'A',
     population: 'NAFLD (Noureddin 2022)',
-    provenance: 'not-published',
+    provenance: 'transcribed',
     dataQualityFlags: ['formula-not-in-workbook'],
     dataQualityNote: 'The workbook publishes MAST two operating thresholds (CUT-0069 / '
-          + 'CUT-0070) and never its coefficients, so `expression` is null by decision and '
-          + 'stays null until they are transcribed from REF-025. W-069 added this field for '
-          + 'the reason given on CAL-0005: R-49 found the flag with no note beside it.',
-    note: 'DELIBERATE EMPTY RECORD. MAST is a logistic score over MRI-PDFF, MRE and AST, and ' +
-          'the workbook publishes ONLY its two operating thresholds (0.242 rule-in, 0.165 ' +
-          'rule-out — CUT-0069 / CUT-0070), never the coefficients. So the score cannot be ' +
-          'COMPUTED from this data layer; it can only be INTERPRETED once a value is entered ' +
-          'by hand. This record exists so that fact is discoverable in the data rather than ' +
-          'being an unexplained absence, and so a later task knows exactly what to go and ' +
-          'fetch from Noureddin 2022. expression is null and MUST stay null until the ' +
-          'coefficients are transcribed from the primary text.',
+          + 'CUT-0070) and never its coefficients. The flag stays for that reason after '
+          + 'W-207: the coefficients in this record are transcribed from REF-025 itself, '
+          + 'NOT from the workbook, and a reader auditing the workbook will not find them '
+          + 'there. W-069 added this field for the reason given on CAL-0005: R-49 found the '
+          + 'flag with no note beside it.',
+    note: 'MAST is a logistic score over MRI-PDFF, MRE and AST. The workbook publishes ONLY '
+          + 'its two operating thresholds (0.242 rule-in, 0.165 rule-out — CUT-0069 / '
+          + 'CUT-0070) and never the coefficients, which is why this record was created '
+          + 'deliberately empty and carried the condition for filling it: "until the '
+          + 'coefficients are transcribed from the primary text". W-207 met that condition. '
+          + 'They are transcribed from Noureddin 2022 (REF-025, PMID 34798176), section "The '
+          + 'MAST formula", which publishes the linear predictor verbatim as '
+          + 'MAST = -12.17 + 7.07 log MRE + 0.037 PDFF + 3.55 log AST. The paper names '
+          + 'neither the logarithm base nor the transform; both were resolved against its '
+          + 'own Table 1 cohort medians rather than assumed, and the arithmetic that settles '
+          + 'them is recorded in LITERATURE.md § 24. EASL 2024 (REF-040) restates the '
+          + 'two thresholds and does NOT restate the formula, so it is not a second source '
+          + 'for these coefficients.',
     source: {sheet: 'MRE', cell: 'D19+E19'}
   }
 ];

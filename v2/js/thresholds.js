@@ -79,7 +79,10 @@
  * ===========================================================================
  */
 
-const V2_THRESHOLDS_VERSION = '1.14';   /* W-043: resolveCalibration's `multi` pick now
+const V2_THRESHOLDS_VERSION = '1.15';   /* W-207: buildMast() computes the MAST score from
+   CAL-0007's newly transcribed coefficients and reads it against CUT-0069 / CUT-0070 — the
+   first engine consumer either cut-off has ever had. No staging boundary moved, so
+   RESOLVED_HASH is unchanged. W-043: resolveCalibration's `multi` pick now
    reads `derivation.vendorClass` (as `own` and `geDerived` already do), so a guideline-reduced
    but genuinely multi-vendor calibration (CAL-0004, Hernando 2022) resolves at rung 4
    ("ge-included-not-separable") instead of rung 5 ("no-vendor-neutral-evidence") on both the

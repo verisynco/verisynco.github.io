@@ -494,10 +494,16 @@ function buildModel(report, profile, sel) {
      impression's closing "Summary" block restates the composite verdict as its
      lead. One buildComposite() call, read by both. */
   const composite = buildComposite(report, labs, reliability);
+  /* W-207. The second published composite over the fibrosis axis. A sibling of
+     buildComposite(), and read only by the renderer — the impression is not
+     given it, because a score is not a staging band and the impression states
+     what the cards staged. */
+  const mast = buildMast(report, labs, reliability, sel);
   /* W-081. IVIM (D / D-star / f) — a standalone research-layer builder, not a
      report row. Feeds the page-2 research section and the page-1 cross-read. */
   const ivim = buildIvim(sel);
   return {report: report,
+          mast: mast,
           coverage: buildCoverage(report),
           cards: cards,
           receipts: buildReceipts(report),
