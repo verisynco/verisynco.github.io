@@ -1692,7 +1692,11 @@ body[data-mode="sample"] .evidence { background: transparent; }
   body[data-mode="live"] .pcard .pident select[data-fill="needed"],
   body[data-mode="live"] .meta .cell input[data-fill="needed"],
   body[data-mode="live"] .meta .cell select[data-fill="needed"],
-  body[data-mode="live"] .labs .lc input[data-fill="needed"] {
+  body[data-mode="live"] .labs .lc input[data-fill="needed"],
+  /* W-196 — the per-card blood-test sub-panel (W-194). render.js sets the
+     attribute only while the panel is OPEN, so a shut panel's print-only
+     markup can never carry it and the opt-in argument W-194 made survives. */
+  body[data-mode="live"] .pcard-blood .lc input[data-fill="needed"] {
     background: var(--fill-needed);
   }
   /* The "also open" line under the Tier-1 checkboxes (render.js

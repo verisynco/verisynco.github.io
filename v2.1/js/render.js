@@ -26,7 +26,14 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.84';  /* W-195: the MEFIB composite moves next to
+const V21_RENDER_VERSION = '3.85';  /* W-196: the fill-state wash (W-134 /
+   W-149) reaches the per-card blood-test sub-panel, gated on the panel being
+   OPEN — an empty, rule-carrying blood input looks like every other field
+   waiting for a number once the reader has ticked the panel's checkbox, and
+   carries no attribute at all while the panel is shut (bloodCellHtml). Muted
+   keys (tsat) stage nothing and stay unwashed. Screen-only, live mode only:
+   no clinical value, cut-off, band or hash moves.
+   W-195: the MEFIB composite moves next to
    the Fibrosis (MRE) card (emitted by sectionsHtml right after that domain
    group, not as a trailing block), and its pending shape is now conditional:
    not rendered at all when fibrosis was not performed; faded on screen and
@@ -2183,15 +2190,22 @@ const BLOOD_PANEL = {
    (DESIGN-DIRECTION 2.3). */
 const BLOOD_PANEL_MUTED_KEYS = ['tsat'];
 
-/* W-194. No `data-fill="needed"` wash here, unlike the parameter-card value
-   inputs: this panel is opt-in (the reader chose to open it), so a "you must
-   fill this" wash would re-create exactly the required-foundation pressure the
-   relocation removes. An empty cell still collapses on paper (`lc-empty`). */
-function bloodCellHtml(cell, muted) {
+/* W-196. The fill-state wash (`data-fill="needed"`, W-134 / W-149) reaches this
+   panel too — but ONLY while it is open. W-194 left it out altogether, because
+   an opt-in panel washed yellow would rebuild exactly the required-foundation
+   pressure the relocation removed; gating on `open` keeps that argument intact.
+   A reader who has not ticked the box sees nothing, and the closed panel's
+   print-only markup carries no attribute at all, so `@media print` cannot meet
+   one. A muted key stages nothing (BLOOD_PANEL_MUTED_KEYS), so it is never
+   "needed". An empty cell still collapses on paper (`lc-empty`). */
+function bloodCellHtml(cell, muted, open) {
+  const fillNeeded = !!open && !muted &&
+    (cell.value === null || cell.value === undefined);
   return '<div class="' + lcClass(cell.value === null) +
     (muted ? ' labs-muted' : '') + '"><label>' + esc(cell.label) +
     '</label><div class="r2"><input type="number" inputmode="decimal" ' +
-    'step="any" data-value="' + esc(cell.key) + '" value="' +
+    'step="any" data-value="' + esc(cell.key) + '"' +
+    (fillNeeded ? ' data-fill="needed"' : '') + ' value="' +
     (cell.value === null ? '' : esc(String(cell.value))) + '"><span class="u">' +
     esc(cell.unit) + '</span></div></div>';
 }
@@ -2210,7 +2224,7 @@ function bloodPanelHtml(row, selection, model, view) {
   });
 
   const grid = cells.map(function (c) {
-    return bloodCellHtml(c, BLOOD_PANEL_MUTED_KEYS.indexOf(c.key) !== -1);
+    return bloodCellHtml(c, BLOOD_PANEL_MUTED_KEYS.indexOf(c.key) !== -1, open);
   }).join('');
 
   let fib4Html = '';
