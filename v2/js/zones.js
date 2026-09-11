@@ -53,7 +53,9 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_ZONES_VERSION = '1.3';   /* W-159: orientation reference strip — 3 published pediatric
+const V2_ZONES_VERSION = '1.4';   /* W-213: edges carry meanLabel + sources (additive, see
+   buildZones's own comment beside them — a renderer's per-rung source box reads them without
+   re-reading the raw scale). W-159: orientation reference strip — 3 published pediatric
    boundaries, 4 bands, a neutral `ramp` index (NO severity: `sev`/`tag` null), `orientation:
    true` on every band; assigns no patient band. W-158: partial-ladder zone model — resolved
    bands ramp-coloured by ladder order, the unpublished worst-end rung(s) collapsed into one
@@ -310,10 +312,23 @@ function buildZones(scale, parameter) {
     /* W-133. `evidenceGrades` rides with every other edge field — it is the
        engine's OWN already-computed field (thresholds.js's boundary merge),
        never re-derived here. A renderer needs it to say how well-sourced a
-       boundary is without re-reading the raw scale. */
+       boundary is without re-reading the raw scale.
+       W-213. `meanLabel` is the same kind of already-computed passenger
+       (thresholds.js:resolveBoundary) — added so a renderer's per-rung
+       "who published this number" box can read it straight off the edge
+       instead of re-reading the raw scale a second time. Purely additive.
+       `sources` (the per-contributing-record detail, with its refIds and
+       vendorClass) is deliberately NOT added here: putting it on
+       `card.rulers[].edges` would put receipt/engine vocabulary on the
+       shared `card` object, which is exactly what v2/tests/logic.test.js
+       L9/L10 (the altitude rule — the card carries clinician sentences,
+       receipts stay on page 2) exist to prevent. The box builder
+       (v2.1/js/render.js) reads per-source detail straight from `row.scales`
+       at render time instead — never through `card`. */
     edges: ascEdges.map(e => ({boundary: e.boundary, value: e.value, unit: e.unit,
                                n: e.n || null, min: e.min, max: e.max,
-                               evidenceGrades: e.evidenceGrades || null})),
+                               evidenceGrades: e.evidenceGrades || null,
+                               meanLabel: e.meanLabel || null})),
     nameSource: isOrientation ? 'v1-ported-subset'
               : (split ? 'ladder' : (portApplies ? 'v1-ported' : 'unresolved')),
     /* The field a renderer reads to decide whether it may use colour at all.

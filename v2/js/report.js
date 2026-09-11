@@ -15,7 +15,8 @@
  * ---------------------------------------------------------------------------
  */
 
-const V2_REPORT_VERSION = '3.22';  /* W-140: `withdrawnCaveatsOf` +
+const V2_REPORT_VERSION = '3.23';  /* W-210: buildImpression() narrowed to the staging domains (Fibrosis/MRE, Iron, Fat/PDFF); facts unchanged.
+   —— W-140: `withdrawnCaveatsOf` +
    `card.withdrawnCaveats` — the publication's own limit on a value the staging
    path withheld, carried to the card so the reader is told WHY the number is not
    printed. Model-side only; the sentence is the record's, unchanged. No clinical
@@ -107,6 +108,7 @@ const _R = (typeof module !== 'undefined' && module.exports)
               methodRankingReason: t.methodRankingReason,
               resolveScope: s.resolveScope, isRenderedAtScope: s.isRenderedAtScope,
               DOMAIN_OF: d.DOMAIN_OF, CONTROLLED_UNITS: d.CONTROLLED_UNITS,
+              TIER2_GROUPS: d.TIER2_GROUPS,
               purposeGroupOf: d.purposeGroupOf,
               GE_IRON_PRODUCTS: d.GE_IRON_PRODUCTS,
               PATHS: sel.PATHS, TECHNIQUES: tech.TECHNIQUES,
@@ -126,6 +128,7 @@ const _R = (typeof module !== 'undefined' && module.exports)
      methodRankingReason: methodRankingReason,
      resolveScope: resolveScope, isRenderedAtScope: isRenderedAtScope,
      DOMAIN_OF: DOMAIN_OF, CONTROLLED_UNITS: CONTROLLED_UNITS,
+     TIER2_GROUPS: TIER2_GROUPS,
      purposeGroupOf: purposeGroupOf,
      GE_IRON_PRODUCTS: GE_IRON_PRODUCTS,
      PATHS: PATHS, TECHNIQUES: TECHNIQUES,
@@ -2589,14 +2592,27 @@ function buildImpression(model) {
      the same four `severityClass` ranks; the renderer, not this function,
      composes them into the two labelled groups. */
   const classified = [];
-  for (const c of cards) {
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    /* W-210. buildImpression() only interprets the staging domains
+       (Fibrosis/MRE, Iron, Fat/PDFF) — Impression must never refer ahead to
+       the additional-measurements page (native T1, cT1, ADC), which now
+       prints after Summary (v2.1/js/render.js renderAdditionalPage). `facts`
+       is untouched: it is the flat, history-first array logic.test.js
+       P7/P9 and reliability.test.js read, and CLAUDE.md's own W-119
+       precedent already treats it as a separate contract from the
+       render-facing classified/keyFindings split. */
+    const row = renderedRows[i];
+    const outOfImpressionScope = !!(row && _R.TIER2_GROUPS.indexOf(row.domain) !== -1);
     const r = rel.byParameter[c.parameter];
     const hasValue = c.value !== null && c.value !== undefined;
     if (r && r.interpretable === false) {
       const text = c.label + ' was measured but is not interpretable on this ' +
                    'study. ' + r.clinicalReason;
       facts.push({parameter: c.parameter, text: text});
-      classified.push({parameter: c.parameter, text: text, kind: 'noninterp'});
+      if (!outOfImpressionScope) {
+        classified.push({parameter: c.parameter, text: text, kind: 'noninterp'});
+      }
     } else if (hasValue && c.gap) {
       /* Measured, and no published boundary covers it. Plain language only —
          the gap's own citations and reasons are reported through
@@ -2606,8 +2622,10 @@ function buildImpression(model) {
                    'covers this value. That is an absence of evidence, ' +
                    'not a normal result.';
       facts.push({parameter: c.parameter, text: text});
-      classified.push({parameter: c.parameter, text: text, kind: 'gap'});
       gapDetails.push({parameter: c.parameter, reason: c.gap});
+      if (!outOfImpressionScope) {
+        classified.push({parameter: c.parameter, text: text, kind: 'gap'});
+      }
     } else if (c.verdict && c.verdict.band) {
       let text = c.label + ' ' + c.value + (c.unit ? ' ' + c.unit : '') +
                  ' — ' + c.verdict.band + '.';
@@ -2638,10 +2656,12 @@ function buildImpression(model) {
         qualified = true;
       }
       facts.push({parameter: c.parameter, text: text});
-      const abnormal = c.verdict.sev && c.verdict.sev !== 'ok';
-      classified.push({parameter: c.parameter, text: text,
-                       kind: abnormal ? 'abnormal'
-                                      : (qualified ? 'normal-qualified' : 'normal')});
+      if (!outOfImpressionScope) {
+        const abnormal = c.verdict.sev && c.verdict.sev !== 'ok';
+        classified.push({parameter: c.parameter, text: text,
+                         kind: abnormal ? 'abnormal'
+                                        : (qualified ? 'normal-qualified' : 'normal')});
+      }
     }
   }
 
@@ -2678,13 +2698,23 @@ function buildImpression(model) {
   for (let i = 0; i < rows.length; i++) {
     if (!rows[i].rendered) continue;
     if (rows[i].value !== null && rows[i].value !== undefined) continue;
+    const text = PARAMETER_LABELS[rows[i].parameter] +
+                 ' — No data available for this measurement.';
+    /* W-210. Skip TIER2_GROUPS (native T1, cT1, ADC) from Impression's
+       notAssessed entirely: a toggled-on-but-empty TIER2 row is not staged,
+       so Impression should not announce it, and it must not reach `facts`
+       either — `facts`/`text`/`history` are documented elsewhere in this
+       task (plan, CHANGELOG, CLAUDE.md § 5) as untouched by this task, and
+       an earlier fix round's `facts.push` here broke that invariant by
+       giving Tier-2 empty rows a path into `facts` (and so into
+       `clinical.text`/the emailed Impression) that no staging-domain empty
+       row has ever had. */
+    if (_R.TIER2_GROUPS.indexOf(rows[i].domain) !== -1) continue;
     /* W-063. The only way a row reaches here now is "toggled on, still
        empty" — a row nobody toggled on and nobody typed a value for no
        longer renders at all, so this sentence is unambiguous in a way its
        predecessor, "not assessed", was not (spec § 5). */
-    notAssessed.push({parameter: rows[i].parameter,
-                      text: PARAMETER_LABELS[rows[i].parameter] +
-                            ' — No data available for this measurement.'});
+    notAssessed.push({parameter: rows[i].parameter, text: text});
   }
 
   /* No internal identifier of any kind reaches `clinical` — not a reference
@@ -2703,6 +2733,11 @@ function buildImpression(model) {
   const naParams = new Set(notAssessed.map(n => n.parameter));
   const byTarget = new Map();
   for (const a of rel.abstentions) {
+    /* W-210. Skip abstentions whose targets are in TIER2_GROUPS (native T1,
+       cT1, ADC) — Impression must never refer to the additional-measurements
+       page. Check before grouping so an out-of-scope target never enters
+       abstentions. */
+    if (a.targets.some(target => _R.TIER2_GROUPS.indexOf(_R.DOMAIN_OF[target]) !== -1)) continue;
     const missing = a.missing.filter(m => !naParams.has(m));
     if (!missing.length) continue;
     const key = a.targets.join('|');

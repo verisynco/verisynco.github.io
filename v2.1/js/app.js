@@ -696,7 +696,17 @@ function wireSelectionScreen() {
          reach profileForPath() and throw, and a crash is worse than an unbuilt
          report. null is a real modelled state (selection.js says so). */
       const patch = {};
-      patch[el.dataset.axis] = el.value === '' ? null : el.value;
+      const axis = el.dataset.axis;
+      patch[axis] = el.value === '' ? null : el.value;
+      /* W-211. Picking (or clearing) the Indication also sets the Tier-1
+         `performed` default for the three purpose groups it can speak to
+         (render.js's performedForIndication) — one state transition, one
+         re-render, not a second applySelection call. Tier-2 groups
+         (t1/ct1/adc) are untouched: selection.js merges `performed`
+         per-key, and this patch never carries a Tier-2 key. */
+      if (axis === 'indication') {
+        patch.performed = performedForIndication(patch.indication);
+      }
       selection = applySelection(selection, patch);
       reRender();
     }));

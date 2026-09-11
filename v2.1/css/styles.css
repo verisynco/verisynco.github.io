@@ -590,6 +590,45 @@ body.gate-locked .toolbar,body.gate-locked .page{filter:grayscale(1) opacity(.42
 .rul-role { color: var(--faint); }
 .rul.staging .rul-role { color: var(--marker); font-weight: 600; }
 
+/* W-213. The (?) source box — CSS-only (no script, per the developer's
+   chosen option), the one scoped exception `v2/docs/DESIGN-DIRECTION.md
+   § 5.4` now names to "no custom hover layer". `.srcq` (the trigger) is
+   `screen-only` in the markup so it never reaches print; `.srcbox` (the
+   panel) stays `display: none` regardless of print/screen and is revealed
+   only by `:hover`/`:focus`/`:focus-within` on the trigger — a plain
+   `display: none` needs no extra print rule of its own since its parent is
+   already removed from the print DOM's paint (`.screen-only`'s existing
+   `@media print` rule). `tabindex="0"` + `:focus` covers keyboard; a tap on
+   a touch device typically both focuses and activates a focusable element,
+   the same best-effort touch support every other CSS-only affordance in
+   this file relies on (`.hint[title]`, the BMI popover). Text, not a
+   drawing (W-094) — no severity colour, plain ink on the card surface. */
+.srcq { position: relative; display: inline-flex; align-items: center;
+        justify-content: center; width: 12px; height: 12px; margin-left: var(--s-2);
+        border-radius: 50%; border: 1px solid var(--muted); color: var(--muted);
+        font-size: 8px; font-weight: 700; line-height: 1; cursor: help;
+        text-transform: none; letter-spacing: normal; vertical-align: middle; }
+.srcq .srcbox { display: none; position: absolute; z-index: 6; top: 100%; left: 0;
+                margin-top: var(--s-3); width: 260px; max-width: 72vw;
+                padding: var(--s-4); border: 1px solid var(--hair);
+                border-radius: 4px; background: var(--paper); color: var(--ink);
+                box-shadow: 0 2px 10px rgba(0,0,0,.18); font-family: var(--mono);
+                font-size: 8.5px; line-height: 1.5; font-weight: 400;
+                text-transform: none; letter-spacing: normal; text-align: left;
+                white-space: normal; }
+.srcq:hover .srcbox, .srcq:focus .srcbox, .srcq:focus-within .srcbox { display: block; }
+.srcq .srcbox p { margin: 0 0 var(--s-2); }
+.srcq .srcbox p:last-child { margin-bottom: 0; }
+.srcq .srcbox .srcbox-why { color: var(--muted); }
+.srcq .srcbox .srcbox-grade .dbadge { margin-left: 0; }
+.srcq .srcbox .srcbox-edges { border-top: 1px solid var(--hair2); padding-top: var(--s-2); }
+.srcq .srcbox .srcbox-edge { margin: 0 0 var(--s-3); }
+.srcq .srcbox .srcbox-edge:last-child { margin-bottom: 0; }
+.srcq .srcbox .srcbox-mean { color: var(--muted); font-weight: 400; }
+.srcq .srcbox .srcbox-edge ul { margin: var(--s-1) 0 0; padding-left: 1.1em; }
+.srcq .srcbox .srcbox-edge li { margin: 0 0 var(--s-1); }
+.srcq .srcbox .srcbox-edge li:last-child { margin-bottom: 0; }
+
 svg.ruler { display: block; width: 100%; height: auto; overflow: visible;
             margin-top: 0; }
 /* Band fills. z-none is the case that matters: a parameter for which no severity
@@ -712,8 +751,24 @@ svg.ruler.slim { opacity: .8; }
    off the head above and the bar's marker flag below. No severity colour (W-085). */
 .tickvals { position: relative; height: 12px; margin: 0;
             font-family: var(--mono); font-size: 9px; color: var(--muted); }
+/* W-213. Measured (Edge headless, real render): the patient-value chip's
+   dashed connector (`.mkval .mv::after`) is DESIGNED to run behind these
+   numbers (see the comment on `.mkval .mv::after` below) — DOM paint order
+   already puts this row on top, but a dashed line has gaps, so with no
+   opaque background the line was still visible cutting through the digits
+   whenever the patient value sat close to a boundary ("1|26", "3|2"). The
+   background is what the existing comment already promised and the rule
+   never delivered; small horizontal padding keeps the box off the glyphs'
+   edges. */
 .tickvals .tv { position: absolute; top: 0; transform: translateX(-50%);
-                white-space: nowrap; }
+                white-space: nowrap; background: var(--paper); padding: 0 var(--s-1); }
+/* W-213. Same "whole row or none" convention bandLegend()'s `needsRotation`
+   uses (W-120): when render.js's needsTickStagger() finds any adjacent pair
+   of tick labels close enough to concatenate, every even-indexed label in
+   THIS row drops to a second line rather than rotating (plain numbers read
+   oddly tilted) — the standard fix for a crowded numeric axis. */
+.tickvals.tickvals-stag { height: 24px; }
+.tickvals .tv.tv-lo { top: 12px; }
 
 /* W-125. The patient's measured value, lifted out of the SVG onto its own
    positioned row ABOVE `.tickvals`. A chip that slides horizontally to any x can
@@ -782,7 +837,7 @@ svg.ruler.slim { opacity: .8; }
              margin-right: var(--s-3); }
 .census { font-family: var(--mono); font-size: 9px; color: var(--faint);
           margin-top: var(--s-4); }
-#methodology footer { margin-top: var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--hair2); }
+#methodology footer,#additional footer { margin-top: var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--hair2); }
 
 @media print {
   /* The page box owns the margins, not .page — a sheet that overflows continues
@@ -925,9 +980,15 @@ svg.ruler.slim { opacity: .8; }
   font-size: 14px; line-height: 1; cursor: pointer; }
 .bmi-calc-dialog .lc + .lc { margin-top: var(--s-3); }
 
-/* The BMI hint reuses the existing native-title idiom (.pbars[title] etc.,
-   below) rather than a second tooltip mechanism: no script, works under
-   file://, prints nothing (a `title` attribute is never rendered on paper). */
+/* The BMI hint reuses the existing native-title idiom (`.pverdict [title]`
+   etc., below) rather than a second tooltip mechanism: no script, works
+   under file://, prints nothing (a `title` attribute is never rendered on
+   paper). W-213 moved the ladder-level `.pbars[title]` / `.rul[title]`
+   tooltips to the (?) source box (`.srcq`/`.srcbox` below) instead — richer
+   content than a `title` attribute can hold (a per-rung breakdown) needed a
+   real element, which is the one scoped exception
+   `v2/docs/DESIGN-DIRECTION.md § 5.4` now names. `.hint` here is unrelated
+   and unchanged. */
 .hint { font-family: var(--sans); font-weight: 400; color: var(--muted);
   border: 1px solid var(--hair2); border-radius: 50%; display: inline-flex;
   align-items: center; justify-content: center; width: 13px; height: 13px;
@@ -1086,6 +1147,15 @@ svg.ruler.slim { opacity: .8; }
 .perf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-4); }
 .perf-row { display: flex; align-items: flex-start; gap: var(--s-2); font-size: 10px; }
+/* W-214. Default checkbox size (measured 13x13px, headless Edge) reads as a
+   near-miss target next to a 14px text line; doubled so it's easy to find and
+   click. Re-measured against the actual rendered report (headless Edge,
+   before/after with the rule toggled off/on): the text stack next to the box
+   is already taller than either box size, so no row grows and the page's
+   total scroll height is unchanged (4669px both ways in the fixture used).
+   flex:none stops the bigger box from eating into the flex row's own sizing
+   beyond its own footprint. */
+.perf-row input { width: 26px; height: 26px; margin: 0; flex: none; }
 .perf-text { display: flex; flex-direction: column; }
 .perf-sub { font-size: 9px; color: var(--faint); }
 .lc-note { font-size: 9px; color: var(--faint); margin: var(--s-1) 0 0; }
@@ -1240,12 +1310,18 @@ svg.ruler.slim { opacity: .8; }
    below. Carries the one-line stand-in for a pending MEFIB block whose full
    text is .screen-only. */
 .print-only { display: none; }
+/* W-213. Same idea as `.print-only`, for a span that has to stay INLINE
+   beside always-visible text (the evidence-grade badge inside `.rul-scale`,
+   the thresholds/missing-rung text inside `.ticknames` beside `.cite`) —
+   `.print-only`'s own `display: block` would break that inline flow. */
+.print-only-inline { display: none; }
 
 @media print {
   /* Every control the reader used to build the report leaves the paper. The
      methodology sheet does NOT: there is no rule here that can remove it. */
   .screen-only, .tier-offer, .method { display: none !important; }
   .print-only { display: block; }
+  .print-only-inline { display: inline; }
   /* W-033. The empty override box is a control, and an empty box on paper reads
      as a form nobody filled in. The readout and its calibration line are the
      report's own statement and stay -- no rule here may hide either. */
@@ -1394,7 +1470,7 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
    is the single largest spacing value on either sheet -- larger than --s-7 and
    answering to nothing. MEASURED: the impression's flag list carried 58 mm of
    default margin and padding on its own, on a 281 mm page. */
-#clinical p,#methodology p{ margin:0 0 var(--s-3); }
+#clinical p,#methodology p,#additional p{ margin:0 0 var(--s-3); }
 .impression .flags{ margin:var(--s-3) 0 0; padding-left:var(--s-6);
                     font-size:var(--t-body); }
 .impression .flags li{ margin:0 0 var(--s-1); line-height:1.3; }
@@ -1438,7 +1514,7 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
 /* Screen-only affordance: the reasons that left the card are on the element they
    belong to, as a native tooltip. No script, works under file://, and — the whole
    point — it adds NOTHING to the printed page. */
-.pbars[title],.rul[title],.pverdict [title],.hint[title]{ cursor:help; }
+.pverdict [title],.hint[title]{ cursor:help; }
 
 
 /* ── 4. THE PAGE BUDGET ──────────────────────────────────────────────────────

@@ -26,7 +26,54 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.86';  /* W-207: MAST prints its own block after MEFIB — the same schematic, with contribution nodes instead of condition nodes, the score and the boundary it crossed, and no performance figure. W-196: the fill-state wash (W-134 /
+const V21_RENDER_VERSION = '3.92';  /* W-213: the ladder area declutters — the
+   old `title=` tooltip on the whole bar is replaced by a per-ladder (?)
+   source box (screen, CSS-only, no script), the evidence-grade badge and the
+   thresholds/missing-rung line move screen-side into it with a `print-only`
+   twin left in place (paper unchanged), the boundary-value row above the bar
+   gets a collision-avoiding two-line stagger for the rare case two ticks
+   would otherwise concatenate, and `.tickvals .tv` gets an opaque background
+   so the patient-value marker's dashed connector no longer visibly pierces a
+   nearby tick's digits. No clinical value, threshold, calibration or hash
+   moved (measured, not assumed — the twelve suites and CUTOFFS_HASH /
+   CALIBRATIONS_HASH / RANGES_HASH / RESOLVED_HASH are unchanged). W-211:
+   performedForIndication(indication)
+   — a pure function next to PRIMARY_GROUP_BY_INDICATION — returns the Tier-1
+   `performed` default (fibrosis/fat/iron) a picked Indication implies; app.js's
+   indication <select> handler merges it into the same patch as the indication
+   change itself. No render output changes for any FIXED selection (the
+   function is read only by app.js, never by a renderer), so no clinical value,
+   cut-off or hash moves — bumped because render.js's own source changed.
+   W-214: .perf-row input (the Tier-1/
+   Tier-2 measurement-selection checkboxes) doubles to 26x26px; the
+   blood-panel toggle keeps its size and gains a 🩸 marker beside its label.
+   Screen-only, paper unchanged (checked against a real print render, not
+   assumed from the CSS). Presentation only — no clinical value, cut-off or
+   hash moves.
+   W-212: tier2Block() (the "Additional
+   measurements" checkbox panel) moves from the clinical page to the
+   additional page it controls (tier2LabsBlock, called from
+   renderAdditionalPage) — a developer-reported product expectation, that
+   the panel and its cards sit on the same page. renderAdditionalPage() is
+   now unconditional on screen (a new `noprint` class hides the whole div in
+   print when nothing is performed, matching W-210's "no empty page" print
+   behaviour exactly); only the cards section stays gated on
+   additionalSectionDrew(). Closes the W-210 bootstrapping deadlock (N45/
+   W-105) a different way than W-210 did — by never hiding the page the
+   panel lives on, rather than by keeping the panel off that page. entryRoute()
+   needed no change: it is model-driven, and app.js's routeSelector/
+   routeIndexOf address controls by data attribute, not DOM position
+   (verified, not assumed). Presentation only — no clinical value, cut-off
+   or hash moves.
+   W-210: "Additional measurements" moves to its
+   own forced page (renderAdditionalPage), and its entry checkboxes/route follow.
+   W-209: entryRoute() now routes the labsBlock
+   checkboxes — Tier-1 (performedBlock, TIER1_GROUPS order) and Tier-2 (tier2Block,
+   TIER2_ENTRY_ORDER + ivim), gated behind the same model.report guard the checkboxes
+   themselves are drawn behind. Previously Tab jumped straight from bmi to the first
+   parameter card, silently skipping all seven checkboxes. Presentation only — no
+   clinical value, cut-off or hash moves.
+   W-207: MAST prints its own block after MEFIB — the same schematic, with contribution nodes instead of condition nodes, the score and the boundary it crossed, and no performance figure. W-196: the fill-state wash (W-134 /
    W-149) reaches the per-card blood-test sub-panel, gated on the panel being
    OPEN — an empty, rule-carrying blood input looks like every other field
    waiting for a number once the reader has ticked the panel's checkbox, and
@@ -231,8 +278,8 @@ const V21_RENDER_VERSION = '3.86';  /* W-207: MAST prints its own block after ME
    `selection`); when closed, height/weight are not rendered at all, so
    entryRoute only routes them while the popup is open (same "no route stop
    without a field" rule as etiologyCohort's). A "?" affordance on the BMI
-   label carries a native `title` tooltip (existing screen-only idiom,
-   .pbars[title] etc.) summarising which parameters BMI affects. The bmi-echo
+   label carries a native `title` tooltip (existing screen-only idiom, the
+   `.hint[title]` pattern) summarising which parameters BMI affects. The bmi-echo
    wording on the mre/pdff cards changes from "(Clinical context)" to
    "(patient header)" to match. Presentation-only: no clinical value,
    threshold, calibration or hash moved; CONTEXT_INPUTS/buildContext() are
@@ -613,25 +660,25 @@ const VENDOR_CLASS_LABELS = {
 };
 
 /* ───────────────────────────────────────────────── WHERE A PARAMETER LANDS */
+/* W-210. `additional` used to be a second SECTIONS entry, rendered inline by
+   sectionsHtml() on the same continuously-flowing clinical page. It is now
+   its own forced page (renderAdditionalPage, below), built from the same
+   tier2Block()/additionalSectionHtml() pieces, so SECTIONS names only the
+   one section sectionsHtml() still loops. */
 const SECTIONS = [
-  /* `grouped` is W-035: the cards on the clinical page are printed under the
-     domain heading they belong to. The two tier sections below stay flat --
-     they already carry their own title and note, and a second heading level
-     inside a short list costs page budget for a grouping the reader can see
-     at a glance (developer decision, 2026-08-24). */
   {id: 'clinical', mount: 'page1-inline', title: null, note: null,
-   grouped: true},
-  {id: 'additional', title: 'Additional measurements', additional: true,
-   note: 'These sit apart from the primary staging: some are produced by the ' +
-         'scanner\u2019s own software, some by third-party post-processing, some ' +
-         'by no product on record \u2014 and each is staged only where a ' +
-         'published cut-off exists, the rest shown for reference. Regulatory ' +
-         'status is not recorded here.'}
+   grouped: true}
 ];
 
-/* W-080. The shared note, verbatim, for the on-screen head of `#section-additional`.
-   The methodology sheet prints the same words from the SECTIONS entry above. */
-const ADDITIONAL_NOTE = SECTIONS[1].note;
+/* W-080 (moved off SECTIONS by W-210). The shared note, verbatim, for the
+   on-screen head of `#section-additional` and for the methodology sheet's
+   own "Additional measurements." note (tableC). */
+const ADDITIONAL_NOTE =
+  'These sit apart from the primary staging: some are produced by the ' +
+  'scanner\u2019s own software, some by third-party post-processing, some ' +
+  'by no product on record \u2014 and each is staged only where a ' +
+  'published cut-off exists, the rest shown for reference. Regulatory ' +
+  'status is not recorded here.';
 
 /* W-080. The merged section collects rows from more than one mountPoint -- the
    Tier-1 native readings that used to sit inline on page 1 (native T1, ADC), the
@@ -943,6 +990,26 @@ const PRIMARY_GROUP_BY_INDICATION = {
   'non-specific': null
 };
 
+/* W-211. The Tier-1 `performed` default a picked indication implies, read off
+   PRIMARY_GROUP_BY_INDICATION above: a stated primary opens that ONE group and
+   closes the other two; no primary (null — today only 'non-specific', and a
+   cleared select, W-149) opens all three. That "no primary = show the full
+   picture" default mirrors selection.js's own createSelection() default and
+   the W-105 rationale, confirmed with the developer 2026-09-11 rather than
+   assumed. Tier-2 groups (t1/ct1/adc) are never part of the return value —
+   this function does not know they exist, and app.js's caller merges the
+   result into `performed` without touching them (selection.js's own
+   Object.assign-per-key merge, unchanged). Pure: no DOM, no default write. */
+function performedForIndication(indication) {
+  const prim = PRIMARY_GROUP_BY_INDICATION[indication];
+  if (prim) {
+    const out = {fibrosis: false, fat: false, iron: false};
+    out[prim] = true;
+    return out;
+  }
+  return {fibrosis: true, fat: true, iron: true};
+}
+
 /* THE IDENTITY AND STUDY CELLS, DECLARED ONCE (W-046). They used to be a
    literal argument list inside each of the two builders below, which was fine
    while the markup was their only consumer. `entryRoute` is a second consumer,
@@ -1116,8 +1183,11 @@ function performedBlock(selection) {
    indication has a primary group (§ PRIMARY_GROUP_BY_INDICATION) AND the other
    Tier-1 groups are switched on: it names them and offers a one-click Hide.
    Hide/Show is a shortcut to the checkboxes above — it writes the same
-   `performed` axis, it does not change any default. Tier-1 only, so app.js needs
-   no scope recompute. */
+   `performed` axis this function only reads. W-211 gave the indication
+   <select> its own default writer (performedForIndication, app.js) — that one
+   DOES change the default, once, at the moment the indication is picked; this
+   note is unchanged, it still only offers the manual one-click override
+   afterwards. Tier-1 only, so app.js needs no scope recompute. */
 function performedAlsoOpen(selection, performed) {
   const prim = PRIMARY_GROUP_BY_INDICATION[selection.indication];
   if (!prim) return '';
@@ -1292,9 +1362,28 @@ function bmiCalcCellHtml(context, uiState) {
    here is what always belonged together: the screen-only "which groups were
    performed" and "additional measurements" checkbox blocks, still inside the
    `.labs` box, still `id="labs"`. */
-function labsBlock(selection, model) {
+/* W-212. tier2Block() (the "Additional measurements" checkbox panel) used to
+   sit here too (W-210, reverted after N45/W-105 caught a bootstrapping
+   deadlock: renderAdditionalPage() was gated ENTIRELY on a Tier-2 group
+   already being on, so a checkbox moved behind that gate could never be
+   reached by a fresh report). It has moved to tier2LabsBlock(), called from
+   renderAdditionalPage() — that page is now unconditional on screen, so the
+   deadlock is closed without keeping the panel here. Only performedBlock
+   (Tier-1) stays. */
+function labsBlock(selection) {
   return '<section class="labs" id="labs">' +
     performedBlock(selection) +
+    '</section>';
+}
+
+/* W-212. tier2Block() moves from the clinical page (W-210) to the additional
+   page it controls, so the panel sits with the cards it opens. Wrapped in
+   the same `.labs` box labsBlock() uses, own id so the two never collide on
+   one rendered page. Called unconditionally from renderAdditionalPage() — see
+   the comment there for why that is what closes the W-210 deadlock this
+   time, rather than leaving the panel stranded on the clinical page. */
+function tier2LabsBlock(model, selection) {
+  return '<section class="labs" id="labs-additional">' +
     tier2Block(model, selection) +
     '</section>';
 }
@@ -1457,6 +1546,23 @@ function estBandWidthUnits(label) {
   return px / BAND_PX_PER_UNIT;
 }
 
+/* W-213. Calibrated against two real Edge-headless renders (scratchpad
+   screenshots), not guessed: 1.8/3.2 mg Fe/g dw (3-char labels, ~23.8 real
+   px apart) render with visible daylight between them and must NOT trigger;
+   3.14/3.53 kPa (4-char labels, ~24.1 real px apart — almost the same gap)
+   is the confirmed "3.143.53" concatenation and MUST trigger. Per-char width
+   reuses `BAND_CHARPX`'s 12px-font measured reference, rescaled to
+   `.tickvals`'s own 9px; the fixed term is the CSS's own 2px+2px padding on
+   `.tickvals .tv` (a literal px pad, not a text-scaled one, so it is not
+   rescaled). `BAND_PX_PER_UNIT` is reused as-is — the SAME SVG container
+   scale factor, and `.tickvals` sits in the same RULER_W space `xOf()`
+   places both features in. */
+const TICK_CHARPX = 7.4 * (9 / 12), TICK_FIXEDPX = 4;
+function estTickWidthUnits(label) {
+  const px = String(label).length * TICK_CHARPX + TICK_FIXEDPX;
+  return px / BAND_PX_PER_UNIT;
+}
+
 /* How tall a rotated legend needs to be, in real px — measured, not guessed:
    "Advanced fibrosis" at this font (8.5px mono) renders 84.7 px wide and
    11.9 px tall (Edge headless, 2026-08-29), and 11.9 / (8.5 * 1.4) is within
@@ -1604,17 +1710,41 @@ function markerValRow(ruler, axis) {
    the unit prints once in the head. NO severity colour (W-085): this row says
    where a boundary is, not how bad it is. `left` is inline because it is
    per-patient geometry, not a fixed rule; the stylesheet owns everything else. */
+/* W-213. Measured on a real render (Chen/Liang 2023's MRE F>=2/F>=3 rungs,
+   3.14 and 3.53 kPa, matched to the indication): two adjacent tick labels
+   whose estimated widths overlap concatenate with no gap — "3.143.53" — the
+   `.tv`s are independently centred, absolutely-positioned spans with no
+   collision avoidance between them. Same W-120 `bandLegend` convention:
+   "rotate the whole row, or none of it — never a per-label fix", so one
+   ruler's tick row never mixes a normally-spaced label beside a squeezed
+   one. Numbers are not words, so *rotating* (the band-legend fix) would
+   read oddly on a plain numeric axis; the established fix for a crowded
+   numeric axis (matplotlib, R, every guideline figure with more ticks than
+   room) is to stagger alternating labels onto a second line instead. */
+function needsTickStagger(edges, xOf) {
+  let prevR = null;
+  for (const e of edges) {
+    const c = xOf(e.value), half = estTickWidthUnits(fmtTick(e.value)) / 2;
+    if (prevR !== null && c - half < prevR) return true;
+    prevR = c + half;
+  }
+  return false;
+}
+
 function tickValRow(ruler, axis) {
   const xOf = axisXOf(ruler, axis);
   /* Same trap as bandLegend(): reverse a `dir: 'down'` ruler's ascending-axis
      edge list so DOM / screen-reader / print order matches the mirrored bar.
      Position already mirrors through xOf, independent of this. */
   const edges = ruler.dir === 'down' ? ruler.edges.slice().reverse() : ruler.edges;
-  return '<p class="tickvals">' + edges.map(e => {
-    const left = (xOf(e.value) / RULER_W * 100).toFixed(2);
-    return '<span class="tv" style="left:' + left + '%">' +
-           esc(String(fmtTick(e.value))) + '</span>';
-  }).join('') + '</p>';
+  const stag = needsTickStagger(edges, xOf);
+  return '<p class="tickvals' + (stag ? ' tickvals-stag' : '') + '">' +
+    edges.map((e, i) => {
+      const left = (xOf(e.value) / RULER_W * 100).toFixed(2);
+      return '<span class="tv' + (stag && i % 2 === 1 ? ' tv-lo' : '') +
+             '" style="left:' + left + '%">' +
+             esc(String(fmtTick(e.value))) + '</span>';
+    }).join('') + '</p>';
 }
 
 /* W-124. A boundary NAME is kept on paper only where it is not provably
@@ -1642,6 +1772,15 @@ function boundaryRedundant(edge, zones) {
    (always) OR when its name is not a pipe-composite of the two flanking bands.
    Then the short citation and the missing-rung note, which used to ride at the
    end of the removed flowed line. Returns '' when it would be empty. */
+/* W-213. The thresholds text and the missing-rung note moved into the (?)
+   source box (screen) — see sourceBoxHtml() below — and keep a `print-only`
+   twin here so paper is byte-identical to before this task. The short
+   citation (`.cite`) is the one thing this line must keep VISIBLE on screen
+   (a reader has to see which publication a matched strip is without
+   hovering), so it is never wrapped print-only. Where no citation applies
+   (a consensus/guideline bar), nothing on this line is screen-visible at
+   all — the whole paragraph becomes print-only instead of a paragraph whose
+   only children are hidden, which would leave a blank margin on screen. */
 function tickNamesLine(ruler, shortCite, rung) {
   const edges = ruler.dir === 'down' ? ruler.edges.slice().reverse() : ruler.edges;
   const parts = [];
@@ -1651,9 +1790,14 @@ function tickNamesLine(ruler, shortCite, rung) {
     if (!spread && boundaryRedundant(e, ruler.zones)) continue;
     parts.push(esc(e.boundary) + spread);
   }
+  const namesText = parts.length ? 'thresholds: ' + parts.join(' · ') : '';
   const cite = shortCite ? '<span class="cite">' + esc(shortCite) + '</span>' : '';
-  if (!parts.length && !cite && !rung) return '';
-  const names = parts.length ? 'thresholds: ' + parts.join(' · ') : '';
+  if (!namesText && !cite && !rung) return '';
+  if (!cite) {
+    return '<p class="ticknames print-only">' +
+      [namesText, rung].filter(Boolean).join(' ') + '</p>';
+  }
+  const names = namesText ? '<span class="print-only-inline">' + namesText + '</span>' : '';
   return '<p class="ticknames">' + [names, cite].filter(Boolean).join(' ') + rung + '</p>';
 }
 
@@ -1683,34 +1827,158 @@ function sharedAxis(rulers) {
    "Evidence A", a ladder whose boundaries mix grades reads "Evidence A/B" —
    a mechanical set operation, never an editorial judgement about which grade
    the ladder "really" is. Absent where no boundary carries a grade at all. */
-function evidenceGradeBadge(ruler) {
+/* W-213. `extraClass` lets the same badge markup serve two homes: a
+   `print-only-inline` copy stays in `.rul-head` (paper unchanged — the badge
+   used to be always-visible there), and a plain copy (no extra class) goes
+   inside the (?) box, which is itself screen-only by construction. */
+function evidenceGradeBadge(ruler, extraClass) {
   const grades = new Set();
   for (const e of (ruler.edges || [])) {
     for (const g of (e.evidenceGrades || [])) grades.add(g);
   }
   if (!grades.size) return '';
-  return ' <span class="dbadge">Evidence ' + esc([...grades].sort().join('/')) + '</span>';
+  const cls = 'dbadge' + (extraClass ? ' ' + extraClass : '');
+  return ' <span class="' + cls + '">Evidence ' + esc([...grades].sort().join('/')) + '</span>';
 }
 
-function rulerBlock(ruler, axis) {
+/* W-213. Which raw, untransformed scale a ruler's per-edge sources live on.
+   Read from `row` — NOT from `card`/`ruler` — because `row.scales[...]` still
+   carries the full `boundary.sources` detail report.js's buildScale()
+   resolved, while the shared `card.rulers[].edges` deliberately does not
+   (the altitude rule, v2/tests/logic.test.js L9/L10 — see zones.js's own
+   comment beside `edges`). `row.staging` IS the winning policy key for the
+   consensus ruler; for the disagreement strip (role 'matched', no
+   `matchLabel`) it is the OTHER drawable policy. The true
+   matched-to-indication strip needs no scale lookup at all — every one of
+   its edges is, by construction, exactly one publication's own number
+   (matchedScale() in report.js), handled directly in edgeSourceLines(). */
+function sourceScaleFor(ruler, row) {
+  if (!row || ruler.orientation) return null;
+  if (ruler.role === 'consensus') {
+    if (row.stagingMode === 'partial' && row.stagingScale) return row.stagingScale;
+    return row.staging && row.scales ? row.scales[row.staging] : null;
+  }
+  if (ruler.role === 'matched' && !ruler.matchLabel) {
+    const other = (row.drawable || []).filter(p => p !== row.staging)[0];
+    return other && row.scales ? row.scales[other] : null;
+  }
+  return null;
+}
+
+/* "REF-014 — Liang JX, ... 2023" -> "Liang JX, ... 2023". report.js builds
+   `matchLabel` and every `matchedRefs` entry in this "<id> — <citation>"
+   shape for the methodology sheet; the clinical-page box drops the id half
+   — see the comment on edgeSourceLines() below for why. */
+function citationOnly(refLine) {
+  const s = String(refLine);
+  const i = s.indexOf(' — ');
+  return i === -1 ? s : s.slice(i + 3);
+}
+
+/* One line per contributing publication for one rung: author-year, that
+   publication's OWN value, its evidence grade. Deliberately no REF id and no
+   PMID — flagged to the developer 2026-09-11 and decided (first for PMID,
+   then found to apply to REF ids too — see the design spec § 2 and § 6):
+   neither ever reaches the clinical-page HTML (v2/tests/logic.test.js L9,
+   its comment's own "a source id OR a PMID on a card is the receipts
+   leaking upward"), receipts staying on the methodology sheet even inside a
+   hover-only box. Measured, not assumed: an earlier draft that DID print
+   `REF-039`/`REF-014` text broke K10 ("the GE path cites a GE-explicit
+   reference first"), which naively scans the whole clinical sheet for the
+   first `REF-\d+` — an accidental confirmation of the same rule L9 states
+   on purpose. */
+function edgeSourceLines(ruler, edge, row, matchRefId) {
+  if (matchRefId) {
+    const ref = _RN.REFERENCES.filter(r => r.id === matchRefId)[0];
+    if (!ref) return [];
+    const grade = (edge.evidenceGrades && edge.evidenceGrades[0]) || null;
+    return [(ref.citation || 'unresolved') + ' · ' +
+      fmtTick(edge.value) + (ruler.unit ? ' ' + ruler.unit : '') +
+      (grade ? ' · Grade ' + grade : '')];
+  }
+  const scale = sourceScaleFor(ruler, row);
+  const b = scale && scale.boundaries
+    ? scale.boundaries.filter(x => x.boundary === edge.boundary)[0] : null;
+  if (!b || !b.sources) return [];
+  const lines = [];
+  for (const src of b.sources) {
+    for (const ref of (src.refs || [])) {
+      lines.push((ref.citation || 'unresolved') + ' · ' +
+        src.value + (b.unit ? ' ' + b.unit : '') +
+        (src.evidenceGrade ? ' · Grade ' + src.evidenceGrade : ''));
+    }
+  }
+  return lines;
+}
+
+/* W-213. The (?) source box: a CSS-only disclosure (no script — the
+   developer's chosen option), `screen-only` (print keeps the same content it
+   always had, via the print-only / print-only-inline twins beside it —
+   § 4/§ 5.4 of the design spec). Carries every reason that used to live only
+   in the removed `title=` tooltip, PLUS the new per-rung, per-publication
+   breakdown so a reader is not sent to the References table to learn which
+   paper set which rung. Returns '' when there is nothing to say. */
+function sourceBoxHtml(ruler, row, why, matchRefId) {
+  const edges = ruler.dir === 'down' ? ruler.edges.slice().reverse() : ruler.edges;
+  const rows = [];
+  for (const e of edges) {
+    const lines = edgeSourceLines(ruler, e, row, matchRefId);
+    if (!lines.length) continue;
+    /* W-124's own redundancy rule, respected here too: a pipe-composite
+       boundary name ("normal|borderline") is exactly the two flanking band
+       names bandLegend() already prints. The box still needs SOME heading
+       per rung, so it prints the flanking names as an arrow rather than the
+       literal pipe form — informative without reproducing the redundant
+       string. */
+    const heading = esc(e.boundary).split('|').join(' → ');
+    rows.push('<div class="srcbox-edge"><b>' + heading + '</b> ' +
+      esc(String(fmtTick(e.value))) + (ruler.unit ? ' ' + esc(ruler.unit) : '') +
+      (e.meanLabel ? ' <span class="srcbox-mean">(' + esc(e.meanLabel) + ')</span>' : '') +
+      '<ul>' + lines.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul></div>');
+  }
+  const badge = evidenceGradeBadge(ruler);
+  const parts = [];
+  for (const w of why) parts.push('<p class="srcbox-why">' + esc(w) + '</p>');
+  if (badge) parts.push('<p class="srcbox-grade">' + badge.trim() + '</p>');
+  if (rows.length) parts.push('<div class="srcbox-edges">' + rows.join('') + '</div>');
+  if (!parts.length) return '';
+  return '<span class="srcq screen-only" tabindex="0" aria-label="Sources for this ladder">' +
+    '<span class="srcq-mark" aria-hidden="true">?</span>' +
+    '<span class="srcbox" role="tooltip">' + parts.join('') + '</span></span>';
+}
+
+function rulerBlock(ruler, axis, row, singleNote) {
   const drawnSvg = rulerSvg(ruler, axis, ruler.role === 'matched');
   /* THE CARD CARRIES FACTS; THE REASONS MOVED. What used to print here as four
      paragraphs — the full citation, the other eligible publications, the band
      note, the rung this publication does not cover — is why the report ran to
-     seven pages. Each is now a native tooltip on the bar it belongs to, and each
-     prints in full on the methodology sheet. A tooltip needs no script, works
-     under file://, and adds nothing to the paper (DESIGN-DIRECTION § 5.4). */
+     seven pages. Each used to be a native `title=` tooltip on the whole bar;
+     W-213 replaces that with the (?) box below, which can hold structure (a
+     per-rung breakdown) a `title` attribute cannot, and updates
+     DESIGN-DIRECTION § 5.4 to name the box as the one scoped exception to
+     "no custom hover layer". Nothing here reaches paper except through an
+     explicit print-only twin — see tickNamesLine() and the badge below. */
   const why = [];
-  if (ruler.matchLabel) why.push(ruler.matchLabel);
+  /* citationOnly() strips the "REF-014 — " id prefix — see edgeSourceLines()'s
+     comment: no source id reaches the clinical page, box included. */
+  if (ruler.matchLabel) why.push(citationOnly(ruler.matchLabel));
   if (ruler.scanner) why.push('Published on ' + ruler.scanner);
   if (ruler.matchedRefs && ruler.matchedRefs.length > 1) {
-    why.push('Also eligible: ' + ruler.matchedRefs.slice(1).join(' · '));
+    why.push('Also eligible: ' + ruler.matchedRefs.slice(1).map(citationOnly).join(' · '));
   }
   if (ruler.missingRungs && ruler.missingRungs.length) {
     why.push('Does not cover ' + ruler.missingRungs.join(', ') +
              '; that rung is absent from the strip rather than drawn blank.');
   }
   if (ruler.note) why.push(ruler.note);
+  /* W-033. "one published ladder" — card-level (only one ruler drew at all),
+     so it is only ever passed for a card with exactly one ruler; folded into
+     THAT ruler's own box rather than needing a second affordance. Skipped
+     when it is the SAME sentence as `ruler.note` already pushed above (the
+     matchIsSameLadder shape of singleLadderReason, report.js, is word for
+     word the sameLadder() `ruler.note` this block already carries) — never
+     say the same sentence to the reader twice. */
+  if (singleNote && singleNote !== ruler.note) why.push(singleNote);
 
   /* The SHORT form stays visible: a reader must be able to see WHICH publication
      the strip is, without a hover and without the methodology sheet in hand.
@@ -1726,7 +1994,7 @@ function rulerBlock(ruler, axis) {
     ? shortCite(matchRefId) + (ruler.scanner ? ' · ' + ruler.scanner.split(',')[0] : '')
     : null;
   const rung = (ruler.missingRungs && ruler.missingRungs.length)
-    ? '<span class="norung">no ' + esc(ruler.missingRungs.join(', ')) + '</span>' : '';
+    ? '<span class="norung print-only-inline">no ' + esc(ruler.missingRungs.join(', ')) + '</span>' : '';
 
   /* W-133. A "matched" second bar is drawn for two different reasons, and both
      used to print the identical "named for this indication" sentence: (a) the
@@ -1742,10 +2010,17 @@ function rulerBlock(ruler, axis) {
       : (ruler.matchLabel ? 'a publication specific to this indication'
                           : 'guideline and published studies disagree here'));
 
-  return '<div class="rul rul-' + esc(ruler.role) + '" data-role="' + esc(ruler.role) + '"' +
-    (why.length ? ' title="' + esc(why.join('\n')) + '"' : '') + '>' +
+  return '<div class="rul rul-' + esc(ruler.role) + '" data-role="' + esc(ruler.role) + '">' +
+    /* W-213. The (?) box sits INSIDE `.rul-scale`, not as a third sibling of
+       `.rul-head` — `.rul-head` is `justify-content: space-between` for its
+       two existing children (name+badge on the left, role sentence on the
+       right); a third flex child would float the role text to the middle.
+       Nesting keeps that two-item layout exactly as it was (the box itself
+       is `screen-only`, so it never reaches print either way). */
     '<div class="rul-head"><span class="rul-scale">' + esc(ruler.scaleLabel) +
-      (ruler.unit ? ' · ' + esc(ruler.unit) : '') + evidenceGradeBadge(ruler) + '</span>' +
+      (ruler.unit ? ' · ' + esc(ruler.unit) : '') +
+      evidenceGradeBadge(ruler, 'print-only-inline') +
+      sourceBoxHtml(ruler, row, why, matchRefId) + '</span>' +
     '<span class="rul-role">' + esc(roleText) + '</span></div>' +
     /* W-125 / W-124. Above the bar, top to bottom: the patient's value chip on
        its own row (consensus rulers with a value only), then the tick-aligned
@@ -1762,7 +2037,7 @@ function rulerBlock(ruler, axis) {
     '</div>';
 }
 
-function rulersHtml(card) {
+function rulersHtml(card, row) {
   if (!card.rulers || !card.rulers.length) return '';
   const axis = sharedAxis(card.rulers);
   /* Order is fixed by ROLE, not by match. The consensus ladder is drawn top and
@@ -1770,7 +2045,11 @@ function rulersHtml(card) {
      is therefore always the one the verdict came from (W-030 § 3.2). */
   const ordered = card.rulers.filter(r => r.role === 'consensus')
                     .concat(card.rulers.filter(r => r.role !== 'consensus'));
-  const blocks = ordered.map(r => rulerBlock(r, axis));
+  /* W-033. `card.singleLadderReason` is card-level and non-null only when
+     exactly one ruler drew (report.js) — safe to hand to that one ruler's
+     own box unconditionally. */
+  const singleNote = ordered.length === 1 ? card.singleLadderReason : null;
+  const blocks = ordered.map(r => rulerBlock(r, axis, row, singleNote));
   /* W-147: the disagreement note sits at the junction between the two bars —
      after the first (consensus), before the rest (matched) — the point the
      eye crosses while comparing them, rather than below both in `.pfacts`.
@@ -2049,7 +2328,9 @@ function bmiEchoHtml(row, selection) {
 
    Screen only, by mechanism: the affordance carries `.screen-only`, which
    `@media print` hides. A native `title` is the idiom this page already uses
-   (.pbars[title], .rul[title], the BMI hint) — no script, so `file://`
+   (the BMI hint's `.hint[title]`; the ladder-level tooltip this idiom
+   originally shared, `.pbars[title]`/`.rul[title]`, was replaced by the (?)
+   source box at W-213) — no script, so `file://`
    double-click behaviour is untouched (§ 6). Its cost is real and recorded: it
    opens for a mouse, not for touch or the keyboard, and it is plain text.
    Developer decision, 2026-09-08 (§ 2.4), taken with that cost stated. */
@@ -2255,7 +2536,7 @@ function bloodPanelHtml(row, selection, model, view) {
       (anyValue ? '' : ' bp-empty') + '">' +
     '<label class="bp-toggle screen-only"><input type="checkbox" data-blood-panel="' +
       esc(row.parameter) + '"' + (open ? ' checked' : '') + '>' +
-      '<span>' + esc(spec.toggle) + '</span></label>' +
+      '<span>\u{1FA78} ' + esc(spec.toggle) + '</span></label>' +
     '<div class="bp-body">' +
       '<p class="bp-lead">' + esc(spec.lead) + '</p>' +
       '<div class="labs-grid bp-grid">' + grid + '</div>' +
@@ -2287,8 +2568,9 @@ function parameterCard(row, card, selection, model, view) {
      purpose group is switched on and it holds no number (the same condition the
      screen-only pval-warn below already uses).
      W-149 removed the indication-dependent emphasis — one wash for every needed
-     field. `PRIMARY_GROUP_BY_INDICATION` still exists, but only
-     `performedAlsoOpen` reads it now. */
+     field. `PRIMARY_GROUP_BY_INDICATION` still exists; `performedAlsoOpen`
+     reads it directly, and app.js's `performedForIndication` (W-211) reads it
+     indirectly to set the Tier-1 default when the indication is picked. */
   const fillGroup = _RN.purposeGroupOf(row.parameter);
   const fillNeeded = !!(selection.performed && fillGroup !== null &&
     selection.performed[fillGroup] === true &&
@@ -2338,12 +2620,14 @@ function parameterCard(row, card, selection, model, view) {
       (showControl ? methodControl(selection, row.controlKey) : '') +
       productControl(selection, row.parameter, row.technique) +
     '</div>' +
-    '<div class="pbars"' +
-      (card.singleLadderReason ? ' title="' + esc(card.singleLadderReason) + '"' : '') + '>' +
-      rulersHtml(card) +
+    '<div class="pbars">' +
+      rulersHtml(card, row) +
       /* One bar is a fact, so it stays sayable; the paragraph explaining WHY is a
-         reason and is now the tooltip plus the methodology sheet. */
-      (card.singleLadderReason ? '<p class="onebar">one published ladder</p>' : '') +
+         reason and now lives in the ruler's own (?) box (screen) plus this
+         print-only twin (paper unchanged — W-213 folded the old `.pbars[title]`
+         tooltip into the box instead of keeping two overlapping hover
+         surfaces). */
+      (card.singleLadderReason ? '<p class="onebar print-only">one published ladder</p>' : '') +
     '</div>' +
     '<div class="pverdict">' + verdictChip(card.verdict, card.interpretable) +
       (card.verdictScale
@@ -3067,15 +3351,11 @@ function sectionsHtml(model, selection, view) {
       /* W-207. MAST follows MEFIB in the same place and under the same gate. */
       mastSection(model.mast, selection)
     : '';
+  /* W-210. SECTIONS now names only the clinical entry — the additional
+     section moved to renderAdditionalPage(), so this loop no longer needs
+     the `section.additional` branch. */
   let html = '';
   for (const section of SECTIONS) {
-    /* W-080. The merged `additional` section has no single `mount`: its rows are
-       chosen by additionalRows(), and IVIM (not a report row) is appended by
-       additionalSectionHtml itself. */
-    if (section.additional) {
-      html += additionalSectionHtml(additionalRows(ordered), build, model.ivim);
-      continue;
-    }
     const pairs = ordered.filter(p => p.row.mountPoint === section.mount);
     html += sectionHtml(section, pairs, counter, build, afterDomain);
   }
@@ -3301,7 +3581,7 @@ function renderClinicalSheets(model, profile, selection, versions, view) {
     masthead(profile) +
     patientMeta(selection, view) +
     studyMeta(selection, profile) +
-    labsBlock(selection, model) +
+    labsBlock(selection) +
     sectionsHtml(model, selection, view) +
     /* W-195. The MEFIB composite moved INTO sectionsHtml, right after the
        Fibrosis (MRE) domain group — it is no longer a trailing block here. */
@@ -3360,6 +3640,36 @@ function entryRoute(model, selection, uiState) {
     route.push({attr: 'data-value', key: 'weightKg'});
   }
   if (!model || !model.report) return route;
+
+  /* The `labsBlock` checkboxes — performedBlock (Tier-1: which measurements
+     were performed) then tier2Block (Tier-2: additional measurements, plus
+     IVIM) — sit between the study header and the first parameter card, but
+     only draw once a report exists (app.js: `!report.ready` stops at the
+     "Choose the scanner above" note and never calls labsBlock at all), so
+     both groups are gated here behind the same `model.report` check the
+     stub-state route above already returns early on. Without route entries
+     here Tab jumped straight from bmi to the first parameter card value,
+     skipping both checkbox rows entirely; left-to-right, top-to-bottom is
+     `_RN.TIER1_GROUPS`'/`TIER2_ENTRY_ORDER`'s own declared order, which
+     performedBlock/tier2Block render in (no CSS `order` override — .perf-grid
+     is a plain auto-fill grid, so DOM order is reading order). */
+  for (const g of _RN.TIER1_GROUPS) {
+    route.push({attr: 'data-performed-group', key: g});
+  }
+
+  /* Tier-2 checkboxes are further gated per group, mirroring tier2Block's own
+     test (a route entry with no checkbox behind it is the dead stop W-046
+     fixed) — so the route cannot name a group the block does not render.
+     ivim is appended last, matching tier2RowHtml's own call order there. */
+  const byParamPerf = {};
+  model.report.rows.forEach(r => { byParamPerf[r.parameter] = r; });
+  for (const g of TIER2_ENTRY_ORDER) {
+    const p = _RN.GROUP_PARAMETERS[g][0];
+    const r = byParamPerf[p];
+    if (r && r.scope && r.scope.quantification === 'none') continue;
+    route.push({attr: 'data-performed-group', key: g});
+  }
+  route.push({attr: 'data-performed-group', key: 'ivim'});
 
   /* W-194. The laboratory grid no longer stops here. Each blood input is now a
      Tab stop of the card whose blood sub-panel shows it (bloodPanelHtml), added
@@ -3990,16 +4300,62 @@ function renderMethodology(model, profile, selection, versions, view) {
     '</div>';
 }
 
+/* ═══════════════════════════════════════════════ THE ADDITIONAL PAGE (W-210)
+   Native T1, cT1, ADC and IVIM — the STAGED CARDS that used to sit between
+   the domain cards and Impression on the one continuously-flowing clinical
+   page — now print on their own forced page, between Summary and
+   Methodology. buildImpression() (v2/js/report.js, same task) is narrowed in
+   the same change so nothing in Impression's prose refers ahead to a card
+   printed here: the two changes are coupled (spec § 3), not independent.
+
+   `tier2Block()`'s entry checkboxes moved here at W-210 and were reverted
+   the same task, after N45 caught a bootstrapping deadlock: this whole page
+   used to be gated on a Tier-2 group already being on (additionalSectionDrew),
+   and a checkbox gated behind the one thing it exists to switch on could
+   never be reached by a fresh report (every one defaults Tier-2 off, W-105).
+   W-212 moves the panel back here, but closes the deadlock differently:
+   the page DIV itself is now unconditional on screen — `additionalSectionDrew`
+   gates only the cards section (`additionalSectionHtml`), not the wrapper —
+   so the panel (drawn by `tier2LabsBlock`, always) is reachable on a fresh
+   report even though the cards it opens are not drawn yet.
+
+   additionalSectionHtml() already carries its own `<h2>Additional
+   measurements</h2>` heading (unchanged) — this page adds no second,
+   redundant one above it, beyond tier2LabsBlock's own panel header. Print
+   still shows nothing when nothing is performed: the wrapper carries
+   `noprint` (the existing print-suppression utility, W-066) in that case,
+   which hides the whole div — including tier2LabsBlock, already
+   `screen-only` on its own — under `@media print`, so "no page at all" on
+   paper is unchanged; only the screen behaviour (the panel's reachability)
+   is different. */
+function renderAdditionalPage(model, profile, selection, versions, view) {
+  const drew = additionalSectionDrew(model);
+  const sample = !!(view && view.mode === 'sample');
+  const ordered = _RN.orderCards(model.report, model.cards);
+  const build = p => parameterCard(p.row, p.card, selection, model, view);
+  return '<div class="page pagebreak' + (drew ? '' : ' noprint') + '" id="additional"' +
+    (sample ? ' inert' : '') + '>' +
+    tier2LabsBlock(model, selection) +
+    (drew ? additionalSectionHtml(additionalRows(ordered), build, model.ivim) : '') +
+    (sample ? sampleLine() : '') +
+    '<footer><pre id="ver-line">' + esc(stampText(model, selection, versions)) + '</pre>' +
+    '<div id="ack-line">Disclaimer v' + esc(versions.disclaimer) + ' acknowledged ' +
+    esc(new Date(versions.ackTs).toLocaleString('en-GB')) +
+    ' · Educational reference — not a diagnostic device.</div></footer>' +
+    '</div>';
+}
+
 /* `view` is optional and absent means LIVE. Every call written before W-014 —
    and every check in v2/tests/render.test.js that predates it — passes four
    arguments, so the live report is what the default has to be. */
 function renderReport(model, profile, selection, versions, view) {
   return renderClinicalSheets(model, profile, selection, versions, view) +
+         renderAdditionalPage(model, profile, selection, versions, view) +
          renderMethodology(model, profile, selection, versions, view);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {renderReport, renderClinicalSheets, renderMethodology,
+  module.exports = {renderReport, renderClinicalSheets, renderAdditionalPage, renderMethodology,
                     masthead, patientMeta, studyMeta, labsBlock,
                     compositeSection, mastSection, impressionSection, summaryBlock, evidenceAppendix, reportFooter,
                     notInterpretableHtml, shortCite,
@@ -4015,5 +4371,6 @@ if (typeof module !== 'undefined' && module.exports) {
                     VENDOR_CLASS_LABELS,
                     additionalRows, additionalSectionDrew, ADDITIONAL_NOTE,
                     TIER2_GROUPS: _RN.TIER2_GROUPS,
+                    performedForIndication,
                     V21_RENDER_VERSION};
 }
