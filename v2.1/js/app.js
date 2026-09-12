@@ -10,7 +10,18 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_APP_VERSION = '0.16.0';  /* W-167 moves this 0.15.0 -> 0.16.0: the
+const V21_APP_VERSION = '0.17.0';  /* W-216 moves this 0.16.0 -> 0.17.0: entering
+   a scenario now defaults `bloodPanelOpen` to whichever of the Fibrosis/Iron
+   blood sub-panels the loaded case actually stocked a value for
+   (`defaultBloodPanelOpen`), instead of always starting closed. Every one of
+   the 21 scenarios already carries correct, story-appropriate blood values
+   (confirmed by read-only review before this task opened) — the values were
+   never the gap, visibility was: the panel drew closed and its toggle read
+   "Add blood tests" even when the value was already there. Manual (live)
+   entry is unchanged — closeBmiPopup/exitSample/newReport still reset to
+   `{}`, closed, exactly as W-194 designed for a reader who is typing values
+   in. No clinical value, no hash lock, no network.
+   W-167 moved this 0.15.0 -> 0.16.0: the
    introduction strip on the sample. A module-top `let introDismissed` threaded
    into both view objects, a `dismissIntro()` handler, the
    `data-action="dismiss-intro"` binding, and the `introStrip(view)` call after
@@ -231,6 +242,27 @@ function toggleBloodPanel(key) {
   renderSelectionScreen();
 }
 
+/* W-216. WHICH BLOOD SUB-PANELS A FRESHLY LOADED SCENARIO OPENS BY DEFAULT.
+   Sample mode is read-only and the case's own story already carries correct
+   blood values (the workbook problem this fixes is visibility, not data) —
+   so a scenario that stocked a value for a panel opens it, and one that did
+   not stays closed, the same rule bloodPanelHtml()'s own `anyValue` uses to
+   decide `bp-empty`. `BLOOD_PANEL` is render.js's own key list (declared
+   `const` at that script's top level, so it is the same global this file
+   already relies on the browser branch of `_RN` documenting above) — one
+   definition of "belongs to this card", never a second copy that could
+   drift from it. Manual (live) entry never calls this; it keeps starting
+   closed. */
+function defaultBloodPanelOpen(selection) {
+  const v = (selection && selection.values) || {};
+  const hasValue = function (k) { return typeof v[k] === 'number' && !isNaN(v[k]); };
+  const open = {};
+  for (const param in BLOOD_PANEL) {
+    if (BLOOD_PANEL[param].keys.some(hasValue)) open[param] = true;
+  }
+  return open;
+}
+
 /* W-167. WHETHER THE READER HAS DISMISSED THE INTRODUCTION STRIP. Same shape and
    same reasons as methodOpen above: a screen-only flag, owned here, threaded
    down in the view object, never part of `selection`.
@@ -265,7 +297,7 @@ function enterSample(key) {
   selection = applySelection(createSelection(), loaded);
   removed = {};
   bmiPopupOpen = false;
-  bloodPanelOpen = {};
+  bloodPanelOpen = defaultBloodPanelOpen(selection);
   renderSelectionScreen();
 }
 

@@ -1160,7 +1160,7 @@ function rulersFor(row, indication, profile, etiologyCohort, cohort) {
   if (m && m.refs.length) {
     if (m.scale) {
       const strip = rulerFromScale(m.scale, row.parameter, row, hasValue,
-                                   'publication matched to the indication',
+                                   'study matched to the indication',
                                    false, 'matched');
       /* A MATCHED STRIP IS DRAWN ONLY WHERE IT DIFFERS FROM THE BAR ALREADY
          DRAWN. Measured 2026-08-23: adult PDFF at 1.5T pools three MASLD records
@@ -1501,12 +1501,22 @@ function buildCards(report, profile) {
         });
       }
     }
-    const indices = verdicts.map(v => v.index);
-    const disagree = indices.length > 1 && indices.some(i => i !== indices[0]);
 
     const rulers = rulersFor(row, indication, profile, etiologyCohort,
                              report.selection && report.selection.cohort);
     const stagingRuler = rulers.filter(r => r.staging)[0] || null;
+
+    /* W-223. Asked of what the page actually DRAWS (`rulers`), never of the
+       `verdicts` comparison above: `rulersFor()` substitutes one matched
+       publication's own ladder for the second bar wherever a match exists
+       (W-133), and that publication can agree with the guideline even where
+       the pooled primary-studies mean above would not have. Comparing the
+       bands on the two objects that end up on the page is what keeps
+       "disagree" answerable by looking at the report in front of the reader,
+       rather than at a scale that is not drawn. */
+    const drawnBands = rulers.filter(r => r.role !== 'orientation' && r.verdict && r.verdict.band)
+                              .map(r => r.verdict.band);
+    const disagree = drawnBands.length > 1 && new Set(drawnBands).size > 1;
 
     return {
       parameter: row.parameter,
@@ -1537,7 +1547,7 @@ function buildCards(report, profile) {
          applies rather than covering both with a vague line. */
       singleLadderReason: rulers.length !== 1 || rulers[0].role === 'orientation' ? null
         : (rulers[0].matchIsSameLadder
-            ? 'The publication matched to this indication is the ladder already ' +
+            ? 'The study matched to this indication is the ladder already ' +
               'drawn above, so it is named rather than drawn a second time. A ' +
               'repeated bar would show one record as though two had agreed.'
             : 'Only one published ladder covers this measurement, so only one ' +
@@ -1565,7 +1575,7 @@ function buildCards(report, profile) {
          note to skim. Same fact, fewer words: the two ladders disagree, both are
          printed, neither is adjusted to fit the other. */
       disagreement: disagree
-        ? 'Guideline and matched publication disagree — both shown, neither is preferred.'
+        ? 'Guideline and matched study disagree — both shown, neither is preferred.'
         : null,
       provenance: hasValue ? provenanceSentence(row) : null,
       gap: row.staging === null || row.gate

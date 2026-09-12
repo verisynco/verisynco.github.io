@@ -1010,7 +1010,19 @@ svg.ruler.slim { opacity: .8; }
    the reader was typing. Three fractions of a constant total deliver one column
    width in every value state. */
 .pcard { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: var(--s-5);
-  align-items: start; padding: var(--s-4) 0; }
+  align-items: start; padding: var(--s-4) 0 var(--s-4) var(--s-3);
+  border-left: 2px solid transparent; }
+/* W-219. Staged (a published ladder resolved -- `data-band` is set, report.js
+   § 3.4/W-071) vs unstaged (no ladder closed -- `data-reason`, or neither
+   attribute when the card carries no data at all) needs a channel that is NOT
+   the verdict chip's own severity ramp (--sev-0..4, the warm family) sitting a
+   few pixels to the right on the very same card. --accent already means
+   "resolved against evidence" everywhere else on this sheet (section heads,
+   the reference badge) -- reused here as a quiet left border rather than a new
+   token. Both states keep the SAME 2px border + padding-left so an unstaged
+   card next to a staged one never shifts width (the W-217 trap: two grid
+   templates alternating row to row is what read as misaligned there). */
+.pcard[data-band] { border-left-color: var(--accent); }
 .pcard .pident h4 { margin: 0 0 var(--s-1); font-size: 12.5px; }
 .pcard .acq { margin: 0 0 var(--s-3); font-size: 9.5px; color: var(--muted); }
 /* W-097. The unit never breaks word by word (LIC's "mg Fe/g dw" was landing
@@ -1069,6 +1081,15 @@ svg.ruler.slim { opacity: .8; }
   font-family: var(--mono); font-size: 8px; letter-spacing: .06em;
   text-transform: uppercase; color: var(--faint); }
 .rul-matched .rul-head .rul-role { font-style: italic; }
+/* W-223. The matched bar's own decision box, drawn only where `card.disagreement`
+   fired — the consensus bar already has one in `.pverdict` (right column), so this
+   is the side that used to have none. Reuses the SAME v-* severity classes the big
+   `.verdict` chip already carries (contrast-locked by N17); no new colour. Overrides
+   the uppercase/letter-spacing/font-size `.rul-head` sets for the role sentence
+   around it, so the band name reads like the chip it echoes, not like the label. */
+.rul-verdict { display: inline-block; margin-left: var(--s-2); padding: var(--s-1) var(--s-3);
+  border: 1px solid; border-radius: 4px; font-weight: 700; font-size: 9px;
+  letter-spacing: normal; text-transform: none; }
 .vfrom { display: block; font-family: var(--mono); font-size: 8px; color: var(--faint);
   margin-top: var(--s-2); text-align: right; }
 .ptag { display: inline-block; font-family: var(--mono); font-size: 9px;
@@ -1238,6 +1259,18 @@ svg.ruler.slim { opacity: .8; }
 .composite .ms-join { flex: 0 0 var(--s-6); align-self: stretch;
   border-left: 1px solid var(--frame); margin: var(--s-4) 0; }
 .composite .ms-verdict { flex: 0 0 auto; }
+/* W-215. `.verdict` (line ~800) only ever set a MIN width, so each chip's
+   shrink-to-fit box grew with its own `.vsub` sentence length — MEFIB's and
+   MAST's chips sit in the same report but never matched, because their
+   longest published sentences are different lengths. A fixed WIDTH here,
+   scoped to these two composite blocks only, makes every chip the same size
+   regardless of which of the six published bands (MEFIB/MAST x
+   POSITIVE/NEGATIVE/INDETERMINATE) is drawn. 320px is the widest of the six,
+   measured in Edge headless against the real stylesheet (MAST's
+   INDETERMINATE sentence, 312px), rounded up for rendering-engine margin;
+   the other five wrap onto more lines inside the same box rather than
+   overflow it. Other `.verdict` chips elsewhere in the report are untouched. */
+.composite .ms-verdict .verdict { width: 320px; }
 /* W-194. The recovery hint under a pending MEFIB — same register as the gap
    sentence it follows, one step in from it. */
 .composite .gap-hint { font-size: 10px; color: var(--muted); margin: var(--s-2) 0 0; }
@@ -1495,6 +1528,26 @@ ul.ev .quote .src{ display:inline; margin-left:var(--s-1); font-style:normal; }
    to .pfacts (the sourced-gap sentence) rather than sitting empty. Where
    :has() is unsupported the card keeps the 1fr track above, unchanged. */
 .pcard:has(.pbars:empty){ grid-template-columns: min-content 2fr 1fr; }
+
+/* W-217 — BUT NOT IN "ADDITIONAL MEASUREMENTS". Native T1, ADC and the other
+   sparse-evidence readings under #section-additional hit this same empty-.pbars
+   case far more often than the primary cards above -- MEASURED, Edge headless,
+   2026-09-12: a compact card (Native T1, ADC) sat in the very next row under a
+   full-width one (cT1, which does carry a ladder), and the two different grid
+   templates alternating row to row is what read as misaligned. Cards in this
+   one section keep the ordinary three-column grid every time, gap-and-all; the
+   W-097 space saving above is unaffected everywhere else. The ID selector's
+   specificity wins regardless of source order, so this reads as a correction
+   next to the rule it corrects rather than relying on being written after it. */
+#section-additional .pcard:has(.pbars:empty){ grid-template-columns: 1fr 2fr 1fr; }
+#section-additional .pcard:has(.pbars:empty) .pbars{ display: block; }
+/* MEASURED, Edge headless getComputedStyle, 2026-09-12: `grid-column: auto`
+   here does NOT restore the ordinary full-span row -- with no explicit end,
+   `.pfacts` auto-places into a single track (column 1's width), leaving the
+   ladder and verdict columns beside it visibly empty. `1 / -1` is the actual
+   base rule (`.pcard .pfacts` above) this override needs to restate; `auto`
+   was the wrong value, not a placeholder for it. */
+#section-additional .pcard:has(.pbars:empty) .pfacts{ grid-column: 1 / -1; grid-row: auto; }
 
 /* ── 3. MEASURE — line length where the page grows ───────────────────────────
    W-111 (developer visual call, § 2.4): on a wide window the impression and

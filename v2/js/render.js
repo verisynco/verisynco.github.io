@@ -1635,7 +1635,7 @@ function rulerBlock(ruler, axis) {
   const roleText = ruler.role === 'orientation'
     ? 'shown for orientation — not used to stage'
     : (ruler.role === 'consensus' ? 'stages this value'
-      : (ruler.matchLabel ? 'a publication specific to this indication'
+      : (ruler.matchLabel ? 'a study specific to this indication'
                           : 'guideline and published studies disagree here'));
 
   return '<div class="rul rul-' + esc(ruler.role) + '" data-role="' + esc(ruler.role) + '"' +
@@ -2802,7 +2802,7 @@ function measurementNotes(model) {
         bits.push('also eligible: ' + ruler.matchedRefs.slice(1).join('; '));
       }
       if (ruler.missingRungs && ruler.missingRungs.length) {
-        bits.push('the matched publication does not cover ' + ruler.missingRungs.join(', '));
+        bits.push('the matched study does not cover ' + ruler.missingRungs.join(', '));
       }
       if (ruler.note) bits.push(ruler.note);
     }

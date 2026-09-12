@@ -26,7 +26,28 @@
  * ---------------------------------------------------------------------------
  */
 
-const V21_RENDER_VERSION = '3.92';  /* W-213: the ladder area declutters — the
+const V21_RENDER_VERSION = '3.94';  /* W-223: the matched-ladder side of a genuine
+   guideline/matched-study disagreement now carries its own decision box
+   (`.rul-verdict`, rulerBlock()) — before, only the consensus bar's verdict
+   printed (in `.pverdict`), so a reader saw one side's band and had to take the
+   other bar's on faith from the axis drawing alone. Drawn only when
+   `card.disagreement` fired, on every non-consensus, non-orientation ruler.
+   Reuses the existing v-* severity classes, no new colour, no new hash lock.
+   The companion FALSE-TRIGGER fix (the "disagree" sentence firing even where
+   the two DRAWN bars agree, because it compared the pooled primary-studies
+   scale rather than whatever `rulersFor()` actually drew) is in the shared
+   engine, v2/js/report.js buildCards() — that half needs no version bump
+   here, since nothing in this file's own logic changed for it.
+
+   Was 3.93 for W-222: compositeSection() no longer prints
+   the "Also on this axis ... is computed in its own block below" MAST note when
+   a reliability rule has withheld the MRE stiffness — buildMast() refuses for
+   that exact reason every time, so the sentence was always false there and
+   the MAST block below always contradicted it one paragraph later with its own
+   "not computed" sentence. The "Rule strength" note is unchanged and still
+   prints. Presentation-only; no clinical value, cut-off or hash moved.
+
+   Was 3.92 for W-213: the ladder area declutters — the
    old `title=` tooltip on the whole bar is replaced by a per-ladder (?)
    source box (screen, CSS-only, no script), the evidence-grade badge and the
    thresholds/missing-rung line move screen-side into it with a `print-only`
@@ -1947,7 +1968,7 @@ function sourceBoxHtml(ruler, row, why, matchRefId) {
     '<span class="srcbox" role="tooltip">' + parts.join('') + '</span></span>';
 }
 
-function rulerBlock(ruler, axis, row, singleNote) {
+function rulerBlock(ruler, axis, row, singleNote, disagree) {
   const drawnSvg = rulerSvg(ruler, axis, ruler.role === 'matched');
   /* THE CARD CARRIES FACTS; THE REASONS MOVED. What used to print here as four
      paragraphs — the full citation, the other eligible publications, the band
@@ -2007,8 +2028,22 @@ function rulerBlock(ruler, axis, row, singleNote) {
   const roleText = ruler.role === 'orientation'
     ? 'shown for orientation — not used to stage'
     : (ruler.role === 'consensus' ? 'stages this value'
-      : (ruler.matchLabel ? 'a publication specific to this indication'
+      : (ruler.matchLabel ? 'a study specific to this indication'
                           : 'guideline and published studies disagree here'));
+
+  /* W-223. The consensus bar's verdict already prints in `.pverdict`
+     (parameterCard, right column) — this is the box the OTHER side lacked.
+     Nested inside `.rul-role` rather than added as a third flex child of
+     `.rul-head`, for the same reason the W-213 comment above gives: two
+     children, space-between, a third would float the role sentence to the
+     middle. Only drawn where `card.disagreement` actually fired — a card
+     where both bars agree has nothing here to add beside the one chip it
+     already has. */
+  const verdictBadge = (disagree && ruler.role !== 'consensus' && ruler.role !== 'orientation' &&
+      ruler.verdict && ruler.verdict.band)
+    ? ' <span class="rul-verdict v-' + esc(ruler.verdict.sev || 'none') + '">' +
+      esc(ruler.verdict.band) + '</span>'
+    : '';
 
   return '<div class="rul rul-' + esc(ruler.role) + '" data-role="' + esc(ruler.role) + '">' +
     /* W-213. The (?) box sits INSIDE `.rul-scale`, not as a third sibling of
@@ -2021,7 +2056,7 @@ function rulerBlock(ruler, axis, row, singleNote) {
       (ruler.unit ? ' · ' + esc(ruler.unit) : '') +
       evidenceGradeBadge(ruler, 'print-only-inline') +
       sourceBoxHtml(ruler, row, why, matchRefId) + '</span>' +
-    '<span class="rul-role">' + esc(roleText) + '</span></div>' +
+    '<span class="rul-role">' + esc(roleText) + verdictBadge + '</span></div>' +
     /* W-125 / W-124. Above the bar, top to bottom: the patient's value chip on
        its own row (consensus rulers with a value only), then the tick-aligned
        boundary values flush to the bar (every ruler). Below the bar: the band
@@ -2049,7 +2084,7 @@ function rulersHtml(card, row) {
      exactly one ruler drew (report.js) — safe to hand to that one ruler's
      own box unconditionally. */
   const singleNote = ordered.length === 1 ? card.singleLadderReason : null;
-  const blocks = ordered.map(r => rulerBlock(r, axis, row, singleNote));
+  const blocks = ordered.map(r => rulerBlock(r, axis, row, singleNote, !!card.disagreement));
   /* W-147: the disagreement note sits at the junction between the two bars —
      after the first (consensus), before the rest (matched) — the point the
      eye crosses while comparing them, rather than below both in `.pfacts`.
@@ -2448,9 +2483,15 @@ function measurementPracticeHint(parameter, fieldStrength, interactions, referen
    authored; FIB-4 and the AST/ALT ratio are model.labs.fib4 / model.labs.aar,
    also report.js's. Nothing new is computed here.
 
-   SCREEN: a checkbox opens the panel; closed by default, even when the group is
-   performed (developer decision). `view.bloodPanelOpen[<param>]` is a screen-
-   only flag owned by app.js, never on `selection`.
+   SCREEN: a checkbox opens the panel; closed by default in manual (live) entry,
+   even when the group is performed (developer decision). `view.bloodPanelOpen
+   [<param>]` is a screen-only flag owned by app.js, never on `selection`.
+   W-216: entering a Sample scenario is the one exception — app.js's
+   `defaultBloodPanelOpen()` opens a panel there when the loaded case actually
+   stocked a value for it, so the reader is not made to find a hidden box to
+   see numbers the scenario already put on the page. `bloodPanelHtml()` below
+   is unchanged either way — it only ever reads whatever `view.bloodPanelOpen`
+   it is handed.
    PRINT: the panel's values always render. The `bp-open` gate is an `@media
    screen` rule (styles.css); `@media print` never sees it, the same W-164 safety
    argument the methodology collapse uses. A panel with no value entered is
@@ -2824,6 +2865,13 @@ function ivimBlockHtml(param, block) {
    IVIM inputs still render as the entry affordance. `ivim.rendered` carries the
    scope decision from the model (report.js buildIvim); the renderer takes no
    scope branch of its own (K6). */
+/* W-218. IVIM's three cards get the same `.domaingroup` box (border, heading)
+   the staged groups get from domainGroupHtml -- framing only, so the section
+   stops reading as three boxed groups plus one loose appendix. IVIM cannot go
+   through domainGroupHtml/groupCardsByDomain itself (it is not a report pair
+   and carries no entry in DOMAIN_TITLES/DOMAIN_ORDER -- deliberately, since it
+   stages nothing and must not start pooling/laddering like a fourth domain),
+   so the wrapper markup is built directly here, reusing only the CSS classes. */
 function additionalSectionHtml(pairs, build, ivim) {
   const ivimOn = !!(ivim && ivim.rendered);
   if (!pairs.length && !ivimOn) return '';
@@ -2831,7 +2879,9 @@ function additionalSectionHtml(pairs, build, ivim) {
     .map(g => domainGroupHtml(g, build)).join('');
   const blockOf = {'ivim-d': 'd', 'ivim-dstar': 'dstar', 'ivim-f': 'f'};
   const ivimHtml = ivimOn
-    ? _RN.IVIM_PARAMS.map(p => ivimBlockHtml(p, ivim[blockOf[p]])).join('')
+    ? '<div class="domaingroup"><h3 class="domainhead">Diffusion — IVIM</h3>' +
+      _RN.IVIM_PARAMS.map(p => ivimBlockHtml(p, ivim[blockOf[p]])).join('') +
+      '</div>'
     : '';
   const emptyCls = (!pairs.length && ivimOn && !ivim.hasAny)
     ? ' ivim-section-empty' : '';
@@ -2973,8 +3023,9 @@ function compositeSection(composite, selection, reliability) {
      word, so the line painted as "MAST MAST — …". The label now names the
      paragraph's job (there is a second composite over this axis) and the
      sentence keeps the name. Seen in a real render, not in the source (W-040). */
+  const strengthNote = '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) + '</p>';
   const notes = '<p class="cnote"><b>Also on this axis</b> ' + esc(composite.note.mast) + '</p>' +
-    '<p class="cnote"><b>Rule strength</b> ' + esc(composite.note.strength) + '</p>';
+    strengthNote;
 
   if (composite.pending) {
     /* B1 — no axis to give a holistic read of, so no gap to state either. */
@@ -2987,10 +3038,17 @@ function compositeSection(composite, selection, reliability) {
     const needMre = composite.pending.indexOf('MRE has not been entered') !== -1;
 
     /* B3 — a reliability rule withheld the stiffness the rule reads directly.
-       Full weight, both surfaces: it is a real abstention, not a missing input. */
+       Full weight, both surfaces: it is a real abstention, not a missing input.
+       W-222: `note.mast` ("MAST ... is computed in its own block below") is
+       always false here — buildMast() refuses on the exact same withheld MRE
+       (or, failing that, the cohort gate) every time mreWithheld is true, so
+       the block below always prints its own "not computed" sentence. Printing
+       both read as the report contradicting itself one paragraph apart; the
+       "Also on this axis" note is dropped and MAST's own block states the one
+       consistent reason on its own. */
     if (mreWithheld) {
       return '<section class="composite">' + head + intro +
-        '<p class="gap">' + esc(composite.pending) + '</p>' + notes + '</section>';
+        '<p class="gap">' + esc(composite.pending) + '</p>' + strengthNote + '</section>';
     }
 
     /* B2 — screen: the whole block, faded; print: one line naming the missing
@@ -3770,7 +3828,7 @@ function measurementNotes(model) {
         bits.push('also eligible: ' + ruler.matchedRefs.slice(1).join('; '));
       }
       if (ruler.missingRungs && ruler.missingRungs.length) {
-        bits.push('the matched publication does not cover ' + ruler.missingRungs.join(', '));
+        bits.push('the matched study does not cover ' + ruler.missingRungs.join(', '));
       }
       if (ruler.note) bits.push(ruler.note);
     }
